@@ -1,0 +1,1 @@
+ALTER TABLE AppSettings RENAME COLUMN use_immersive_detail_layout TO use_new_library_ui;

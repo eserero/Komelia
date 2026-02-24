@@ -4,6 +4,8 @@ import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import com.dokar.sonner.ToasterState
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -38,3 +40,4 @@ val LocalKomgaState = staticCompositionLocalOf<KomgaAuthenticationState> { error
 val LocalNavBarColor = compositionLocalOf<Color?> { null }
 val LocalAccentColor = compositionLocalOf<Color?> { null }
 val LocalUseNewLibraryUI = compositionLocalOf { true }
+val LocalRawStatusBarHeight = staticCompositionLocalOf { 0.dp }

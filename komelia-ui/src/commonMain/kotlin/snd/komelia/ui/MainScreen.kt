@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.windowInsetsBottomHeight
@@ -37,6 +39,7 @@ import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -167,20 +170,23 @@ class MainScreen(
         val useNewLibraryUI = LocalUseNewLibraryUI.current
 
         if (useNewLibraryUI) {
-            Box(Modifier.fillMaxSize().statusBarsPadding()) {
-                ModalNavigationDrawer(
-                    drawerState = vm.navBarState,
-                    drawerContent = { LibrariesNavBar(vm, navigator) },
-                    content = { CurrentScreen() }
-                )
-                Column(
-                    modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth()
-                ) {
-                    PillBottomNavigationBar(
-                        navigator = navigator,
-                        toggleLibrariesDrawer = { coroutineScope.launch { vm.toggleNavBar() } },
+            val rawStatusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+            CompositionLocalProvider(LocalRawStatusBarHeight provides rawStatusBarHeight) {
+                Box(Modifier.fillMaxSize().statusBarsPadding()) {
+                    ModalNavigationDrawer(
+                        drawerState = vm.navBarState,
+                        drawerContent = { LibrariesNavBar(vm, navigator) },
+                        content = { CurrentScreen() }
                     )
-                    Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.systemBars))
+                    Column(
+                        modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth()
+                    ) {
+                        PillBottomNavigationBar(
+                            navigator = navigator,
+                            toggleLibrariesDrawer = { coroutineScope.launch { vm.toggleNavBar() } },
+                        )
+                        Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.systemBars))
+                    }
                 }
             }
         } else {
