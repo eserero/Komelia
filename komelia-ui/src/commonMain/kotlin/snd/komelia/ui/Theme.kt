@@ -65,17 +65,17 @@ enum class Theme(
             tertiaryContainer = Color(red = 181, green = 130, blue = 49),
             onTertiaryContainer = Color.White,
 
-            background = Color(red = 254, green = 247, blue = 255),
+            background = Color.White, // Original: Color(red = 254, green = 247, blue = 255)
             onBackground = Color(red = 29, green = 27, blue = 32),
 
-            surface = Color(red = 254, green = 247, blue = 255),
+            surface = Color.White, // Original: Color(red = 254, green = 247, blue = 255)
             onSurface = Color(red = 29, green = 27, blue = 32),
 
-            surfaceVariant = Color(red = 231, green = 224, blue = 236),
-            surfaceContainerHighest = Color(red = 230, green = 224, blue = 233),
+            surfaceVariant = Color(red = 240, green = 240, blue = 240), // Original: Color(red = 231, green = 224, blue = 236)
+            surfaceContainerHighest = Color(red = 235, green = 235, blue = 235), // Original: Color(red = 230, green = 224, blue = 233)
             onSurfaceVariant = Color(red = 73, green = 69, blue = 79),
 
-            surfaceDim = Color(red = 222, green = 216, blue = 225),
+            surfaceDim = Color(red = 225, green = 225, blue = 225), // Original: Color(red = 222, green = 216, blue = 225)
             surfaceBright = Color(red = 180, green = 180, blue = 180),
 
             error = Color(red = 240, green = 70, blue = 60),

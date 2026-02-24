@@ -4,16 +4,20 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -214,10 +218,14 @@ fun ImmersiveSeriesContent(
             val thumbnailTopGap = 20.dp
             val thumbnailHeight = 110.dp / 0.703f // ≈ 156.5 dp
 
+            val navBarBottom = with(LocalDensity.current) {
+                WindowInsets.navigationBars.getBottom(this).toDp()
+            }
             LazyVerticalGrid(
                 state = scrollState,
                 columns = GridCells.Adaptive(gridMinWidth),
                 horizontalArrangement = Arrangement.spacedBy(15.dp),
+                contentPadding = PaddingValues(start = 10.dp, end = 10.dp, bottom = navBarBottom + 80.dp),
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 // Title + writers in a single item whose minimum height equals the thumbnail

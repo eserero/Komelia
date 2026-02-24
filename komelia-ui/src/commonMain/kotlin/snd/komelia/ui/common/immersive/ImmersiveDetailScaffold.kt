@@ -10,6 +10,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.AnchoredDraggableState
+import androidx.compose.foundation.gestures.snapTo
 import androidx.compose.foundation.gestures.DraggableAnchors
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.anchoredDraggable
@@ -94,6 +95,8 @@ fun ImmersiveDetailScaffold(
     cardColor: Color?,
     modifier: Modifier = Modifier,
     immersive: Boolean = false,
+    initiallyExpanded: Boolean = false,
+    onExpandChange: (Boolean) -> Unit = {},
     topBarContent: @Composable () -> Unit,
     fabContent: @Composable () -> Unit,
     cardContent: @Composable ColumnScope.(expandFraction: Float) -> Unit,
@@ -106,8 +109,8 @@ fun ImmersiveDetailScaffold(
         val collapsedOffset = screenHeight * 0.65f
         val collapsedOffsetPx = with(density) { collapsedOffset.toPx() }
 
-        // Persist expanded/collapsed across back-navigation
-        var savedExpanded by rememberSaveable { mutableStateOf(false) }
+        // Use remember (not rememberSaveable) so pager pages don't restore stale saved state.
+        var savedExpanded by remember { mutableStateOf(initiallyExpanded) }
 
         val state = remember(collapsedOffsetPx) {
             AnchoredDraggableState(
@@ -129,8 +132,19 @@ fun ImmersiveDetailScaffold(
 
         var innerScrollPx by rememberSaveable { mutableFloatStateOf(0f) }
 
+        // Snap already-composed pages (e.g. adjacent in a pager) when the parent changes the
+        // shared expand state. Skips the snap if the card is already in the right position.
+        LaunchedEffect(initiallyExpanded) {
+            val target = if (initiallyExpanded) CardDragValue.EXPANDED else CardDragValue.COLLAPSED
+            if (state.currentValue != target) {
+                state.snapTo(target)
+            }
+            savedExpanded = initiallyExpanded
+        }
+
         LaunchedEffect(state.currentValue) {
             savedExpanded = state.currentValue == CardDragValue.EXPANDED
+            onExpandChange(savedExpanded)
             if (state.currentValue == CardDragValue.COLLAPSED) innerScrollPx = 0f
         }
 
@@ -203,6 +217,7 @@ fun ImmersiveDetailScaffold(
             ThumbnailImage(
                 data = coverData,
                 cacheKey = coverKey,
+                crossfade = false,
                 contentScale = ContentScale.Crop,
                 modifier = if (immersive)
                     Modifier
@@ -271,6 +286,7 @@ fun ImmersiveDetailScaffold(
                     ThumbnailImage(
                         data = coverData,
                         cacheKey = coverKey,
+                        crossfade = false,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
                             .size(width = 110.dp, height = (110.dp / 0.703f))

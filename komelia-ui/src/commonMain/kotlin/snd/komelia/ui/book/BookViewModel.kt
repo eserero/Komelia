@@ -33,7 +33,9 @@ import snd.komelia.ui.common.cards.defaultCardWidth
 import snd.komelia.ui.common.menus.BookMenuActions
 import snd.komelia.ui.readlist.BookReadListsState
 import snd.komga.client.book.KomgaBookId
+import snd.komga.client.common.KomgaPageRequest
 import snd.komga.client.library.KomgaLibrary
+import snd.komga.client.search.allOfBooks
 import snd.komga.client.sse.KomgaEvent
 import snd.komga.client.sse.KomgaEvent.BookAdded
 import snd.komga.client.sse.KomgaEvent.BookChanged
@@ -70,6 +72,8 @@ class BookViewModel(
     val cardWidth = settingsRepository.getCardWidth().map { it.dp }
         .stateIn(screenModelScope, Eagerly, defaultCardWidth.dp)
 
+    val siblingBooks = MutableStateFlow<List<KomeliaBook>>(emptyList())
+
     val bookMenuActions = BookMenuActions(bookApi, notifications, screenModelScope, taskEmitter)
 
     suspend fun initialize() {
@@ -79,6 +83,7 @@ class BookViewModel(
         else mutableState.value = Success(Unit)
         loadLibrary()
         readListsState.initialize()
+        loadSiblingBooks()
         startKomgaEventListener()
 
         reloadJobsFlow.onEach {
@@ -92,6 +97,19 @@ class BookViewModel(
             loadBook()
             loadLibrary()
             readListsState.reload()
+        }
+    }
+
+    fun loadSiblingBooks() {
+        screenModelScope.launch {
+            val seriesId = book.value?.seriesId ?: return@launch
+            notifications.runCatchingToNotifications {
+                val page = bookApi.getBookList(
+                    conditionBuilder = allOfBooks { seriesId { isEqualTo(seriesId) } },
+                    pageRequest = KomgaPageRequest(unpaged = true)
+                )
+                siblingBooks.value = page.content
+            }
         }
     }
 

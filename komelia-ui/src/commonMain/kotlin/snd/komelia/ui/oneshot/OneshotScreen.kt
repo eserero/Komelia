@@ -31,31 +31,10 @@ import snd.komga.client.series.KomgaSeries
 import snd.komga.client.series.KomgaSeriesId
 import kotlin.jvm.Transient
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
-import snd.komelia.image.coil.SeriesDefaultThumbnailRequest
 import snd.komelia.ui.LocalAccentColor
 import snd.komelia.ui.LocalPlatform
 import snd.komelia.ui.LocalUseNewLibraryUI
-import snd.komelia.ui.common.immersive.ImmersiveDetailFab
-import snd.komelia.ui.common.immersive.ImmersiveDetailScaffold
+import snd.komelia.ui.oneshot.immersive.ImmersiveOneshotContent
 import snd.komelia.ui.platform.PlatformType
 
 class OneshotScreen(
@@ -100,56 +79,47 @@ class OneshotScreen(
 
         val platform = LocalPlatform.current
         val useNewUI = LocalUseNewLibraryUI.current
-        if (platform == PlatformType.MOBILE && useNewUI) {
-            ImmersiveDetailScaffold(
-                coverData = SeriesDefaultThumbnailRequest(seriesId),
-                coverKey = "series-$seriesId",
-                cardColor = LocalAccentColor.current,
-                immersive = true,
-                topBarContent = {
-                    Box(
-                        modifier = Modifier
-                            .padding(start = 12.dp, top = 8.dp)
-                            .size(36.dp)
-                            .background(Color.Black.copy(alpha = 0.55f), CircleShape)
-                            .clickable { onBackPress(navigator, vm.series.value?.libraryId) },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, tint = Color.White)
-                    }
-                },
-                fabContent = {
-                    ImmersiveDetailFab(
-                        onReadClick = {},
-                        onReadIncognitoClick = {},
-                        onDownloadClick = {},
-                        accentColor = LocalAccentColor.current,
+        val vmBook = vm.book.collectAsState().value
+        val vmSeries = vm.series.collectAsState().value
+        val vmLibrary = vm.library.collectAsState().value
+        if (platform == PlatformType.MOBILE && useNewUI && vmBook != null && vmSeries != null && vmLibrary != null) {
+            ImmersiveOneshotContent(
+                series = vmSeries,
+                book = vmBook,
+                library = vmLibrary,
+                accentColor = LocalAccentColor.current,
+                onLibraryClick = { navigator.push(LibraryScreen(it.id)) },
+                onBookReadClick = { markReadProgress ->
+                    navigator.parent?.push(
+                        readerScreen(
+                            book = vmBook,
+                            markReadProgress = markReadProgress,
+                            bookSiblingsContext = bookSiblingsContext,
+                        )
                     )
                 },
-                cardContent = { expandFraction ->
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp)
-                            .padding(start = (126.dp * expandFraction).coerceAtLeast(0.dp))
-                    ) {
-                        Text(
-                            text = vm.series.collectAsState().value?.metadata?.title ?: "Loading...",
-                            style = MaterialTheme.typography.titleLarge
-                        )
-                        Spacer(Modifier.height(16.dp))
-                        Text("Immersive Oneshot Boilerplate")
-                        Text("Scroll anywhere on the card to see the cover shrink animation.")
-
-                        // Add some height to enable scrolling/dragging if needed
-                        Spacer(Modifier.height(1000.dp))
-                    }
-                }
+                oneshotMenuActions = vm.bookMenuActions,
+                collections = vm.collectionsState.collections,
+                onCollectionClick = { collection -> navigator.push(CollectionScreen(collection.id)) },
+                onSeriesClick = { navigator.push(seriesScreen(it)) },
+                readLists = vm.readListsState.readLists,
+                onReadListClick = { navigator.push(ReadListScreen(it.id)) },
+                onReadlistBookClick = { book, readList ->
+                    navigator push bookScreen(
+                        book = book,
+                        bookSiblingsContext = BookSiblingsContext.ReadList(readList.id)
+                    )
+                },
+                onFilterClick = { filter ->
+                    navigator.popUntilRoot()
+                    navigator.dispose(navigator.lastItem)
+                    navigator.replaceAll(LibraryScreen(vmBook.libraryId, filter))
+                },
+                onBookDownload = vm::onBookDownload,
+                cardWidth = vm.cardWidth.collectAsState().value,
+                onBackClick = { onBackPress(navigator, vmSeries.libraryId) },
             )
-
-            BackPressHandler {
-                vm.series.value?.let { onBackPress(navigator, it.libraryId) }
-            }
+            BackPressHandler { onBackPress(navigator, vmSeries.libraryId) }
             return
         }
 

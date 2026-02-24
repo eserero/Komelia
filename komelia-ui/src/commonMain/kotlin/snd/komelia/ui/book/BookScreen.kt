@@ -27,31 +27,10 @@ import snd.komga.client.book.KomgaBookId
 import snd.komga.client.series.KomgaSeriesId
 import kotlin.jvm.Transient
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
-import snd.komelia.image.coil.BookDefaultThumbnailRequest
 import snd.komelia.ui.LocalAccentColor
 import snd.komelia.ui.LocalPlatform
 import snd.komelia.ui.LocalUseNewLibraryUI
-import snd.komelia.ui.common.immersive.ImmersiveDetailFab
-import snd.komelia.ui.common.immersive.ImmersiveDetailScaffold
+import snd.komelia.ui.book.immersive.ImmersiveBookContent
 import snd.komelia.ui.platform.PlatformType
 
 fun bookScreen(
@@ -96,53 +75,38 @@ class BookScreen(
         val platform = LocalPlatform.current
         val useNewUI = LocalUseNewLibraryUI.current
         if (platform == PlatformType.MOBILE && useNewUI) {
-            ImmersiveDetailScaffold(
-                coverData = BookDefaultThumbnailRequest(bookId),
-                coverKey = "book-$bookId",
-                cardColor = LocalAccentColor.current,
-                immersive = true,
-                topBarContent = {
-                    Box(
-                        modifier = Modifier
-                            .padding(start = 12.dp, top = 8.dp)
-                            .size(36.dp)
-                            .background(Color.Black.copy(alpha = 0.55f), CircleShape)
-                            .clickable { onBackPress(navigator, vm.book.value?.seriesId) },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, tint = Color.White)
-                    }
-                },
-                fabContent = {
-                    ImmersiveDetailFab(
-                        onReadClick = {},
-                        onReadIncognitoClick = {},
-                        onDownloadClick = {},
-                        accentColor = LocalAccentColor.current,
+            val book = vm.book.collectAsState().value ?: return
+            val siblings = vm.siblingBooks.collectAsState().value
+
+            ImmersiveBookContent(
+                book = book,
+                siblingBooks = siblings,
+                accentColor = LocalAccentColor.current,
+                bookMenuActions = vm.bookMenuActions,
+                onBackClick = { onBackPress(navigator, book.seriesId) },
+                onReadBook = { selectedBook, markReadProgress ->
+                    navigator.parent?.push(
+                        readerScreen(selectedBook, markReadProgress, bookSiblingsContext)
                     )
                 },
-                cardContent = { expandFraction ->
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp)
-                            .padding(start = (126.dp * expandFraction).coerceAtLeast(0.dp))
-                    ) {
-                        Text(
-                            text = vm.book.collectAsState().value?.metadata?.title ?: "Loading...",
-                            style = MaterialTheme.typography.titleLarge
+                onDownload = vm::onBookDownload,
+                onFilterClick = { filter ->
+                    navigator.push(LibraryScreen(book.libraryId, filter))
+                },
+                readLists = vm.readListsState.readLists,
+                onReadListClick = { navigator.push(ReadListScreen(it.id)) },
+                onReadListBookPress = { book, readList ->
+                    if (book.id != bookId) navigator.push(
+                        bookScreen(
+                            book = book,
+                            bookSiblingsContext = BookSiblingsContext.ReadList(readList.id)
                         )
-                        Spacer(Modifier.height(16.dp))
-                        Text("Immersive Book Boilerplate")
-                        Text("Scroll anywhere on the card to see the cover shrink animation.")
-
-                        // Add some height to enable scrolling/dragging if needed
-                        Spacer(Modifier.height(1000.dp))
-                    }
-                }
+                    )
+                },
+                cardWidth = vm.cardWidth.collectAsState().value,
+                onSeriesClick = { seriesId -> navigator.push(SeriesScreen(seriesId)) },
             )
-
-            BackPressHandler { onBackPress(navigator, vm.book.value?.seriesId) }
+            BackPressHandler { onBackPress(navigator, book.seriesId) }
             return
         }
 

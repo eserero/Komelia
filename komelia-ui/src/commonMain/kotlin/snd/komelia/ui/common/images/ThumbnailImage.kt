@@ -19,6 +19,7 @@ fun ThumbnailImage(
     data: Any,
     cacheKey: String,
     contentScale: ContentScale = ContentScale.Fit,
+    crossfade: Boolean = true,
     placeholder: Painter? = NoopPainter,
     modifier: Modifier = Modifier,
 ) {
@@ -37,7 +38,7 @@ fun ThumbnailImage(
             )
             .diskCacheKey(cacheKey)
             .precision(Precision.EXACT)
-            .crossfade(true)
+            .crossfade(crossfade)
             .build()
     }
 
