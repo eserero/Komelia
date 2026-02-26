@@ -1,5 +1,11 @@
 package snd.komelia.ui.book.immersive
 
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -48,6 +54,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
+import snd.komelia.ui.LocalAnimatedVisibilityScope
+import snd.komelia.ui.LocalSharedTransitionScope
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.format
 import kotlinx.datetime.toLocalDateTime
@@ -67,6 +75,9 @@ import snd.komga.client.readlist.KomgaReadList
 import snd.komga.client.series.KomgaSeriesId
 import kotlin.math.roundToInt
 
+private val emphasizedAccelerateEasing = CubicBezierEasing(0.3f, 0.0f, 0.8f, 0.15f)
+
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun ImmersiveBookContent(
     book: KomeliaBook,
@@ -110,6 +121,32 @@ fun ImmersiveBookContent(
 
     var showDownloadConfirmationDialog by remember { mutableStateOf(false) }
     var sharedExpanded by remember { mutableStateOf(false) }
+
+    val sharedTransitionScope = LocalSharedTransitionScope.current
+    val animatedVisibilityScope = LocalAnimatedVisibilityScope.current
+
+    val fabOverlayModifier = if (sharedTransitionScope != null && animatedVisibilityScope != null) {
+        with(sharedTransitionScope) {
+            with(animatedVisibilityScope) {
+                Modifier
+                    .renderInSharedTransitionScopeOverlay(zIndexInOverlay = 1f)
+                    .animateEnterExit(
+                        enter = fadeIn(tween(300, delayMillis = 50)),
+                        exit = slideOutVertically(tween(200, easing = emphasizedAccelerateEasing)) { it / 2 }
+                               + fadeOut(tween(150))
+                    )
+            }
+        }
+    } else Modifier
+
+    val uiOverlayModifier = if (animatedVisibilityScope != null) {
+        with(animatedVisibilityScope) {
+            Modifier.animateEnterExit(
+                enter = fadeIn(tween(durationMillis = 150, delayMillis = 450)),
+                exit = fadeOut(tween(durationMillis = 100))
+            )
+        }
+    } else Modifier
 
     Box(modifier = Modifier.fillMaxSize()) {
 
@@ -287,6 +324,7 @@ fun ImmersiveBookContent(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .then(uiOverlayModifier)
                 .statusBarsPadding()
                 .padding(start = 12.dp, end = 4.dp, top = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -329,6 +367,7 @@ fun ImmersiveBookContent(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
+                .then(fabOverlayModifier)
                 .windowInsetsPadding(WindowInsets.navigationBars)
                 .padding(bottom = 16.dp)
         ) {

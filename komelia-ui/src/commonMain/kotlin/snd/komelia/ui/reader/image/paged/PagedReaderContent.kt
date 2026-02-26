@@ -71,6 +71,7 @@ fun BoxScope.PagedReaderContent(
         onNexPageClick = pagedReaderState::nextPage,
         onPrevPageClick = pagedReaderState::previousPage,
         contentAreaSize = currentContainerSize,
+        scaleState = screenScaleState,
         isSettingsMenuOpen = showSettingsMenu,
         onSettingsMenuToggle = { onShowSettingsMenuChange(!showSettingsMenu) },
         modifier = Modifier.onKeyEvent { event ->

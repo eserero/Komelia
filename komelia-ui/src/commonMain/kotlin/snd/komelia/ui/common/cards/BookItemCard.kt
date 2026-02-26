@@ -181,7 +181,7 @@ private fun BookImageOverlay(
                 if (showTitle) {
                     CardOutlinedText(
                         text = book.metadata.title,
-                        maxLines = 3
+                        maxLines = DEFAULT_CARD_MAX_LINES
                     )
                 }
                 if (book.deleted || libraryIsDeleted) {

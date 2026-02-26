@@ -107,6 +107,7 @@ fun BoxScope.ContinuousReaderContent(
         onNexPageClick = { coroutineScope.launch { continuousReaderState.scrollScreenForward() } },
         onPrevPageClick = { coroutineScope.launch { continuousReaderState.scrollScreenBackward() } },
         contentAreaSize = areaSize,
+        scaleState = screenScaleState,
         isSettingsMenuOpen = showSettingsMenu,
         onSettingsMenuToggle = { onShowSettingsMenuChange(!showSettingsMenu) },
         modifier = Modifier.onKeyEvent { event ->

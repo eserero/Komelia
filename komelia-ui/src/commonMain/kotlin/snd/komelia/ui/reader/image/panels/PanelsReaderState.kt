@@ -374,7 +374,7 @@ class PanelsReaderState(
             currentPageIndex.update { PageIndex(pageIndex, 0, false) }
             transitionPage.value = null
             screenScaleState.enableOverscrollArea(false)
-            screenScaleState.setZoom(0f)
+            screenScaleState.setZoom(0f, updateBase = true)
         }
 
         val page = downloadJob.await()
@@ -486,7 +486,7 @@ class PanelsReaderState(
     ): ScreenScaleState {
         val defaultScale = ScreenScaleState()
         defaultScale.setAreaSize(containerSize)
-        defaultScale.setZoom(0f)
+        defaultScale.setZoom(0f, updateBase = true)
         val image = page.imageResult?.image ?: return defaultScale
 
         val scaleState = ScreenScaleState()
@@ -497,7 +497,7 @@ class PanelsReaderState(
 
         val panels = page.panelData?.panels
         if (panels.isNullOrEmpty()) {
-            scaleState.setZoom(0f)
+            scaleState.setZoom(0f, updateBase = true)
         } else {
             val firstPanel = panels.first()
             val imageSize = image.getOriginalImageSize().getOrNull() ?: return defaultScale
@@ -507,7 +507,7 @@ class PanelsReaderState(
                 targetSize = fitToScreenSize,
                 panel = firstPanel
             )
-            scaleState.setZoom(zoom)
+            scaleState.setZoom(zoom, updateBase = true)
             scaleState.setOffset(offset)
         }
 
@@ -518,7 +518,7 @@ class PanelsReaderState(
 //        val areaSize = screenScaleState.areaSize.value
 //        val startX = 0 - areaSize.width.toFloat()
 //        val startY = 0 - areaSize.height.toFloat()
-        screenScaleState.setZoom(0f)
+        screenScaleState.setZoom(0f, updateBase = true)
         screenScaleState.scrollTo(Offset(0f, 0f))
 
     }
@@ -535,7 +535,7 @@ class PanelsReaderState(
             targetSize = targetSize,
             panel = panel
         )
-        screenScaleState.setZoom(zoom)
+        screenScaleState.setZoom(zoom, updateBase = true)
         screenScaleState.scrollTo(offset)
     }
 

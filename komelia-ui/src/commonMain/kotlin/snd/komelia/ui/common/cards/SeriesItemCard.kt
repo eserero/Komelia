@@ -209,7 +209,7 @@ private fun SeriesImageOverlay(
         ) {
             if (showTitle) {
 
-                CardOutlinedText(text = series.metadata.title, maxLines = 4)
+                CardOutlinedText(text = series.metadata.title, maxLines = DEFAULT_CARD_MAX_LINES)
                 if (series.deleted || libraryIsDeleted) {
                     CardOutlinedText(text = "Unavailable", textColor = MaterialTheme.colorScheme.error)
                 }

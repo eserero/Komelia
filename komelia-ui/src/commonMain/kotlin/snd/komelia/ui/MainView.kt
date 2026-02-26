@@ -1,5 +1,7 @@
 package snd.komelia.ui
 
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
@@ -149,6 +151,7 @@ fun MainView(
     }
 }
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 private fun MainContent(
     platformType: PlatformType,
@@ -161,45 +164,50 @@ private fun MainContent(
         }
     }
 
-    Navigator(
-        screen = loginScreen,
-        disposeBehavior = NavigatorDisposeBehavior(disposeNestedNavigators = false),
-        onBackPressed = null
-    ) { navigator ->
-        var canProceed by remember { mutableStateOf(komgaSharedState.authenticationState.value == Loaded) }
-        // FIXME this looks like a hack. Find a multiplatform way to handle this outside of composition?
-        // variable to track if Android app was killed in background and later restored
-        var wasInitializedBefore by rememberSaveable { mutableStateOf(false) }
-        navigator.clearEvent()
+    SharedTransitionLayout {
+        CompositionLocalProvider(LocalSharedTransitionScope provides this) {
+            Navigator(
+                screen = loginScreen,
+                disposeBehavior = NavigatorDisposeBehavior(disposeNestedNavigators = false),
+                onBackPressed = null
+            ) { navigator ->
+                var canProceed by remember { mutableStateOf(komgaSharedState.authenticationState.value == Loaded) }
+                // FIXME this looks like a hack. Find a multiplatform way to handle this outside of composition?
+                // variable to track if Android app was killed in background and later restored
+                var wasInitializedBefore by rememberSaveable { mutableStateOf(false) }
+                navigator.clearEvent()
 
-        LaunchedEffect(Unit) {
-            if (canProceed) return@LaunchedEffect
+                LaunchedEffect(Unit) {
+                    if (canProceed) return@LaunchedEffect
 
-            // not really necessary since Voyager navigator doesn't dispose existing MainScreen when it's replaced with LoginScreen
-            // when LoginScreen replaces itself back to MainScreen, it's restored to old state
-            // not sure if it's intended, do proper initialization here to avoid loading LoginScreen
-            if (wasInitializedBefore) {
-                komgaSharedState.tryReloadState()
-            }
+                    // not really necessary since Voyager navigator doesn't dispose existing MainScreen when it's replaced with LoginScreen
+                    // when LoginScreen replaces itself back to MainScreen, it's restored to old state
+                    // not sure if it's intended, do proper initialization here to avoid loading LoginScreen
+                    if (wasInitializedBefore) {
+                        komgaSharedState.tryReloadState()
+                    }
 
-            val currentState = komgaSharedState.authenticationState.value
-            when (currentState) {
-                AuthenticationRequired -> navigator.replaceAll(loginScreen)
-                Loaded -> {}
-            }
-            canProceed = true
+                    val currentState = komgaSharedState.authenticationState.value
+                    when (currentState) {
+                        AuthenticationRequired -> navigator.replaceAll(loginScreen)
+                        Loaded -> {}
+                    }
+                    canProceed = true
 
-            komgaSharedState.authenticationState.collect {
-                wasInitializedBefore = when (it) {
-                    AuthenticationRequired -> false
-                    Loaded -> true
+                    komgaSharedState.authenticationState.collect {
+                        wasInitializedBefore = when (it) {
+                            AuthenticationRequired -> false
+                            Loaded -> true
+                        }
+                    }
+                }
+
+                if (canProceed) {
+                    CurrentScreen()
                 }
             }
         }
-
-        if (canProceed) CurrentScreen()
     }
-
 }
 
 

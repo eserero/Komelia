@@ -217,7 +217,7 @@ class ContinuousReaderState(
             .filter { it != IntSize.Zero }
             .onEach {
                 applyPadding()
-                screenScaleState.setZoom(0f)
+                screenScaleState.setZoom(0f, updateBase = true)
             }
             .launchIn(stateScope)
 
@@ -699,7 +699,7 @@ class ContinuousReaderState(
     fun onSidePaddingChange(fraction: Float) {
         this.sidePaddingFraction.value = fraction
         applyPadding()
-        screenScaleState.setZoom(0f)
+        screenScaleState.setZoom(0f, updateBase = true)
         stateScope.launch { settingsRepository.putContinuousReaderPadding(fraction) }
     }
 

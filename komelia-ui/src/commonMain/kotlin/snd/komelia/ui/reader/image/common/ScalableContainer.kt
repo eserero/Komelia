@@ -100,12 +100,20 @@ fun ScalableContainer(
 
             }
             .pointerInput(areaSize) {
-                detectTransformGestures { event, centroid, pan, zoom, _ ->
-                    if (zoom != 1.0f) {
-                        scaleState.multiplyZoom(zoom, centroid - areaCenter)
-                    } else {
-                        scaleState.addPan(event, pan)
+                var lastIterationPointerCount = 0
+                detectTransformGestures { changes, centroid, pan, zoom, _ ->
+                    val currentPointerCount = changes.count { it.pressed }
+                    if (currentPointerCount != lastIterationPointerCount) {
+                        scaleState.resetVelocity()
                     }
+
+                    if (currentPointerCount == lastIterationPointerCount) {
+                        if (zoom != 1.0f) {
+                            scaleState.multiplyZoom(zoom, centroid - areaCenter)
+                        }
+                        scaleState.addPan(changes, pan)
+                    }
+                    lastIterationPointerCount = currentPointerCount
                 }
             }
             .onPointerEvent(PointerEventType.Scroll) { event ->

@@ -2,9 +2,11 @@ package snd.komelia.ui.reader.image
 
 import androidx.compose.animation.core.AnimationState
 import androidx.compose.animation.core.DecayAnimationSpec
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.VectorConverter
 import androidx.compose.animation.core.animateDecay
 import androidx.compose.animation.core.animateTo
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.Orientation.Horizontal
@@ -57,6 +59,12 @@ class ScreenScaleState {
 
     @Volatile
     private var scrollJob: Job? = null
+
+    @Volatile
+    private var zoomJob: Job? = null
+
+    @Volatile
+    private var baseZoom = 1f
 
     @Volatile
     private var enableOverscrollArea = false
@@ -237,8 +245,9 @@ class ScreenScaleState {
         this.scrollReversed.value = reversed
     }
 
-    fun setZoom(zoom: Float, focus: Offset = Offset.Zero) {
+    fun setZoom(zoom: Float, focus: Offset = Offset.Zero, updateBase: Boolean = false) {
         val newZoom = zoom.coerceIn(zoomLimits.value)
+        if (updateBase) baseZoom = newZoom
         val newOffset = Transformation.offsetOf(
             point = transformation.value.pointOf(focus),
             transformedPoint = focus,
@@ -254,6 +263,30 @@ class ScreenScaleState {
         applyLimits()
     }
 
+    fun toggleZoom(focus: Offset) {
+        val coroutineScope = composeScope ?: return
+        zoomJob?.cancel()
+        val currentZoom = zoom.value
+        val targetZoom = if (currentZoom > baseZoom + 0.1f) {
+            baseZoom
+        } else {
+            max(baseZoom * 2.5f, 2.5f)
+        }
+
+        zoomJob = coroutineScope.launch {
+            AnimationState(initialValue = currentZoom).animateTo(
+                targetValue = targetZoom,
+                animationSpec = spring(stiffness = Spring.StiffnessLow)
+            ) {
+                setZoom(value, focus)
+            }
+        }
+    }
+
+    fun resetVelocity() {
+        velocityTracker.resetTracking()
+    }
+
     fun enableOverscrollArea(enable: Boolean) {
         this.enableOverscrollArea = enable
         applyLimits()
@@ -262,6 +295,7 @@ class ScreenScaleState {
     fun apply(other: ScreenScaleState) {
         scrollJob?.cancel()
         currentOffset = other.currentOffset
+        this.baseZoom = other.baseZoom
 
         if (other.targetSize.value != this.targetSize.value || other.zoom.value != this.zoom.value) {
             this.areaSize.value = other.areaSize.value

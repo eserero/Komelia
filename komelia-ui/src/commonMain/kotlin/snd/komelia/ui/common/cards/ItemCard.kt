@@ -41,6 +41,7 @@ import snd.komelia.ui.platform.PlatformType
 import snd.komelia.ui.platform.cursorForHand
 
 const val defaultCardWidth = 240
+const val DEFAULT_CARD_MAX_LINES = 2
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -104,7 +105,7 @@ fun overlayBorderModifier() =
 fun CardOutlinedText(
     text: String,
     textColor: Color = Color.Unspecified,
-    maxLines: Int = Int.MAX_VALUE,
+    maxLines: Int = DEFAULT_CARD_MAX_LINES,
     style: TextStyle = MaterialTheme.typography.bodyMedium.copy(color = Color.White),
     outlineDrawStyle: Stroke = Stroke(4f),
 ) {

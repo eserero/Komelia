@@ -36,6 +36,12 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.contentColorFor
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -164,6 +170,7 @@ class MainScreen(
         }
     }
 
+    @OptIn(ExperimentalSharedTransitionApi::class)
     @Composable
     private fun MobileLayout(
         navigator: Navigator,
@@ -179,7 +186,19 @@ class MainScreen(
                     ModalNavigationDrawer(
                         drawerState = vm.navBarState,
                         drawerContent = { LibrariesNavBar(vm, navigator) },
-                        content = { CurrentScreen() }
+                        content = {
+                            AnimatedContent(
+                                targetState = navigator.lastItem,
+                                transitionSpec = { fadeIn(tween(400)) togetherWith fadeOut(tween(250)) },
+                                label = "nav",
+                            ) { screen ->
+                                CompositionLocalProvider(LocalAnimatedVisibilityScope provides this) {
+                                    navigator.saveableState("screen", screen) {
+                                        screen.Content()
+                                    }
+                                }
+                            }
+                        }
                     )
                     val isImmersiveScreen = navigator.lastItem is SeriesScreen ||
                             navigator.lastItem is BookScreen ||

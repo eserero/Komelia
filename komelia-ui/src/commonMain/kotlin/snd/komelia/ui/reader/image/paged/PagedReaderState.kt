@@ -558,7 +558,7 @@ class PagedReaderState(
         }
 
         when (scaleType) {
-            LayoutScaleType.SCREEN -> scaleState.setZoom(0f)
+            LayoutScaleType.SCREEN -> scaleState.setZoom(0f, updateBase = true)
             LayoutScaleType.FIT_WIDTH -> {
                 if (!stretchToFit && areaSize.width > actualSpreadSize.width) {
                     val newZoom = zoomForOriginalSize(
@@ -566,9 +566,9 @@ class PagedReaderState(
                         fitToScreenSize,
                         scaleState.scaleFor100PercentZoom()
                     )
-                    scaleState.setZoom(newZoom.coerceAtMost(1.0f))
-                } else if (fitToScreenSize.width < areaSize.width) scaleState.setZoom(1f)
-                else scaleState.setZoom(0f)
+                    scaleState.setZoom(newZoom.coerceAtMost(1.0f), updateBase = true)
+                } else if (fitToScreenSize.width < areaSize.width) scaleState.setZoom(1f, updateBase = true)
+                else scaleState.setZoom(0f, updateBase = true)
             }
 
             LayoutScaleType.FIT_HEIGHT -> {
@@ -578,10 +578,10 @@ class PagedReaderState(
                         fitToScreenSize,
                         scaleState.scaleFor100PercentZoom()
                     )
-                    scaleState.setZoom(newZoom.coerceAtMost(1.0f))
+                    scaleState.setZoom(newZoom.coerceAtMost(1.0f), updateBase = true)
 
-                } else if (fitToScreenSize.height < areaSize.height) scaleState.setZoom(1f)
-                else scaleState.setZoom(0f)
+                } else if (fitToScreenSize.height < areaSize.height) scaleState.setZoom(1f, updateBase = true)
+                else scaleState.setZoom(0f, updateBase = true)
             }
 
             LayoutScaleType.ORIGINAL -> {
@@ -591,9 +591,9 @@ class PagedReaderState(
                         fitToScreenSize,
                         scaleState.scaleFor100PercentZoom()
                     )
-                    scaleState.setZoom(newZoom)
+                    scaleState.setZoom(newZoom, updateBase = true)
 
-                } else scaleState.setZoom(0f)
+                } else scaleState.setZoom(0f, updateBase = true)
             }
         }
 

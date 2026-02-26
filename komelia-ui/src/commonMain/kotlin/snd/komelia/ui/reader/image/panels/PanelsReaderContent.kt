@@ -65,6 +65,7 @@ fun BoxScope.PanelsReaderContent(
         onNexPageClick = panelsReaderState::nextPanel,
         onPrevPageClick = panelsReaderState::previousPanel,
         contentAreaSize = currentContainerSize,
+        scaleState = screenScaleState,
         isSettingsMenuOpen = showSettingsMenu,
         onSettingsMenuToggle = { onShowSettingsMenuChange(!showSettingsMenu) },
         modifier = Modifier.onKeyEvent { event ->

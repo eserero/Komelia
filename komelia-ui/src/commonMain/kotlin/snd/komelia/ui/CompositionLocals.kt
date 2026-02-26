@@ -1,5 +1,8 @@
 package snd.komelia.ui
 
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
@@ -41,3 +44,7 @@ val LocalNavBarColor = compositionLocalOf<Color?> { null }
 val LocalAccentColor = compositionLocalOf<Color?> { null }
 val LocalUseNewLibraryUI = compositionLocalOf { true }
 val LocalRawStatusBarHeight = staticCompositionLocalOf { 0.dp }
+
+@OptIn(ExperimentalSharedTransitionApi::class)
+val LocalSharedTransitionScope = compositionLocalOf<SharedTransitionScope?> { null }
+val LocalAnimatedVisibilityScope = compositionLocalOf<AnimatedVisibilityScope?> { null }
