@@ -1,16 +1,25 @@
 package snd.komelia.ui.reader.image.paged
 
+import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.Key
@@ -24,6 +33,7 @@ import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
+import snd.komelia.image.ReaderImageResult
 import snd.komelia.settings.model.PageDisplayLayout.DOUBLE_PAGES
 import snd.komelia.settings.model.PageDisplayLayout.DOUBLE_PAGES_NO_COVER
 import snd.komelia.settings.model.PageDisplayLayout.SINGLE_PAGE
@@ -39,6 +49,7 @@ import snd.komelia.ui.reader.image.paged.PagedReaderState.Page
 import snd.komelia.ui.reader.image.paged.PagedReaderState.TransitionPage
 import snd.komelia.ui.reader.image.paged.PagedReaderState.TransitionPage.BookEnd
 import snd.komelia.ui.reader.image.paged.PagedReaderState.TransitionPage.BookStart
+import kotlin.math.abs
 
 @Composable
 fun BoxScope.PagedReaderContent(
@@ -59,17 +70,52 @@ fun BoxScope.PagedReaderContent(
         LEFT_TO_RIGHT -> LayoutDirection.Ltr
         RIGHT_TO_LEFT -> LayoutDirection.Rtl
     }
-    val pages = pagedReaderState.currentSpread.collectAsState().value.pages
+    val spreads = pagedReaderState.pageSpreads.collectAsState().value
+    val currentSpreadIndex = pagedReaderState.currentSpreadIndex.collectAsState().value
     val layout = pagedReaderState.layout.collectAsState().value
     val layoutOffset = pagedReaderState.layoutOffset.collectAsState().value
 
     val currentContainerSize = screenScaleState.areaSize.collectAsState().value
 
+    val pagerState = rememberPagerState(
+        initialPage = currentSpreadIndex,
+        pageCount = { spreads.size }
+    )
+
+    LaunchedEffect(pagerState, readingDirection) {
+        screenScaleState.setScrollState(pagerState)
+        screenScaleState.setScrollOrientation(Orientation.Horizontal, readingDirection == RIGHT_TO_LEFT)
+    }
+
+    LaunchedEffect(currentSpreadIndex) {
+        if (pagerState.currentPage != currentSpreadIndex) {
+            pagerState.scrollToPage(currentSpreadIndex)
+        }
+    }
+
+    LaunchedEffect(pagerState.currentPage) {
+        if (pagerState.currentPage < spreads.size) {
+            pagedReaderState.onPageChange(pagerState.currentPage)
+        }
+    }
+
+    // Snapping effect
+    val isGestureInProgress by screenScaleState.isGestureInProgress.collectAsState()
+    val isFlinging by screenScaleState.isFlinging.collectAsState()
+    LaunchedEffect(isGestureInProgress, isFlinging) {
+        if (!isGestureInProgress && !isFlinging) {
+            val pageOffset = pagerState.currentPageOffsetFraction
+            if (abs(pageOffset) > 0.001f) {
+                pagerState.animateScrollToPage(pagerState.currentPage)
+            }
+        }
+    }
+
     val coroutineScope = rememberCoroutineScope()
     ReaderControlsOverlay(
         readingDirection = layoutDirection,
-        onNexPageClick = pagedReaderState::nextPage,
-        onPrevPageClick = pagedReaderState::previousPage,
+        onNexPageClick = { coroutineScope.launch { pagedReaderState.nextPage() } },
+        onPrevPageClick = { coroutineScope.launch { pagedReaderState.previousPage() } },
         contentAreaSize = currentContainerSize,
         scaleState = screenScaleState,
         isSettingsMenuOpen = showSettingsMenu,
@@ -96,9 +142,36 @@ fun BoxScope.PagedReaderContent(
             if (transitionPage != null) {
                 TransitionPage(transitionPage)
             } else {
-                when (layout) {
-                    SINGLE_PAGE -> pages.firstOrNull()?.let { SinglePageLayout(it) }
-                    DOUBLE_PAGES, DOUBLE_PAGES_NO_COVER -> DoublePageLayout(pages, readingDirection)
+                if (spreads.isNotEmpty()) {
+                    HorizontalPager(
+                        state = pagerState,
+                        userScrollEnabled = false,
+                        reverseLayout = readingDirection == RIGHT_TO_LEFT,
+                        modifier = Modifier.fillMaxSize(),
+                        key = { if (it < spreads.size) spreads[it].first().pageNumber else it }
+                    ) { pageIdx ->
+                        if (pageIdx >= spreads.size) return@HorizontalPager
+                        val spreadMetadata = spreads[pageIdx]
+                        val spreadPages = remember(spreadMetadata) {
+                            spreadMetadata.map { meta ->
+                                val imageResult = mutableStateOf<ReaderImageResult?>(null)
+                                meta to imageResult
+                            }
+                        }
+
+                        spreadPages.forEach { (meta, imageResultState) ->
+                            LaunchedEffect(meta) {
+                                imageResultState.value = pagedReaderState.getImage(meta)
+                            }
+                        }
+
+                        val pages = spreadPages.map { (meta, resultState) -> Page(meta, resultState.value) }
+
+                        when (layout) {
+                            SINGLE_PAGE -> pages.firstOrNull()?.let { SinglePageLayout(it) }
+                            DOUBLE_PAGES, DOUBLE_PAGES_NO_COVER -> DoublePageLayout(pages, readingDirection)
+                        }
+                    }
                 }
             }
         }
@@ -108,6 +181,7 @@ fun BoxScope.PagedReaderContent(
 
 @Composable
 private fun TransitionPage(page: TransitionPage) {
+    // ... rest of file same
     Column(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Center,

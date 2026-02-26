@@ -357,17 +357,19 @@ class ContinuousReaderState(
     }
 
     fun scrollBy(amount: Float) {
-        when (readingDirection.value) {
-            TOP_TO_BOTTOM -> {
-                screenScaleState.addPan(Offset(0f, amount))
-            }
+        stateScope.launch {
+            when (readingDirection.value) {
+                TOP_TO_BOTTOM -> {
+                    screenScaleState.addPan(Offset(0f, amount))
+                }
 
-            LEFT_TO_RIGHT -> {
-                screenScaleState.addPan(Offset(amount, 0f))
-            }
+                LEFT_TO_RIGHT -> {
+                    screenScaleState.addPan(Offset(amount, 0f))
+                }
 
-            RIGHT_TO_LEFT -> {
-                screenScaleState.addPan(Offset(amount, 0f))
+                RIGHT_TO_LEFT -> {
+                    screenScaleState.addPan(Offset(amount, 0f))
+                }
             }
         }
     }

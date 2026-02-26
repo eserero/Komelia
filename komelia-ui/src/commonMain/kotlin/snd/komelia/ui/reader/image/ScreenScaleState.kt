@@ -12,7 +12,6 @@ import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.Orientation.Horizontal
 import androidx.compose.foundation.gestures.Orientation.Vertical
 import androidx.compose.foundation.gestures.ScrollableState
-import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.input.pointer.PointerInputChange
@@ -53,6 +52,13 @@ class ScreenScaleState {
     private val scrollState = MutableStateFlow<ScrollableState?>(null)
 
     val transformation = MutableStateFlow(Transformation(offset = Offset.Zero, scale = 1f))
+
+    val isGestureInProgress = MutableStateFlow(false)
+    val isFlinging = MutableStateFlow(false)
+    var edgeHandoffEnabled = false
+    private var gestureStartedAtLeftEdge = false
+    private var gestureStartedAtRightEdge = false
+    private var cumulativePagerScroll = 0f
 
     @Volatile
     var composeScope: CoroutineScope? = null
@@ -155,34 +161,55 @@ class ScreenScaleState {
         val velocity = velocityTracker.calculateVelocity().div(scale)
         velocityTracker.resetTracking()
 
+        isFlinging.value = true
         var lastValue = Offset(0f, 0f)
-        AnimationState(
-            typeConverter = Offset.VectorConverter,
-            initialValue = Offset.Zero,
-            initialVelocity = Offset(velocity.x, velocity.y),
-        ).animateDecay(spec) {
-            val delta = value - lastValue
-            lastValue = value
+        try {
+            AnimationState(
+                typeConverter = Offset.VectorConverter,
+                initialValue = Offset.Zero,
+                initialVelocity = Offset(velocity.x, velocity.y),
+            ).animateDecay(spec) {
+                val delta = value - lastValue
+                lastValue = value
 
-            if (scrollState.value == null) {
-                val canPanHorizontally = when {
-                    delta.x < 0 -> canPanLeft()
-                    delta.x > 0 -> canPanRight()
-                    else -> false
+                if (scrollState.value == null) {
+                    val canPanHorizontally = when {
+                        delta.x < 0 -> canPanLeft()
+                        delta.x > 0 -> canPanRight()
+                        else -> false
+                    }
+                    val canPanVertically = when {
+                        delta.y > 0 -> canPanDown()
+                        delta.y < 0 -> canPanUp()
+                        else -> false
+                    }
+                    if (!canPanHorizontally && !canPanVertically) {
+                        this.cancelAnimation()
+                        return@animateDecay
+                    }
                 }
-                val canPanVertically = when {
-                    delta.y > 0 -> canPanDown()
-                    delta.y < 0 -> canPanUp()
-                    else -> false
-                }
-                if (!canPanHorizontally && !canPanVertically) {
-                    this.cancelAnimation()
-                    return@animateDecay
-                }
+
+                addPan(delta)
             }
-
-            addPan(delta)
+        } finally {
+            isFlinging.value = false
         }
+    }
+
+    fun onGestureStart() {
+        gestureStartedAtLeftEdge = isAtLeftEdge()
+        gestureStartedAtRightEdge = isAtRightEdge()
+        cumulativePagerScroll = 0f
+    }
+
+    private fun isAtLeftEdge(): Boolean {
+        if (zoom.value <= baseZoom + 0.01f) return true
+        return currentOffset.x >= offsetXLimits.value.endInclusive - 0.5f
+    }
+
+    private fun isAtRightEdge(): Boolean {
+        if (zoom.value <= baseZoom + 0.01f) return true
+        return currentOffset.x <= offsetXLimits.value.start + 0.5f
     }
 
     private fun canPanUp(): Boolean {
@@ -208,10 +235,27 @@ class ScreenScaleState {
         applyLimits()
         val delta = (newOffset - currentOffset)
 
-        when (scrollOrientation.value) {
-            Vertical -> applyScroll((delta / -zoomToScale).y)
-            Horizontal -> applyScroll((delta / -zoomToScale).x)
-            null -> {}
+        val pagerValue = (delta.x / -zoomToScale)
+        val isRtl = scrollReversed.value
+        
+        val allowNextPage = if (isRtl) {
+            gestureStartedAtLeftEdge && pagerValue > 0
+        } else {
+            gestureStartedAtRightEdge && pagerValue > 0
+        }
+        
+        val allowPrevPage = if (isRtl) {
+            gestureStartedAtRightEdge && pagerValue < 0
+        } else {
+            gestureStartedAtLeftEdge && pagerValue < 0
+        }
+
+        if (!edgeHandoffEnabled || allowNextPage || allowPrevPage) {
+            when (scrollOrientation.value) {
+                Vertical -> applyScroll((delta / -zoomToScale).y)
+                Horizontal -> applyScroll(pagerValue)
+                null -> {}
+            }
         }
     }
 
@@ -224,7 +268,20 @@ class ScreenScaleState {
         if (value == 0f) return
         val scrollState = this.scrollState.value
         if (scrollState != null) {
-            scrollScope.launch { scrollState.scrollBy(if (scrollReversed.value) -value else value) }
+            val delta = if (scrollReversed.value) -value else value
+            if (edgeHandoffEnabled) {
+                val screenWidth = areaSize.value.width.toFloat()
+                val remaining = if (delta > 0) {
+                    (screenWidth - cumulativePagerScroll).coerceAtLeast(0f)
+                } else {
+                    (-screenWidth - cumulativePagerScroll).coerceAtMost(0f)
+                }
+                val consumed = if (delta > 0) min(delta, remaining) else max(delta, remaining)
+                cumulativePagerScroll += consumed
+                scrollState.dispatchRawDelta(consumed)
+            } else {
+                scrollState.dispatchRawDelta(delta)
+            }
         }
     }
 

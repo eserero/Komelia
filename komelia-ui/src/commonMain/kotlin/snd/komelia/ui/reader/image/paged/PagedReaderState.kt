@@ -103,6 +103,8 @@ class PagedReaderState(
 
         screenScaleState.setScrollState(null)
         screenScaleState.setScrollOrientation(Orientation.Vertical, false)
+        screenScaleState.enableOverscrollArea(false)
+        screenScaleState.edgeHandoffEnabled = true
 
         combine(
             screenScaleState.transformation,
@@ -136,6 +138,8 @@ class PagedReaderState(
 
     fun stop() {
         stateScope.coroutineContext.cancelChildren()
+        screenScaleState.enableOverscrollArea(false)
+        screenScaleState.edgeHandoffEnabled = false
         imageCache.invalidateAll()
     }
 
@@ -396,6 +400,20 @@ class PagedReaderState(
         launchSpreadLoadJob(pagesMeta)
     }
 
+    suspend fun getImage(page: PageMetadata): ReaderImageResult {
+        val pageId = page.toPageId()
+        val cached = imageCache.get(pageId)
+        return if (cached != null && !cached.isCancelled) {
+            cached.await().imageResult ?: ReaderImageResult.Error(Exception("Image result is null"))
+        } else {
+            val job = pageLoadScope.async {
+                val result = imageLoader.loadReaderImage(page.bookId, page.pageNumber)
+                Page(page, result)
+            }.also { imageCache.put(pageId, it) }
+            job.await().imageResult ?: ReaderImageResult.Error(Exception("Image result is null"))
+        }
+    }
+
     private fun getMaxPageSize(pages: List<PageMetadata>, containerSize: IntSize): IntSize {
         return IntSize(
             width = containerSize.width / pages.size,
@@ -528,6 +546,7 @@ class PagedReaderState(
 
     fun onReadingDirectionChange(readingDirection: PagedReadingDirection) {
         this.readingDirection.value = readingDirection
+        screenScaleState.setScrollOrientation(Orientation.Horizontal, readingDirection == RIGHT_TO_LEFT)
         stateScope.launch { settingsRepository.putPagedReaderReadingDirection(readingDirection) }
     }
 

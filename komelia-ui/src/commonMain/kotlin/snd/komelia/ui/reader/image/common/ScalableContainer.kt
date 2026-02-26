@@ -101,20 +101,30 @@ fun ScalableContainer(
             }
             .pointerInput(areaSize) {
                 var lastIterationPointerCount = 0
-                detectTransformGestures { changes, centroid, pan, zoom, _ ->
-                    val currentPointerCount = changes.count { it.pressed }
-                    if (currentPointerCount != lastIterationPointerCount) {
-                        scaleState.resetVelocity()
-                    }
-
-                    if (currentPointerCount == lastIterationPointerCount) {
-                        if (zoom != 1.0f) {
-                            scaleState.multiplyZoom(zoom, centroid - areaCenter)
+                detectTransformGestures(
+                    onGesture = { changes, centroid, pan, zoom, _ ->
+                        if (!scaleState.isGestureInProgress.value) {
+                            scaleState.onGestureStart()
+                            scaleState.isGestureInProgress.value = true
                         }
-                        scaleState.addPan(changes, pan)
+
+                        val currentPointerCount = changes.count { it.pressed }
+                        if (currentPointerCount != lastIterationPointerCount) {
+                            scaleState.resetVelocity()
+                        }
+
+                        if (currentPointerCount == lastIterationPointerCount) {
+                            if (zoom != 1.0f) {
+                                scaleState.multiplyZoom(zoom, centroid - areaCenter)
+                            }
+                            scaleState.addPan(changes, pan)
+                        }
+                        lastIterationPointerCount = currentPointerCount
+                    },
+                    onEnd = {
+                        scaleState.isGestureInProgress.value = false
                     }
-                    lastIterationPointerCount = currentPointerCount
-                }
+                )
             }
             .onPointerEvent(PointerEventType.Scroll) { event ->
                 val scrollDelta = with(density) { with(scrollConfig) { calculateMouseWheelScroll(event, size) } }
@@ -125,7 +135,7 @@ fun ScalableContainer(
                     scaleState.addZoom(zoom, centroid - areaCenter)
                 } else {
                     val maxDelta = if (abs(scrollDelta.y) > abs(scrollDelta.x)) scrollDelta.y else scrollDelta.x
-                    val pan = (if (scaleState.scrollReversed.value) -maxDelta else maxDelta)
+                    val pan = maxDelta
                     when (scrollOrientation) {
                         Vertical -> scaleState.addPan(Offset(0f, pan))
                         Horizontal -> scaleState.addPan(Offset(pan, 0f))
