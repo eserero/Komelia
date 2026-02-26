@@ -17,6 +17,7 @@ import snd.komelia.settings.model.ContinuousReadingDirection
 import snd.komelia.settings.model.LayoutScaleType
 import snd.komelia.settings.model.PageDisplayLayout
 import snd.komelia.settings.model.PagedReadingDirection
+import snd.komelia.settings.model.PanelsFullPageDisplayMode
 import snd.komelia.settings.model.ReaderFlashColor
 import snd.komelia.settings.model.ReaderType
 
@@ -53,6 +54,8 @@ class ExposedImageReaderSettingsRepository(database: Database) : ExposedReposito
                             ?.let { PlatformFile(it) },
                         ortUpscalerDeviceId = it[ImageReaderSettingsTable.ortDeviceId],
                         ortUpscalerTileSize = it[ImageReaderSettingsTable.ortUpscalerTileSize],
+                        panelsFullPageDisplayMode = it[ImageReaderSettingsTable.panelsFullPageDisplayMode]
+                            .let { mode -> PanelsFullPageDisplayMode.valueOf(mode) },
                     )
                 }
         }
@@ -84,6 +87,7 @@ class ExposedImageReaderSettingsRepository(database: Database) : ExposedReposito
                 it[ortUpscalerUserModelPath] = settings.ortUpscalerUserModelPath?.path
                 it[ortDeviceId] = settings.ortUpscalerDeviceId
                 it[ortUpscalerTileSize] = settings.ortUpscalerTileSize
+                it[panelsFullPageDisplayMode] = settings.panelsFullPageDisplayMode.name
             }
         }
     }

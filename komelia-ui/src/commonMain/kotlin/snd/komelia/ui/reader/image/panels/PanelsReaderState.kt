@@ -42,6 +42,7 @@ import snd.komelia.settings.ImageReaderSettingsRepository
 import snd.komelia.settings.model.PagedReadingDirection
 import snd.komelia.settings.model.PagedReadingDirection.LEFT_TO_RIGHT
 import snd.komelia.settings.model.PagedReadingDirection.RIGHT_TO_LEFT
+import snd.komelia.settings.model.PanelsFullPageDisplayMode
 import snd.komelia.ui.reader.image.BookState
 import snd.komelia.ui.reader.image.PageMetadata
 import snd.komelia.ui.reader.image.ReaderState
@@ -90,10 +91,12 @@ class PanelsReaderState(
 
     val pageMetadata: MutableStateFlow<List<PageMetadata>> = MutableStateFlow(emptyList())
 
-    val currentPageIndex = MutableStateFlow(PageIndex(0, 0, false))
+    val currentPageIndex = MutableStateFlow(PageIndex(0, 0))
     val currentPage: MutableStateFlow<PanelsPage?> = MutableStateFlow(null)
     val transitionPage: MutableStateFlow<TransitionPage?> = MutableStateFlow(null)
     val readingDirection = MutableStateFlow(LEFT_TO_RIGHT)
+
+    val fullPageDisplayMode = MutableStateFlow(PanelsFullPageDisplayMode.NONE)
 
     suspend fun initialize() {
         readingDirection.value = when (readerState.series.value?.metadata?.readingDirection) {
@@ -101,6 +104,7 @@ class PanelsReaderState(
             KomgaReadingDirection.RIGHT_TO_LEFT -> RIGHT_TO_LEFT
             else -> settingsRepository.getPagedReaderReadingDirection().first()
         }
+        fullPageDisplayMode.value = settingsRepository.getPanelsFullPageDisplayMode().first()
 
         screenScaleState.setScrollState(null)
         screenScaleState.setScrollOrientation(Orientation.Vertical, false)
@@ -112,35 +116,15 @@ class PanelsReaderState(
             .drop(1).conflate()
             .onEach {
                 currentPage.value?.let { page ->
-                    updateImageState(page, screenScaleState)
+                    updateImageState(page, screenScaleState, currentPageIndex.value.panel)
                     delay(100)
                 }
             }
             .launchIn(stateScope)
 
-        readingDirection.drop(1).onEach { readingDirection ->
-            val page = currentPage.value
-            val panelData = page?.panelData
-            if (panelData != null) {
-                val sortedPanels = sortPanels(
-                    panels = panelData.panels,
-                    imageSize = panelData.originalImageSize,
-                    readingDirection = readingDirection
-                )
-                currentPage.value = page.copy(panelData = panelData.copy(panels = sortedPanels))
-                currentPageIndex.update { it.copy(panel = 0, isLastPanelZoomOutActive = false) }
-
-                if (sortedPanels.isNotEmpty()) {
-                    scrollToPanel(
-                        imageSize = page.panelData.originalImageSize,
-                        screenSize = screenScaleState.areaSize.value,
-                        targetSize = screenScaleState.targetSize.value.toIntSize(),
-                        panel = sortedPanels.first()
-                    )
-                }
-
-            }
-
+        readingDirection.drop(1).onEach { 
+            // Simple page reload to ensure correct panel sequence for new direction
+            launchPageLoad(currentPageIndex.value.page)
         }.launchIn(stateScope)
 
         readerState.booksState
@@ -161,6 +145,7 @@ class PanelsReaderState(
     private suspend fun updateImageState(
         page: PanelsPage,
         screenScaleState: ScreenScaleState,
+        panelIdx: Int
     ) {
         val maxPageSize = screenScaleState.areaSize.value
         val zoomFactor = screenScaleState.transformation.value.scale
@@ -211,7 +196,7 @@ class PanelsReaderState(
             imageResult = null,
             panelData = null
         )
-        currentPageIndex.value = PageIndex(newPageIndex, 0, false)
+        currentPageIndex.value = PageIndex(newPageIndex, 0)
 
         launchPageLoad(newPageIndex)
     }
@@ -221,6 +206,11 @@ class PanelsReaderState(
         stateScope.launch { settingsRepository.putPagedReaderReadingDirection(readingDirection) }
     }
 
+    fun onFullPageDisplayModeChange(mode: PanelsFullPageDisplayMode) {
+        this.fullPageDisplayMode.value = mode
+        stateScope.launch { settingsRepository.putPanelsFullPageDisplayMode(mode) }
+        launchPageLoad(currentPageIndex.value.page)
+    }
 
     fun nextPanel() {
         val pageIndex = currentPageIndex.value
@@ -229,42 +219,33 @@ class PanelsReaderState(
             nextPage()
             return
         }
-        val panelData = currentPage.panelData
-        val panels = panelData.panels
+        val panels = currentPage.panelData.panels
         val panelIndex = pageIndex.panel
 
-        if (panels.size <= panelIndex + 1) {
-            if (panels.isEmpty() || panelData.panelCoversMajorityOfImage || pageIndex.isLastPanelZoomOutActive) {
-                nextPage()
-            } else {
-                scrollToFit()
-                currentPageIndex.update { it.copy(isLastPanelZoomOutActive = true) }
-            }
-            return
+        if (panelIndex + 1 < panels.size) {
+            val nextPanel = panels[panelIndex + 1]
+            val areaSize = screenScaleState.areaSize.value
+            val targetSize = screenScaleState.targetSize.value.toIntSize()
+            val imageSize = currentPage.panelData.originalImageSize
+            scrollToPanel(
+                imageSize = imageSize,
+                screenSize = areaSize,
+                targetSize = targetSize,
+                panel = nextPanel
+            )
+            currentPageIndex.update { it.copy(panel = panelIndex + 1) }
+        } else {
+            nextPage()
         }
-        val nextPanel = panels[panelIndex + 1]
-        val areaSize = screenScaleState.areaSize.value
-        val targetSize = IntSize(
-            screenScaleState.targetSize.value.width.roundToInt(),
-            screenScaleState.targetSize.value.height.roundToInt()
-        )
-        val imageSize = currentPage.panelData.originalImageSize
-        scrollToPanel(
-            imageSize = imageSize,
-            screenSize = areaSize,
-            targetSize = targetSize,
-            panel = nextPanel
-        )
-        currentPageIndex.update { it.copy(panel = panelIndex + 1) }
     }
 
     private fun nextPage() {
-        val currentPageIndex = currentPageIndex.value.page
+        val pageIdx = currentPageIndex.value.page
         val currentTransitionPage = transitionPage.value
         when {
-            currentPageIndex < pageMetadata.value.size - 1 -> {
+            pageIdx < pageMetadata.value.size - 1 -> {
                 if (currentTransitionPage != null) this.transitionPage.value = null
-                else onPageChange(currentPageIndex + 1)
+                else onPageChange(pageIdx + 1)
             }
 
             currentTransitionPage == null -> {
@@ -295,35 +276,30 @@ class PanelsReaderState(
         val panels = currentPage.panelData.panels
         val panelIndex = pageIndex.panel
 
-        if (panelIndex - 1 < 0) {
+        if (panelIndex - 1 >= 0) {
+            val prevPanel = panels[panelIndex - 1]
+            val areaSize = screenScaleState.areaSize.value
+            val targetSize = screenScaleState.targetSize.value.toIntSize()
+            val imageSize = currentPage.panelData.originalImageSize
+            scrollToPanel(
+                imageSize = imageSize,
+                screenSize = areaSize,
+                targetSize = targetSize,
+                panel = prevPanel
+            )
+            currentPageIndex.update { it.copy(panel = panelIndex - 1) }
+        } else {
             previousPage()
-            return
-        }
-        val previousPage = panels[panelIndex - 1]
-        val areaSize = screenScaleState.areaSize.value
-        val targetSize = IntSize(
-            screenScaleState.targetSize.value.width.roundToInt(),
-            screenScaleState.targetSize.value.height.roundToInt()
-        )
-        val imageSize = currentPage.panelData.originalImageSize
-        scrollToPanel(
-            imageSize = imageSize,
-            screenSize = areaSize,
-            targetSize = targetSize,
-            panel = previousPage
-        )
-        currentPageIndex.update {
-            it.copy(panel = panelIndex - 1, isLastPanelZoomOutActive = false)
         }
     }
 
     private fun previousPage() {
-        val currentPgeIndex = currentPageIndex.value.page
+        val pageIdx = currentPageIndex.value.page
         val currentTransitionPage = transitionPage.value
         when {
-            currentPgeIndex != 0 -> {
+            pageIdx != 0 -> {
                 if (currentTransitionPage != null) this.transitionPage.value = null
-                else onPageChange(currentPgeIndex - 1)
+                else onPageChange(pageIdx - 1, startAtLast = true)
             }
 
             currentTransitionPage == null -> {
@@ -344,23 +320,23 @@ class PanelsReaderState(
         }
     }
 
-    fun onPageChange(page: Int) {
+    fun onPageChange(page: Int, startAtLast: Boolean = false) {
         if (currentPageIndex.value.page == page) return
         pageChangeFlow.tryEmit(Unit)
-        launchPageLoad(page)
+        launchPageLoad(page, startAtLast)
     }
 
-    private fun launchPageLoad(pageIndex: Int) {
+    private fun launchPageLoad(pageIndex: Int, startAtLast: Boolean = false) {
         if (pageIndex != currentPageIndex.value.page) {
             val pageNumber = pageIndex + 1
             stateScope.launch { readerState.onProgressChange(pageNumber) }
         }
 
         pageLoadScope.coroutineContext.cancelChildren()
-        pageLoadScope.launch { doPageLoad(pageIndex) }
+        pageLoadScope.launch { doPageLoad(pageIndex, startAtLast) }
     }
 
-    private suspend fun doPageLoad(pageIndex: Int) {
+    private suspend fun doPageLoad(pageIndex: Int, startAtLast: Boolean = false) {
         val pageMeta = pageMetadata.value[pageIndex]
         val downloadJob = launchDownload(pageMeta)
         preloadImagesBetween(pageIndex)
@@ -371,29 +347,57 @@ class PanelsReaderState(
                 imageResult = null,
                 panelData = null
             )
-            currentPageIndex.update { PageIndex(pageIndex, 0, false) }
+            currentPageIndex.update { PageIndex(pageIndex, 0) }
             transitionPage.value = null
             screenScaleState.enableOverscrollArea(false)
             screenScaleState.setZoom(0f, updateBase = true)
         }
 
         val page = downloadJob.await()
-        val sortedPanelsPage = if (page.panelData != null) {
-            val sortedPanels = sortPanels(
+        val sortedPanels = if (page.panelData != null) {
+            sortPanels(
                 page.panelData.panels,
                 page.panelData.originalImageSize,
                 readingDirection.value
             )
-            page.copy(panelData = page.panelData.copy(panels = sortedPanels))
+        } else emptyList()
+
+        val finalPanels = mutableListOf<ImageRect>()
+        if (page.panelData != null) {
+            val imageSize = page.panelData.originalImageSize
+            val fullPageRect = ImageRect(0, 0, imageSize.width, imageSize.height)
+            
+            // Avoid duplicate view if the AI already detected a full-page panel
+            val alreadyHasFullPage = sortedPanels.any { it.width >= imageSize.width * 0.95f && it.height >= imageSize.height * 0.95f }
+
+            val mode = fullPageDisplayMode.value
+            val showFirst = mode == PanelsFullPageDisplayMode.BEFORE || mode == PanelsFullPageDisplayMode.BOTH
+            val showLast = mode == PanelsFullPageDisplayMode.AFTER || mode == PanelsFullPageDisplayMode.BOTH
+
+            if (sortedPanels.isEmpty()) {
+                finalPanels.add(fullPageRect)
+            } else if (alreadyHasFullPage && sortedPanels.size == 1) {
+                // If it's a splash page (1 large panel), just show it once.
+                finalPanels.addAll(sortedPanels)
+            } else {
+                if (showFirst && !alreadyHasFullPage) finalPanels.add(fullPageRect)
+                finalPanels.addAll(sortedPanels)
+                if (showLast && !alreadyHasFullPage) finalPanels.add(fullPageRect)
+            }
+        }
+
+        val pageWithInjectedPanels = if (page.panelData != null) {
+            page.copy(panelData = page.panelData.copy(panels = finalPanels))
         } else page
 
         val containerSize = screenScaleState.areaSize.value
-        val scale = getScaleFor(sortedPanelsPage, containerSize)
-        updateImageState(sortedPanelsPage, scale)
-        currentPageIndex.update { PageIndex(pageIndex, 0, false) }
+        val initialPanelIdx = if (startAtLast) (finalPanels.size - 1).coerceAtLeast(0) else 0
+        val scale = getScaleFor(pageWithInjectedPanels, containerSize, initialPanelIdx)
+        
+        updateImageState(pageWithInjectedPanels, scale, initialPanelIdx)
+        currentPageIndex.update { PageIndex(pageIndex, initialPanelIdx) }
         transitionPage.value = null
-        logger.info { "current page value $sortedPanelsPage" }
-        currentPage.value = sortedPanelsPage
+        currentPage.value = pageWithInjectedPanels
         screenScaleState.enableOverscrollArea(true)
         screenScaleState.apply(scale)
     }
@@ -407,8 +411,8 @@ class PanelsReaderState(
             val imageJob = launchDownload(pageMetadata.value[index])
             pageLoadScope.launch {
                 val image = imageJob.await()
-                val scale = getScaleFor(image, screenScaleState.areaSize.value)
-                updateImageState(image, scale)
+                val scale = getScaleFor(image, screenScaleState.areaSize.value, 0)
+                updateImageState(image, scale, 0)
             }
         }
     }
@@ -436,7 +440,6 @@ class PanelsReaderState(
             val imageSize = IntSize(originalImage.width, originalImage.height)
             val (panels, duration) = measureTimedValue {
                 try {
-                    logger.info { "rf detr before run" }
                     onnxRuntimeRfDetr.detect(originalImage).map { it.boundingBox }
                 } catch (e: OnnxRuntimeException) {
                     return@async PanelsPage(
@@ -448,26 +451,10 @@ class PanelsReaderState(
             }
             logger.info { "page ${meta.pageNumber} panel detection completed in $duration" }
 
-
-            val panelsArea = areaOfRects(panels.map { it.toRect() })
-            val imageArea = originalImage.width * originalImage.height
-            val untrimmedRatio = panelsArea / imageArea
-
-            val panelRatio = if (untrimmedRatio < .8f) {
-                val trim = originalImage.findTrim()
-                val imageArea = trim.width * trim.height
-                val ratio = panelsArea / imageArea
-                logger.info { "trimmed panels area coverage ${ratio * 100}%" }
-                ratio
-            } else {
-                logger.info { "untrimmed panels area coverage ${untrimmedRatio * 100}%" }
-                untrimmedRatio
-            }
-
             val panelData = PanelData(
                 panels = panels,
                 originalImageSize = imageSize,
-                panelCoversMajorityOfImage = panelRatio > .8f
+                panelCoversMajorityOfImage = false // Placeholder for Phase 2
             )
 
             return@async PanelsPage(
@@ -482,7 +469,8 @@ class PanelsReaderState(
 
     private suspend fun getScaleFor(
         page: PanelsPage,
-        containerSize: IntSize
+        containerSize: IntSize,
+        panelIdx: Int
     ): ScreenScaleState {
         val defaultScale = ScreenScaleState()
         defaultScale.setAreaSize(containerSize)
@@ -499,13 +487,13 @@ class PanelsReaderState(
         if (panels.isNullOrEmpty()) {
             scaleState.setZoom(0f, updateBase = true)
         } else {
-            val firstPanel = panels.first()
+            val targetPanel = panels.getOrNull(panelIdx) ?: panels.first()
             val imageSize = image.getOriginalImageSize().getOrNull() ?: return defaultScale
             val (offset, zoom) = getPanelOffsetAndZoom(
                 imageSize = imageSize,
                 areaSize = containerSize,
                 targetSize = fitToScreenSize,
-                panel = firstPanel
+                panel = targetPanel
             )
             scaleState.setZoom(zoom, updateBase = true)
             scaleState.setOffset(offset)
@@ -515,12 +503,8 @@ class PanelsReaderState(
     }
 
     private fun scrollToFit() {
-//        val areaSize = screenScaleState.areaSize.value
-//        val startX = 0 - areaSize.width.toFloat()
-//        val startY = 0 - areaSize.height.toFloat()
         screenScaleState.setZoom(0f, updateBase = true)
         screenScaleState.scrollTo(Offset(0f, 0f))
-
     }
 
     private fun scrollToPanel(
@@ -595,7 +579,6 @@ class PanelsReaderState(
     data class PageIndex(
         val page: Int,
         val panel: Int,
-        val isLastPanelZoomOutActive: Boolean,
     )
 
 }

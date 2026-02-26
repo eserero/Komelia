@@ -55,6 +55,7 @@ import snd.komelia.settings.model.ContinuousReadingDirection
 import snd.komelia.settings.model.LayoutScaleType
 import snd.komelia.settings.model.PageDisplayLayout
 import snd.komelia.settings.model.PagedReadingDirection
+import snd.komelia.settings.model.PanelsFullPageDisplayMode
 import snd.komelia.settings.model.ReaderFlashColor
 import snd.komelia.settings.model.ReaderType
 import snd.komelia.settings.model.ReaderType.CONTINUOUS
@@ -173,10 +174,7 @@ fun SettingsSideMenuOverlay(
                     PAGED -> PagedReaderSettingsContent(pagedReaderState)
                     PANELS -> {
                         if (panelsReaderState != null) {
-                            PanelsReaderSettingsContent(
-                                readingDirection = panelsReaderState.readingDirection.collectAsState().value,
-                                onReadingDirectionChange = panelsReaderState::onReadingDirectionChange
-                            )
+                            PanelsReaderSettingsContent(panelsReaderState)
                         }
                     }
 
@@ -429,10 +427,12 @@ private fun ColumnScope.PagedReaderSettingsContent(
 
 @Composable
 private fun PanelsReaderSettingsContent(
-    readingDirection: PagedReadingDirection,
-    onReadingDirectionChange: (PagedReadingDirection) -> Unit,
+    state: PanelsReaderState
 ) {
     val strings = LocalStrings.current.pagedReader
+    val readingDirection = state.readingDirection.collectAsState().value
+    val displayMode = state.fullPageDisplayMode.collectAsState().value
+
     Column {
 
         DropdownChoiceMenu(
@@ -443,9 +443,20 @@ private fun PanelsReaderSettingsContent(
             options = remember {
                 PagedReadingDirection.entries.map { LabeledEntry(it, strings.forReadingDirection(it)) }
             },
-            onOptionChange = { onReadingDirectionChange(it.value) },
+            onOptionChange = { state.onReadingDirectionChange(it.value) },
             inputFieldModifier = Modifier.fillMaxWidth(),
             label = { Text(strings.readingDirection) },
+            inputFieldColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+
+        DropdownChoiceMenu(
+            selectedOption = LabeledEntry(displayMode, displayMode.name),
+            options = remember {
+                PanelsFullPageDisplayMode.entries.map { LabeledEntry(it, it.name) }
+            },
+            onOptionChange = { state.onFullPageDisplayModeChange(it.value) },
+            inputFieldModifier = Modifier.fillMaxWidth(),
+            label = { Text("Show full page") },
             inputFieldColor = MaterialTheme.colorScheme.surfaceVariant
         )
     }

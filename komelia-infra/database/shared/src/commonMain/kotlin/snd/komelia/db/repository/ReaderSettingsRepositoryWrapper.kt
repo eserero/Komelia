@@ -12,6 +12,7 @@ import snd.komelia.settings.model.ContinuousReadingDirection
 import snd.komelia.settings.model.LayoutScaleType
 import snd.komelia.settings.model.PageDisplayLayout
 import snd.komelia.settings.model.PagedReadingDirection
+import snd.komelia.settings.model.PanelsFullPageDisplayMode
 import snd.komelia.settings.model.ReaderFlashColor
 import snd.komelia.settings.model.ReaderType
 
@@ -193,5 +194,13 @@ class ReaderSettingsRepositoryWrapper(
 
     override suspend fun putUpscalerOnnxModel(name: PlatformFile?) {
         wrapper.transform { it.copy(ortUpscalerUserModelPath = name) }
+    }
+
+    override fun getPanelsFullPageDisplayMode(): Flow<PanelsFullPageDisplayMode> {
+        return wrapper.mapState { it.panelsFullPageDisplayMode }
+    }
+
+    override suspend fun putPanelsFullPageDisplayMode(mode: PanelsFullPageDisplayMode) {
+        wrapper.transform { it.copy(panelsFullPageDisplayMode = mode) }
     }
 }

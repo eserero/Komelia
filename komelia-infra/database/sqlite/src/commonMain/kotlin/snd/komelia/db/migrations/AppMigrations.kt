@@ -20,7 +20,9 @@ class AppMigrations : MigrationResourcesProvider() {
         "V11__home_filters.sql",
         "V12__offline_mode.sql",
         "V13__ui_colors.sql",
-        "V14__new_library_ui.sql",
+        "V14__immersive_layout.sql",
+        "V15__new_library_ui.sql",
+        "V16__panel_reader_settings.sql",
     )
 
     override suspend fun getMigration(name: String): ByteArray? {
