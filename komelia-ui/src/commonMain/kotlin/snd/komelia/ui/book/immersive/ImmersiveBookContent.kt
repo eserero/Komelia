@@ -93,6 +93,7 @@ fun ImmersiveBookContent(
     onReadListBookPress: (KomeliaBook, KomgaReadList) -> Unit,
     cardWidth: Dp,
     onSeriesClick: (KomgaSeriesId) -> Unit,
+    onBookChange: (KomeliaBook) -> Unit = {},
 ) {
     val initialPage = remember(siblingBooks, book) {
         siblingBooks.indexOfFirst { it.id == book.id }.coerceAtLeast(0)
@@ -117,6 +118,10 @@ fun ImmersiveBookContent(
     // selectedBook drives the FAB and 3-dot menu after each swipe settles
     val selectedBook = remember(pagerState.settledPage, siblingBooks) {
         siblingBooks.getOrNull(pagerState.settledPage) ?: book
+    }
+
+    LaunchedEffect(selectedBook) {
+        onBookChange(selectedBook)
     }
 
     var showDownloadConfirmationDialog by remember { mutableStateOf(false) }

@@ -95,16 +95,17 @@ class BookScreen(
                 },
                 readLists = vm.readListsState.readLists,
                 onReadListClick = { navigator.push(ReadListScreen(it.id)) },
-                onReadListBookPress = { book, readList ->
-                    if (book.id != bookId) navigator.push(
+                onReadListBookPress = { listBook, readList ->
+                    if (listBook.id != book.id) navigator.push(
                         bookScreen(
-                            book = book,
+                            book = listBook,
                             bookSiblingsContext = BookSiblingsContext.ReadList(readList.id)
                         )
                     )
                 },
                 cardWidth = vm.cardWidth.collectAsState().value,
                 onSeriesClick = { seriesId -> navigator.push(SeriesScreen(seriesId)) },
+                onBookChange = vm::setCurrentBook,
             )
             BackPressHandler { onBackPress(navigator, book.seriesId) }
             return

@@ -203,34 +203,34 @@ fun ImmersiveDetailScaffold(
 
         val nestedScrollConnection = remember(state) {
             object : NestedScrollConnection {
-                var preScrollConsumedY = 0f
-                var lastGestureWasExpand = false
-
                 override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
                     val currentOffset = if (state.offset.isNaN()) collapsedOffsetPx else state.offset
                     val delta = available.y
                     return if (delta < 0 && currentOffset > 0f) {
-                        val consumed = state.dispatchRawDelta(delta)
-                        preScrollConsumedY = consumed
-                        if (consumed != 0f) lastGestureWasExpand = true
-                        Offset(0f, consumed)
+                        state.dispatchRawDelta(delta)
+                        Offset(0f, delta)
                     } else {
-                        preScrollConsumedY = 0f
                         Offset.Zero
                     }
                 }
 
                 override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
-                    val innerConsumedY = consumed.y - preScrollConsumedY
-                    if (innerConsumedY != 0f)
-                        innerScrollPx = (innerScrollPx - innerConsumedY).coerceAtLeast(0f)
+                    innerScrollPx = (innerScrollPx - consumed.y).coerceAtLeast(0f)
 
                     val delta = available.y
-                    return if (delta > 0 && source == NestedScrollSource.UserInput) {
+                    return if (delta > 0 && source == NestedScrollSource.UserInput && innerScrollPx <= 0f) {
                         val cardConsumed = state.dispatchRawDelta(delta)
-                        if (cardConsumed != 0f) lastGestureWasExpand = false
                         Offset(0f, cardConsumed)
                     } else Offset.Zero
+                }
+
+                override suspend fun onPreFling(available: Velocity): Velocity {
+                    val currentOffset = if (state.offset.isNaN()) collapsedOffsetPx else state.offset
+                    if (available.y < 0f && currentOffset > 0f) {
+                        state.settle(-1000f)
+                        return available
+                    }
+                    return Velocity.Zero
                 }
 
                 override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
@@ -243,8 +243,8 @@ fun ImmersiveDetailScaffold(
                             state.settle(available.y)
                             available
                         }
-                        available.y < 0f || lastGestureWasExpand -> {
-                            // Upward fling OR last drag was expanding: snap to EXPANDED
+                        available.y < 0f -> {
+                            // Upward fling: snap to EXPANDED
                             state.settle(-1000f)
                             available
                         }

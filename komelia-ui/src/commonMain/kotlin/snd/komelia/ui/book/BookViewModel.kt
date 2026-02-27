@@ -44,7 +44,7 @@ import snd.komga.client.sse.KomgaEvent.ReadProgressDeleted
 
 class BookViewModel(
     book: KomeliaBook?,
-    private val bookId: KomgaBookId,
+    bookId: KomgaBookId,
     private val bookApi: KomgaBookApi,
     private val notifications: AppNotifications,
     private val komgaEvents: SharedFlow<KomgaEvent>,
@@ -57,6 +57,7 @@ class BookViewModel(
     var library by mutableStateOf<KomgaLibrary?>(null)
         private set
     val book = MutableStateFlow(book)
+    private val currentBookId = MutableStateFlow(bookId)
 
     private val reloadEventsEnabled = MutableStateFlow(true)
     private val reloadJobsFlow = MutableSharedFlow<Unit>(1, 0, DROP_OLDEST)
@@ -116,7 +117,7 @@ class BookViewModel(
     private suspend fun loadBook() {
         notifications.runCatchingToNotifications {
             mutableState.value = Loading
-            val loadedBook = bookApi.getOne(bookId)
+            val loadedBook = bookApi.getOne(currentBookId.value)
             book.value = loadedBook
         }
             .onSuccess { mutableState.value = Success(Unit) }
@@ -138,6 +139,12 @@ class BookViewModel(
         readListsState.startKomgaEventHandler()
     }
 
+    fun setCurrentBook(book: KomeliaBook) {
+        this.book.value = book
+        this.currentBookId.value = book.id
+        loadLibrary()
+    }
+
     fun onBookDownload() {
         screenModelScope.launch {
             book.value?.let { taskEmitter.downloadBook(it.id) }
@@ -152,6 +159,7 @@ class BookViewModel(
 
     private fun startKomgaEventListener() {
         komgaEvents.onEach { event ->
+            val bookId = currentBookId.value
             when (event) {
                 is BookChanged, is BookAdded ->
                     if (event.bookId == bookId) reloadJobsFlow.tryEmit(Unit)

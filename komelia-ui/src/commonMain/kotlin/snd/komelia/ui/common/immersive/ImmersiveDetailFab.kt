@@ -4,6 +4,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -54,14 +55,14 @@ fun ImmersiveDetailFab(
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
     ) {
+        Spacer(modifier = Modifier.weight(1f))
+
         if (showReadActions) {
-            // Split pill: Read Now (2/3) | Incognito (1/3)
+            // Split pill: Read Now | Incognito
             Surface(
                 shape = CircleShape,
                 color = pillBackground,
-                modifier = Modifier
-                    .weight(1f)
-                    .height(56.dp)
+                modifier = Modifier.height(56.dp)
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -72,7 +73,6 @@ fun ImmersiveDetailFab(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier
-                            .weight(2f)
                             .fillMaxHeight()
                             .clickable(onClick = onReadClick)
                             .padding(horizontal = 20.dp)
@@ -98,7 +98,6 @@ fun ImmersiveDetailFab(
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
-                            .weight(1f)
                             .fillMaxHeight()
                             .clickable(onClick = onReadIncognitoClick)
                             .padding(horizontal = 16.dp)
@@ -111,9 +110,6 @@ fun ImmersiveDetailFab(
                     }
                 }
             }
-        } else {
-            // Spacer to push download FAB to the right
-            Box(modifier = Modifier.weight(1f))
         }
 
         // Download FAB
