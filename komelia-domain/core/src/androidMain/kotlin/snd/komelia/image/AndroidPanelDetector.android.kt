@@ -19,7 +19,7 @@ class AndroidPanelDetector(
     private val logger = KotlinLogging.logger { }
 
     override fun getModelPath(): String? {
-        val path = dataDir.resolve("rf-detr-nano.onnx")
+        val path = dataDir.resolve("rf-detr-med.onnx")
         logger.info { "panel detector path string $path" }
         val exists =  path.exists()
         return if (exists) path.toString() else null

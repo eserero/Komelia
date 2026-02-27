@@ -24,7 +24,7 @@ import kotlin.io.path.inputStream
 import kotlin.io.path.outputStream
 
 private const val panelDetectionModelLink =
-    "https://github.com/Snd-R/komelia-onnxruntime/releases/download/model/rf-detr-nano.onnx.zip"
+    "https://github.com/Snd-R/komelia-onnxruntime/releases/download/model/rf-detr-med.onnx.zip"
 
 class AndroidOnnxModelDownloader(
     private val updateClient: UpdateClient,
@@ -41,7 +41,7 @@ class AndroidOnnxModelDownloader(
         return flow {
 
             emit(UpdateProgress(0, 0, panelDetectionModelLink))
-            val archiveFile = createTempFile("rf-detr-nano.onnx.zip")
+            val archiveFile = createTempFile("rf-detr-med.onnx.zip")
             archiveFile.toFile().deleteOnExit()
 
             appNotifications.runCatchingToNotifications {
