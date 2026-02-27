@@ -306,7 +306,6 @@ class PagedReaderState(
     }
 
     fun jumpToPage(page: Int) {
-        if (currentSpreadIndex.value == page) return
         pageChangeFlow.tryEmit(Unit)
         val pageNumber = pageSpreads.value[page].last().pageNumber
         stateScope.launch { readerState.onProgressChange(pageNumber) }
