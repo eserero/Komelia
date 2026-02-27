@@ -503,8 +503,7 @@ class PanelsReaderState(
     }
 
     private fun scrollToFit() {
-        screenScaleState.setZoom(0f, updateBase = true)
-        screenScaleState.scrollTo(Offset(0f, 0f))
+        screenScaleState.animateTo(Offset(0f, 0f), 0f)
     }
 
     private fun scrollToPanel(
@@ -512,6 +511,7 @@ class PanelsReaderState(
         screenSize: IntSize,
         targetSize: IntSize,
         panel: ImageRect,
+        skipAnimation: Boolean = false,
     ) {
         val (offset, zoom) = getPanelOffsetAndZoom(
             imageSize = imageSize,
@@ -519,8 +519,12 @@ class PanelsReaderState(
             targetSize = targetSize,
             panel = panel
         )
-        screenScaleState.setZoom(zoom, updateBase = true)
-        screenScaleState.scrollTo(offset)
+        if (skipAnimation) {
+            screenScaleState.setZoom(zoom, updateBase = true)
+            screenScaleState.setOffset(offset)
+        } else {
+            screenScaleState.animateTo(offset, zoom)
+        }
     }
 
     private fun getPanelOffsetAndZoom(

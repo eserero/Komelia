@@ -136,23 +136,23 @@ class ScreenScaleState {
         return -extra - overscroll..extra + overscroll
     }
 
-    fun scrollTo(offset: Offset) {
-        val coroutineScope = composeScope
-        check(coroutineScope != null)
+    fun animateTo(offset: Offset, zoom: Float) {
+        val coroutineScope = composeScope ?: return
         scrollJob?.cancel()
+        zoomJob?.cancel()
         scrollJob = coroutineScope.launch {
-            logger.info { "current offset $currentOffset" }
-            AnimationState(
-                typeConverter = Offset.VectorConverter,
-                initialValue = currentOffset,
-            ).animateTo(
-                targetValue = offset,
+            val initialZoom = this@ScreenScaleState.zoom.value
+            val initialOffset = currentOffset
+            val targetZoom = zoom.coerceIn(zoomLimits.value)
+
+            AnimationState(initialValue = 0f).animateTo(
+                targetValue = 1f,
                 animationSpec = tween(durationMillis = 1000)
             ) {
-                currentOffset = value
+                this@ScreenScaleState.zoom.value = initialZoom + (targetZoom - initialZoom) * value
+                currentOffset = initialOffset + (offset - initialOffset) * value
                 applyLimits()
             }
-            logger.info { "scrolled to offset $currentOffset" }
         }
     }
 
