@@ -28,6 +28,7 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
@@ -37,6 +38,7 @@ import snd.komelia.settings.model.PagedReadingDirection.LEFT_TO_RIGHT
 import snd.komelia.settings.model.PagedReadingDirection.RIGHT_TO_LEFT
 import snd.komelia.ui.reader.image.ScreenScaleState
 import snd.komelia.ui.reader.image.common.PagedReaderHelpDialog
+import snd.komelia.ui.reader.image.common.ReaderAnimation
 import snd.komelia.ui.reader.image.common.ReaderControlsOverlay
 import snd.komelia.ui.reader.image.common.ReaderImageContent
 import snd.komelia.ui.reader.image.common.ScalableContainer
@@ -58,6 +60,9 @@ fun BoxScope.PanelsReaderContent(
     if (showHelpDialog) {
         PagedReaderHelpDialog(onDismissRequest = { onShowHelpDialogChange(false) })
     }
+
+    val density = LocalDensity.current.density
+    LaunchedEffect(density) { screenScaleState.setDensity(density) }
 
     val readingDirection = panelsReaderState.readingDirection.collectAsState().value
     val layoutDirection = when (readingDirection) {
@@ -81,7 +86,7 @@ fun BoxScope.PanelsReaderContent(
                     is PageNavigationEvent.Animated -> {
                         pagerState.animateScrollToPage(
                             page = event.pageIndex,
-                            animationSpec = tween(durationMillis = 1000)
+                            animationSpec = ReaderAnimation.navSpringSpec(density)
                         )
                     }
 

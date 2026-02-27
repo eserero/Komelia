@@ -46,6 +46,8 @@ import snd.komelia.ui.reader.image.common.PagedReaderHelpDialog
 import snd.komelia.ui.reader.image.common.ReaderControlsOverlay
 import snd.komelia.ui.reader.image.common.ReaderImageContent
 import snd.komelia.ui.reader.image.common.ScalableContainer
+import androidx.compose.ui.platform.LocalDensity
+import snd.komelia.ui.reader.image.common.ReaderAnimation
 import snd.komelia.ui.reader.image.paged.PagedReaderState.Page
 import snd.komelia.ui.reader.image.paged.PagedReaderState.TransitionPage
 import snd.komelia.ui.reader.image.paged.PagedReaderState.TransitionPage.BookEnd
@@ -65,6 +67,9 @@ fun BoxScope.PagedReaderContent(
     if (showHelpDialog) {
         PagedReaderHelpDialog(onDismissRequest = { onShowHelpDialogChange(false) })
     }
+
+    val density = LocalDensity.current.density
+    LaunchedEffect(density) { screenScaleState.setDensity(density) }
 
     val readingDirection = pagedReaderState.readingDirection.collectAsState().value
     val layoutDirection = when (readingDirection) {
@@ -97,7 +102,7 @@ fun BoxScope.PagedReaderContent(
                     is PagedReaderState.PageNavigationEvent.Animated -> {
                         pagerState.animateScrollToPage(
                             page = event.pageIndex,
-                            animationSpec = tween(durationMillis = 1000)
+                            animationSpec = ReaderAnimation.navSpringSpec(density)
                         )
                     }
 
@@ -122,7 +127,10 @@ fun BoxScope.PagedReaderContent(
         if (!isGestureInProgress && !isFlinging) {
             val pageOffset = pagerState.currentPageOffsetFraction
             if (abs(pageOffset) > 0.001f) {
-                pagerState.animateScrollToPage(pagerState.currentPage)
+                pagerState.animateScrollToPage(
+                    page = pagerState.currentPage,
+                    animationSpec = ReaderAnimation.navSpringSpec(density)
+                )
             }
         }
     }

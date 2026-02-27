@@ -1,5 +1,6 @@
 package snd.komelia.ui.reader.image
 
+import snd.komelia.ui.reader.image.common.ReaderAnimation
 import androidx.compose.animation.core.AnimationState
 import androidx.compose.animation.core.DecayAnimationSpec
 import androidx.compose.animation.core.Spring
@@ -75,6 +76,12 @@ class ScreenScaleState {
     @Volatile
     private var enableOverscrollArea = false
 
+    private var density = 1f
+
+    fun setDensity(density: Float) {
+        this.density = density
+    }
+
     fun scaleFor100PercentZoom() =
         max(
             areaSize.value.width.toFloat() / targetSize.value.width,
@@ -147,7 +154,7 @@ class ScreenScaleState {
 
             AnimationState(initialValue = 0f).animateTo(
                 targetValue = 1f,
-                animationSpec = tween(durationMillis = 1000)
+                animationSpec = ReaderAnimation.navSpringSpec(density)
             ) {
                 this@ScreenScaleState.zoom.value = initialZoom + (targetZoom - initialZoom) * value
                 currentOffset = initialOffset + (offset - initialOffset) * value

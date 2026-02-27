@@ -147,6 +147,11 @@ class PanelsReaderState(
         imageCache.invalidateAll()
     }
 
+    private var density = 1f
+    fun setDensity(density: Float) {
+        this.density = density
+    }
+
     suspend fun getImage(page: PageMetadata): ReaderImageResult {
         val pageId = page.toPageId()
         val cached = imageCache.get(pageId)
