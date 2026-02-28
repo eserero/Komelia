@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.statusBars
@@ -22,10 +23,10 @@ import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.LocalLibrary
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.rounded.Home
+import androidx.compose.material.icons.rounded.LocalLibrary
+import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.DrawerValue.Closed
 import androidx.compose.material3.DrawerValue.Open
 import androidx.compose.material3.HorizontalDivider
@@ -36,6 +37,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.contentColorFor
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.core.tween
@@ -178,54 +181,30 @@ class MainScreen(
     ) {
         val coroutineScope = rememberCoroutineScope()
         val useNewLibraryUI = LocalUseNewLibraryUI.current
+        val isImmersiveScreen = navigator.lastItem is SeriesScreen ||
+                navigator.lastItem is BookScreen ||
+                navigator.lastItem is OneshotScreen
 
-        if (useNewLibraryUI) {
-            val rawStatusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-            CompositionLocalProvider(LocalRawStatusBarHeight provides rawStatusBarHeight) {
-                Box(Modifier.fillMaxSize().statusBarsPadding()) {
-                    ModalNavigationDrawer(
-                        drawerState = vm.navBarState,
-                        drawerContent = { LibrariesNavBar(vm, navigator) },
-                        content = {
-                            AnimatedContent(
-                                targetState = navigator.lastItem,
-                                transitionSpec = { fadeIn(tween(400)) togetherWith fadeOut(tween(250)) },
-                                label = "nav",
-                            ) { screen ->
-                                CompositionLocalProvider(LocalAnimatedVisibilityScope provides this) {
-                                    navigator.saveableState("screen", screen) {
-                                        screen.Content()
-                                    }
-                                }
-                            }
-                        }
-                    )
-                    val isImmersiveScreen = navigator.lastItem is SeriesScreen ||
-                            navigator.lastItem is BookScreen ||
-                            navigator.lastItem is OneshotScreen
-                    Column(
-                        modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth()
-                    ) {
-                        if (!isImmersiveScreen) {
-                            PillBottomNavigationBar(
-                                navigator = navigator,
-                                toggleLibrariesDrawer = { coroutineScope.launch { vm.toggleNavBar() } },
-                            )
-                        }
-                        Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.systemBars))
-                    }
-                }
-            }
-        } else {
+        val rawStatusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+        CompositionLocalProvider(LocalRawStatusBarHeight provides rawStatusBarHeight) {
             Scaffold(
                 containerColor = MaterialTheme.colorScheme.surface,
                 bottomBar = {
-                    StandardBottomNavigationBar(
-                        navigator = navigator,
-                        toggleLibrariesDrawer = { coroutineScope.launch { vm.toggleNavBar() } },
-                        modifier = Modifier
-                    )
-                },
+                    if (!isImmersiveScreen) {
+                        if (useNewLibraryUI) {
+                            AppNavigationBar(
+                                navigator = navigator,
+                                toggleLibrariesDrawer = { coroutineScope.launch { vm.toggleNavBar() } }
+                            )
+                        } else {
+                            StandardBottomNavigationBar(
+                                navigator = navigator,
+                                toggleLibrariesDrawer = { coroutineScope.launch { vm.toggleNavBar() } },
+                                modifier = Modifier
+                            )
+                        }
+                    }
+                }
             ) { paddingValues ->
                 val layoutDirection = LocalLayoutDirection.current
                 ModalNavigationDrawer(
@@ -242,8 +221,19 @@ class MainScreen(
                                     bottom = paddingValues.calculateBottomPadding(),
                                 )
                                 .consumeWindowInsets(paddingValues)
+                                .statusBarsPadding()
                         ) {
-                            CurrentScreen()
+                            AnimatedContent(
+                                targetState = navigator.lastItem,
+                                transitionSpec = { fadeIn(tween(400)) togetherWith fadeOut(tween(250)) },
+                                label = "nav",
+                            ) { screen ->
+                                CompositionLocalProvider(LocalAnimatedVisibilityScope provides this) {
+                                    navigator.saveableState("screen", screen) {
+                                        screen.Content()
+                                    }
+                                }
+                            }
                         }
                     }
                 )
@@ -252,71 +242,42 @@ class MainScreen(
     }
 
     @Composable
-    private fun PillBottomNavigationBar(
+    private fun AppNavigationBar(
         navigator: Navigator,
         toggleLibrariesDrawer: () -> Unit,
     ) {
-        val pillColor = LocalNavBarColor.current ?: MaterialTheme.colorScheme.surfaceVariant
-        Box(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp),
-            contentAlignment = Alignment.Center,
+        val containerColor = LocalNavBarColor.current ?: MaterialTheme.colorScheme.surface
+        NavigationBar(
+            containerColor = containerColor,
         ) {
-            Surface(
-                shape = RoundedCornerShape(50),
-                color = pillColor,
-                shadowElevation = 12.dp,
-                tonalElevation = 4.dp,
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    PillNavItem(
-                        icon = Icons.Default.LocalLibrary,
-                        onClick = { toggleLibrariesDrawer() },
-                        isSelected = false,
-                    )
-                    PillNavItem(
-                        icon = Icons.Default.Home,
-                        onClick = { navigator.replaceAll(HomeScreen()) },
-                        isSelected = navigator.lastItem is HomeScreen,
-                    )
-                    PillNavItem(
-                        icon = Icons.Default.Search,
-                        onClick = { navigator.push(SearchScreen(null)) },
-                        isSelected = navigator.lastItem is SearchScreen,
-                    )
-                    PillNavItem(
-                        icon = Icons.Default.Settings,
-                        onClick = { navigator.parent!!.push(MobileSettingsScreen()) },
-                        isSelected = navigator.lastItem is SettingsScreen,
-                    )
-                }
-            }
-        }
-    }
-
-    @Composable
-    private fun PillNavItem(
-        icon: ImageVector,
-        onClick: () -> Unit,
-        isSelected: Boolean,
-    ) {
-        val pillColor = LocalNavBarColor.current ?: MaterialTheme.colorScheme.surfaceVariant
-        val bgColor = if (isSelected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent
-        val iconTint = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer
-                       else contentColorFor(pillColor)
-        Box(
-            modifier = Modifier
-                .clip(CircleShape)
-                .background(bgColor)
-                .clickable { onClick() }
-                .cursorForHand()
-                .padding(12.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(icon, contentDescription = null, tint = iconTint)
+            NavigationBarItem(
+                alwaysShowLabel = true,
+                selected = false,
+                onClick = toggleLibrariesDrawer,
+                icon = { Icon(Icons.Rounded.LocalLibrary, null) },
+                label = { Text("Libraries") }
+            )
+            NavigationBarItem(
+                alwaysShowLabel = true,
+                selected = navigator.lastItem is HomeScreen,
+                onClick = { navigator.replaceAll(HomeScreen()) },
+                icon = { Icon(Icons.Rounded.Home, null) },
+                label = { Text("Home") }
+            )
+            NavigationBarItem(
+                alwaysShowLabel = true,
+                selected = navigator.lastItem is SearchScreen,
+                onClick = { navigator.push(SearchScreen(null)) },
+                icon = { Icon(Icons.Rounded.Search, null) },
+                label = { Text("Search") }
+            )
+            NavigationBarItem(
+                alwaysShowLabel = true,
+                selected = navigator.lastItem is MobileSettingsScreen || navigator.lastItem is SettingsScreen,
+                onClick = { navigator.push(MobileSettingsScreen()) },
+                icon = { Icon(Icons.Rounded.Settings, null) },
+                label = { Text("Settings") }
+            )
         }
     }
 
@@ -337,7 +298,7 @@ class MainScreen(
                 ) {
                     CompactNavButton(
                         text = "Libraries",
-                        icon = Icons.Default.LocalLibrary,
+                        icon = Icons.Rounded.LocalLibrary,
                         onClick = { toggleLibrariesDrawer() },
                         isSelected = false,
                         modifier = Modifier.weight(1f)
@@ -345,7 +306,7 @@ class MainScreen(
 
                     CompactNavButton(
                         text = "Home",
-                        icon = Icons.Default.Home,
+                        icon = Icons.Rounded.Home,
                         onClick = { navigator.replaceAll(HomeScreen()) },
                         isSelected = navigator.lastItem is HomeScreen,
                         modifier = Modifier.weight(1f)
@@ -353,7 +314,7 @@ class MainScreen(
 
                     CompactNavButton(
                         text = "Search",
-                        icon = Icons.Default.Search,
+                        icon = Icons.Rounded.Search,
                         onClick = { navigator.push(SearchScreen(null)) },
                         isSelected = navigator.lastItem is SearchScreen,
                         modifier = Modifier.weight(1f)
@@ -361,13 +322,12 @@ class MainScreen(
 
                     CompactNavButton(
                         text = "Settings",
-                        icon = Icons.Default.Settings,
-                        onClick = { navigator.parent!!.push(MobileSettingsScreen()) },
-                        isSelected = navigator.lastItem is SettingsScreen,
+                        icon = Icons.Rounded.Settings,
+                        onClick = { navigator.push(MobileSettingsScreen()) },
+                        isSelected = navigator.lastItem is SettingsScreen || navigator.lastItem is MobileSettingsScreen,
                         modifier = Modifier.weight(1f)
                     )
                 }
-                Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.systemBars))
             }
         }
     }

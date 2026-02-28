@@ -24,8 +24,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.OfflinePin
+import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -459,7 +459,7 @@ private fun BookDetailedListDetails(
                         onClick = { isMenuExpanded = true },
                         colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                     ) {
-                        Icon(Icons.Default.MoreVert, null)
+                        Icon(Icons.Rounded.MoreVert, null)
                     }
                     BookActionsMenu(
                         book = book,
@@ -487,7 +487,7 @@ private fun BookMenuActionsDropdown(
             onClick = { onActionsMenuExpand(true) },
             colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
-            Icon(Icons.Default.MoreVert, null)
+            Icon(Icons.Rounded.MoreVert, null)
         }
 
         BookActionsMenu(
@@ -500,4 +500,3 @@ private fun BookMenuActionsDropdown(
         )
     }
 }
-

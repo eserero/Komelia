@@ -1,12 +1,13 @@
 package snd.komelia.ui.common.menus
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.hoverable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsHoveredAsState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.DeleteForever
+import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
@@ -14,7 +15,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
 import snd.komelia.ui.dialogs.ConfirmationDialog
 import snd.komelia.ui.dialogs.readlistedit.ReadListEditDialog
 import snd.komga.client.readlist.KomgaReadList
@@ -57,23 +57,20 @@ fun ReadListActionsMenu(
         expanded = showDropdown.value,
         onDismissRequest = onDismissRequest
     ) {
-        val deleteInteractionSource = remember { MutableInteractionSource() }
-        val deleteIsHovered = deleteInteractionSource.collectIsHoveredAsState()
-
         DropdownMenuItem(
-            text = { Text("Edit") },
+            text = { Text("Edit", style = MaterialTheme.typography.labelLarge) },
+            leadingIcon = { Icon(Icons.Rounded.Edit, null) },
             onClick = { showEditDialog = true },
         )
 
         DropdownMenuItem(
-            text = { Text("Delete") },
+            text = { Text("Delete", style = MaterialTheme.typography.labelLarge) },
+            leadingIcon = { Icon(Icons.Rounded.DeleteForever, null) },
             onClick = { showDeleteDialog = true },
-            modifier = Modifier
-                .hoverable(deleteInteractionSource)
-                .then(
-                    if (deleteIsHovered.value) Modifier.background(MaterialTheme.colorScheme.errorContainer)
-                    else Modifier
-                )
+            colors = MenuDefaults.itemColors(
+                textColor = MaterialTheme.colorScheme.error,
+                leadingIconColor = MaterialTheme.colorScheme.error
+            )
         )
     }
 }

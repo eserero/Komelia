@@ -82,9 +82,6 @@ fun SeriesLazyCardGrid(
     val useNewLibraryUI = LocalUseNewLibraryUI.current
     val cardSpacing = if (useNewLibraryUI) 7.dp else 15.dp
     val horizontalPadding = if (useNewLibraryUI) 10.dp else 20.dp
-    val navBarBottom = with(LocalDensity.current) {
-        WindowInsets.navigationBars.getBottom(this).toDp()
-    }
     Box(modifier) {
         LazyVerticalGrid(
             state = gridState,
@@ -93,7 +90,7 @@ fun SeriesLazyCardGrid(
             verticalArrangement = Arrangement.spacedBy(cardSpacing),
             contentPadding = PaddingValues(
                 start = horizontalPadding, end = horizontalPadding,
-                bottom = navBarBottom + 65.dp,
+                bottom = 15.dp,
             ),
         ) {
             item(span = { GridItemSpan(maxLineSpan) }) {

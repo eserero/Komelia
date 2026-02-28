@@ -222,7 +222,7 @@ private fun DisplayContent(
         LazyColumn(
             state = columnState,
             verticalArrangement = Arrangement.spacedBy(20.dp),
-            contentPadding = PaddingValues(bottom = 50.dp),
+            contentPadding = PaddingValues(bottom = 15.dp),
         ) {
             for (data in filters) {
                 val isEmpty = when (data) {
@@ -254,7 +254,7 @@ private fun DisplayContent(
             columns = GridCells.Adaptive(cardWidth),
             horizontalArrangement = Arrangement.spacedBy(15.dp),
             verticalArrangement = Arrangement.spacedBy(15.dp),
-            contentPadding = PaddingValues(bottom = 50.dp)
+            contentPadding = PaddingValues(bottom = 15.dp)
         ) {
             for (data in filters) {
                 if (activeFilterNumber == 0 || data.filter.order == activeFilterNumber) {

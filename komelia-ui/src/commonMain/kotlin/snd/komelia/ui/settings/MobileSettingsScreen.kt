@@ -71,8 +71,6 @@ class MobileSettingsScreen : Screen {
                     contentColor = MaterialTheme.colorScheme.surface,
                     modifier = Modifier.weight(1f, false)
                 )
-
-                Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.systemBars))
             }
         }
         BackPressHandler { currentNavigator.pop() }
