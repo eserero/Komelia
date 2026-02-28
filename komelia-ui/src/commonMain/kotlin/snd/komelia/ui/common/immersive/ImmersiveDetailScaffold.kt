@@ -116,6 +116,11 @@ fun ImmersiveDetailScaffold(
     // reads inside it happen too late for SharedTransitionLayout's composition-phase matching.
     val sharedTransitionScope = LocalSharedTransitionScope.current
     val animatedVisibilityScope = LocalAnimatedVisibilityScope.current
+
+    // The entire scaffold is the shared element — it morphs from the source thumbnail's bounds
+    // to full-screen. Applied to an inner Box (not BoxWithConstraints) so the outer
+    // BoxWithConstraints always measures at real screen dimensions, keeping collapsedOffset
+    // correct throughout the animation.
     val scaffoldSharedModifier = if (sharedTransitionScope != null && animatedVisibilityScope != null) {
         with(sharedTransitionScope) {
             Modifier.sharedBounds(
@@ -127,6 +132,9 @@ fun ImmersiveDetailScaffold(
             )
         }
     } else Modifier
+
+    // Whether a shared transition is in progress — used to suppress crossfade during animation.
+    val inSharedTransition = sharedTransitionScope != null && animatedVisibilityScope != null
 
     val uiEnterExitModifier = if (animatedVisibilityScope != null) {
         with(animatedVisibilityScope) {
@@ -151,9 +159,10 @@ fun ImmersiveDetailScaffold(
         }
     } else Modifier
 
-    Box(modifier = modifier.fillMaxSize()) {
-
-    BoxWithConstraints(modifier = Modifier.fillMaxSize().then(scaffoldSharedModifier)) {
+    // Outer BoxWithConstraints is NOT under sharedBounds, so maxHeight always equals the real
+    // screen height — never the thumbnail size mid-morph. All layout values (collapsedOffset,
+    // card height, cover height) are derived from this real measurement.
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val screenHeight = maxHeight
         val collapsedOffset = screenHeight * 0.65f
         val collapsedOffsetPx = with(density) { collapsedOffset.toPx() }
@@ -253,76 +262,80 @@ fun ImmersiveDetailScaffold(
         val statusBarDp = LocalRawStatusBarHeight.current
         val statusBarPx = with(density) { statusBarDp.toPx() }
 
-        Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
+        // Inner Box carries sharedBounds — it morphs from thumbnail size to full-screen.
+        // Because layout values come from the outer BoxWithConstraints, the cover image and card
+        // are always sized/positioned for the full screen, with the morphing clip revealing them
+        // naturally as the bounds expand. Image and card z-order never flip.
+        Box(modifier = Modifier.fillMaxSize().then(scaffoldSharedModifier)) {
+            Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
 
-            // Layer 1: Cover image — fades out as card expands
-            // Extends by the card corner radius so it fills behind the rounded corners
-            // When immersive=true, shifts up behind the status bar
-            ThumbnailImage(
-                data = coverData,
-                cacheKey = coverKey,
-                crossfade = true,
-                contentScale = ContentScale.Crop,
-                modifier = if (immersive)
-                    Modifier
-                        .fillMaxWidth()
-                        .offset { IntOffset(0, -statusBarPx.roundToInt()) }
-                        .height(collapsedOffset + topCornerRadiusDp + statusBarDp)
-                        .graphicsLayer { alpha = 1f - expandFraction }
-                else
-                    Modifier
-                        .fillMaxWidth()
-                        .height(collapsedOffset + topCornerRadiusDp)
-                        .graphicsLayer { alpha = 1f - expandFraction }
-            )
+                // Layer 1: Cover image — fades out as card expands
+                // Extends by the card corner radius so it fills behind the rounded corners
+                // When immersive=true, shifts up behind the status bar
+                ThumbnailImage(
+                    data = coverData,
+                    cacheKey = coverKey,
+                    crossfade = !inSharedTransition,
+                    contentScale = ContentScale.Crop,
+                    modifier = if (immersive)
+                        Modifier
+                            .fillMaxWidth()
+                            .offset { IntOffset(0, -statusBarPx.roundToInt()) }
+                            .height(collapsedOffset + topCornerRadiusDp + statusBarDp)
+                            .graphicsLayer { alpha = 1f - expandFraction }
+                    else
+                        Modifier
+                            .fillMaxWidth()
+                            .height(collapsedOffset + topCornerRadiusDp)
+                            .graphicsLayer { alpha = 1f - expandFraction }
+                )
 
-            // Layer 2: Card
-            val cardShape = RoundedCornerShape(topStart = topCornerRadiusDp, topEnd = topCornerRadiusDp)
-            Column(
-                modifier = Modifier
-                    .offset { IntOffset(0, cardOffsetPx.roundToInt()) }
-                    .fillMaxWidth()
-                    .height(screenHeight)
-                    .nestedScroll(nestedScrollConnection)
-                    .anchoredDraggable(state, Orientation.Vertical)
-                    .shadow(elevation = 6.dp, shape = cardShape)
-                    .clip(cardShape)
-                    .background(backgroundColor)
-            ) {
-                Box(
-                    modifier = Modifier.fillMaxWidth().height(28.dp),
-                    contentAlignment = Alignment.Center
+                // Layer 2: Card
+                val cardShape = RoundedCornerShape(topStart = topCornerRadiusDp, topEnd = topCornerRadiusDp)
+                Column(
+                    modifier = Modifier
+                        .offset { IntOffset(0, cardOffsetPx.roundToInt()) }
+                        .fillMaxWidth()
+                        .height(screenHeight)
+                        .nestedScroll(nestedScrollConnection)
+                        .anchoredDraggable(state, Orientation.Vertical)
+                        .shadow(elevation = 6.dp, shape = cardShape)
+                        .clip(cardShape)
+                        .background(backgroundColor)
                 ) {
                     Box(
-                        modifier = Modifier
-                            .size(width = 32.dp, height = 4.dp)
-                            .clip(RoundedCornerShape(2.dp))
-                            .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
-                    )
+                        modifier = Modifier.fillMaxWidth().height(28.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(width = 32.dp, height = 4.dp)
+                                .clip(RoundedCornerShape(2.dp))
+                                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
+                        )
+                    }
+                    Column(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                        cardContent(expandFraction)
+                    }
                 }
-                Column(modifier = Modifier.fillMaxWidth().weight(1f)) {
-                    cardContent(expandFraction)
-                }
-            }
 
-            // Layer 5: Top bar
-            Box(modifier = Modifier.fillMaxWidth().then(uiEnterExitModifier).statusBarsPadding()) {
-                topBarContent()
+                // Layer 5: Top bar
+                Box(modifier = Modifier.fillMaxWidth().then(uiEnterExitModifier).statusBarsPadding()) {
+                    topBarContent()
+                }
             }
         }
-    }
 
-    // Layer 4: FAB — outside shared bounds so it is never clipped by the morphing container
-    Box(
-        modifier = Modifier
-            .align(Alignment.BottomCenter)
-            .fillMaxWidth()
-            .then(fabOverlayModifier)
-            .windowInsetsPadding(WindowInsets.navigationBars)
-            .padding(bottom = 16.dp)
-    ) {
-        fabContent()
+        // Layer 4: FAB — outside shared bounds so it is never clipped by the morphing container
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .then(fabOverlayModifier)
+                .windowInsetsPadding(WindowInsets.navigationBars)
+                .padding(bottom = 16.dp)
+        ) {
+            fabContent()
+        }
     }
-
-    } // outer Box
 }

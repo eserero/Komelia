@@ -104,9 +104,11 @@ class MainScreen(
         ) { navigator ->
 
             val vm = rememberScreenModel { viewModelFactory.getNavigationViewModel() }
-            when (platform) {
-                MOBILE -> MobileLayout(navigator, vm)
-                DESKTOP, WEB_KOMF -> DesktopLayout(navigator, vm)
+            CompositionLocalProvider(LocalMainScreenViewModel provides vm) {
+                when (platform) {
+                    MOBILE -> MobileLayout(navigator, vm)
+                    DESKTOP, WEB_KOMF -> DesktopLayout(navigator, vm)
+                }
             }
             LaunchedEffect(Unit) {
                 vm.initialize(navigator)

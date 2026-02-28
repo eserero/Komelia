@@ -23,6 +23,7 @@ import snd.komga.client.library.KomgaLibrary
 import snd.komga.client.sse.KomgaEvent
 
 val LocalViewModelFactory = compositionLocalOf<ViewModelFactory> { error("ViewModel factory is not set") }
+val LocalMainScreenViewModel = compositionLocalOf<MainScreenViewModel> { error("MainScreenViewModel is not set") }
 
 val LocalToaster = compositionLocalOf<ToasterState> { error("Toaster is not set") }
 val LocalKomgaEvents = compositionLocalOf<SharedFlow<KomgaEvent>> { error("Komga events are not set") }

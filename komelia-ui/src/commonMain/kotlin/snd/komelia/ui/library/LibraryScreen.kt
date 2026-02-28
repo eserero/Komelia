@@ -1,10 +1,16 @@
 package snd.komelia.ui.library
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.MoreVert
@@ -19,19 +25,23 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.model.rememberScreenModel
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
+import kotlinx.coroutines.launch
 import snd.komelia.ui.LoadState.Error
 import snd.komelia.ui.LoadState.Loading
 import snd.komelia.ui.LoadState.Success
 import snd.komelia.ui.LoadState.Uninitialized
 import snd.komelia.ui.LocalKomgaState
+import snd.komelia.ui.LocalMainScreenViewModel
 import snd.komelia.ui.LocalOfflineMode
 import snd.komelia.ui.LocalReloadEvents
 import snd.komelia.ui.LocalViewModelFactory
@@ -252,73 +262,84 @@ fun LibraryToolBar(
     var showOptionsMenu by remember { mutableStateOf(false) }
     val isAdmin = LocalKomgaState.current.authenticatedUser.collectAsState().value?.roleAdmin() ?: true
     val isOffline = LocalOfflineMode.current.collectAsState().value
+    val mainScreenVm = LocalMainScreenViewModel.current
+    val coroutineScope = rememberCoroutineScope()
 
-    LazyRow(
-        horizontalArrangement = Arrangement.spacedBy(5.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        item {
-            if (library != null && (isAdmin || isOffline)) {
-                Box {
-                    IconButton(
-                        onClick = { showOptionsMenu = true }
-                    ) {
-                        Icon(
-                            Icons.Rounded.MoreVert,
-                            contentDescription = null,
-                        )
-                    }
+    Box(modifier = Modifier.fillMaxWidth()) {
+        LazyRow(
+            modifier = Modifier.align(Alignment.CenterStart).padding(end = 48.dp),
+            horizontalArrangement = Arrangement.spacedBy(5.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            item {
+                Spacer(Modifier.width(15.dp))
+            }
+            item {
+                Text(
+                    library?.let { library.name } ?: "All Libraries",
+                    modifier = Modifier.widthIn(max = 150.dp).clickable { coroutineScope.launch { mainScreenVm.toggleNavBar() } },
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
 
-                    LibraryActionsMenu(
-                        library = library,
-                        actions = libraryActions,
-                        expanded = showOptionsMenu,
-                        onDismissRequest = { showOptionsMenu = false }
+
+            if (collectionsCount > 0 || readListsCount > 0)
+                item {
+                    FilterChip(
+                        onClick = onBrowseClick,
+                        selected = currentTab == SERIES,
+                        label = { Text("Series") },
+                        colors = chipColors,
+                        shape = AppFilterChipDefaults.shape(),
+                        border = AppFilterChipDefaults.filterChipBorder(selected = currentTab == SERIES),
                     )
                 }
-            }
-            Text(library?.let { library.name } ?: "All Libraries")
 
-            Spacer(Modifier.width(5.dp))
+            if (collectionsCount > 0)
+                item {
+                    FilterChip(
+                        onClick = onCollectionsClick,
+                        selected = currentTab == COLLECTIONS,
+                        label = { Text("Collections") },
+                        colors = chipColors,
+                        shape = AppFilterChipDefaults.shape(),
+                        border = AppFilterChipDefaults.filterChipBorder(selected = currentTab == COLLECTIONS),
+                    )
+                }
+
+            if (readListsCount > 0)
+                item {
+                    FilterChip(
+                        onClick = onReadListsClick,
+                        selected = currentTab == READ_LISTS,
+                        label = { Text("Read Lists") },
+                        colors = chipColors,
+                        shape = AppFilterChipDefaults.shape(),
+                        border = AppFilterChipDefaults.filterChipBorder(selected = currentTab == READ_LISTS),
+                    )
+                }
         }
 
+        if (library != null && (isAdmin || isOffline)) {
+            Box(modifier = Modifier.align(Alignment.CenterEnd)) {
+                IconButton(
+                    onClick = { showOptionsMenu = true }
+                ) {
+                    Icon(
+                        Icons.Rounded.MoreVert,
+                        contentDescription = null,
+                    )
+                }
 
-        if (collectionsCount > 0 || readListsCount > 0)
-            item {
-                FilterChip(
-                    onClick = onBrowseClick,
-                    selected = currentTab == SERIES,
-                    label = { Text("Series") },
-                    colors = chipColors,
-                    shape = AppFilterChipDefaults.shape(),
-                    border = AppFilterChipDefaults.filterChipBorder(selected = currentTab == SERIES),
+                LibraryActionsMenu(
+                    library = library,
+                    actions = libraryActions,
+                    expanded = showOptionsMenu,
+                    onDismissRequest = { showOptionsMenu = false }
                 )
             }
-
-        if (collectionsCount > 0)
-            item {
-                FilterChip(
-                    onClick = onCollectionsClick,
-                    selected = currentTab == COLLECTIONS,
-                    label = { Text("Collections") },
-                    colors = chipColors,
-                    shape = AppFilterChipDefaults.shape(),
-                    border = AppFilterChipDefaults.filterChipBorder(selected = currentTab == COLLECTIONS),
-                )
-            }
-
-        if (readListsCount > 0)
-            item {
-                FilterChip(
-                    onClick = onReadListsClick,
-                    selected = currentTab == READ_LISTS,
-                    label = { Text("Read Lists") },
-                    colors = chipColors,
-                    shape = AppFilterChipDefaults.shape(),
-                    border = AppFilterChipDefaults.filterChipBorder(selected = currentTab == READ_LISTS),
-                )
-            }
-
+        }
     }
 }
 
