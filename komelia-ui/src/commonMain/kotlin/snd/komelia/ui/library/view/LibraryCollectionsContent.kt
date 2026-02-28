@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import snd.komelia.ui.common.components.AppSuggestionChipDefaults
 import snd.komelia.ui.common.components.LoadingMaxSizeIndicator
 import snd.komelia.ui.common.components.PageSizeSelectionDropdown
 import snd.komelia.ui.common.itemlist.CollectionLazyCardGrid
@@ -47,6 +48,7 @@ fun LibraryCollectionsContent(
                     if (collectionsTotalCount > 1) Text("$collectionsTotalCount collections")
                     else Text("$collectionsTotalCount collection")
                 },
+                shape = AppSuggestionChipDefaults.shape(),
                 modifier = Modifier.padding(end = 10.dp)
             )
 

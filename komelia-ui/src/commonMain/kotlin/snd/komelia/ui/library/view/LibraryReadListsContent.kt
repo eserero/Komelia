@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import snd.komelia.ui.common.components.AppSuggestionChipDefaults
 import snd.komelia.ui.common.components.LoadingMaxSizeIndicator
 import snd.komelia.ui.common.components.PageSizeSelectionDropdown
 import snd.komelia.ui.common.itemlist.PlaceHolderLazyCardGrid
@@ -48,6 +49,7 @@ fun LibraryReadListsContent(
                     if (readListsTotalCount > 1) Text("$readListsTotalCount read lists")
                     else Text("$readListsTotalCount read list")
                 },
+                shape = AppSuggestionChipDefaults.shape(),
                 modifier = Modifier.padding(end = 10.dp)
             )
 

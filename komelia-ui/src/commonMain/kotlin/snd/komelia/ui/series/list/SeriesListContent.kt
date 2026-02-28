@@ -39,6 +39,7 @@ import snd.komelia.komga.api.model.KomeliaBook
 import snd.komelia.ui.LocalUseNewLibraryUI
 import snd.komelia.ui.LocalWindowWidth
 import snd.komelia.ui.common.cards.BookImageCard
+import snd.komelia.ui.common.components.AppSuggestionChipDefaults
 import snd.komelia.ui.common.components.PageSizeSelectionDropdown
 import snd.komelia.ui.common.itemlist.SeriesLazyCardGrid
 import snd.komelia.ui.common.menus.BookMenuActions
@@ -229,6 +230,7 @@ private fun ToolBar(
                     SuggestionChip(
                         onClick = {},
                         label = { Text("$seriesTotalCount series") },
+                        shape = AppSuggestionChipDefaults.shape(),
                     )
 
                     Spacer(Modifier.weight(1f))

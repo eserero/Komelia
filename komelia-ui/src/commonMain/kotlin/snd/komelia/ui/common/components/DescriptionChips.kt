@@ -92,7 +92,7 @@ fun <T> DescriptionChips(
 
 @Composable
 fun NoPaddingChip(
-    borderColor: Color = MaterialTheme.colorScheme.surfaceVariant,
+    borderColor: Color = MaterialTheme.colorScheme.outline,
     color: Color = Color.Unspecified,
     onClick: () -> Unit = {},
     modifier: Modifier = Modifier,
@@ -100,8 +100,8 @@ fun NoPaddingChip(
 ) {
     Box(
         modifier = modifier
-            .border(Dp.Hairline, borderColor, RoundedCornerShape(10.dp))
-            .clip(RoundedCornerShape(10.dp))
+            .border(Dp.Hairline, borderColor, RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape(8.dp))
             .background(color)
             .clickable { onClick() }
             .padding(10.dp, 5.dp)
@@ -122,8 +122,7 @@ object AppFilterChipDefaults {
 
     @Composable
     fun shape(): Shape {
-        return if (LocalUseNewLibraryUI.current) RoundedCornerShape(percent = 50)
-        else FilterChipDefaults.shape
+        return FilterChipDefaults.shape
     }
 
     @Composable
@@ -141,7 +140,13 @@ object AppFilterChipDefaults {
 
     @Composable
     fun filterChipBorder(selected: Boolean): BorderStroke? {
-        val accent = LocalAccentColor.current ?: MaterialTheme.colorScheme.primary
-        return if (selected) null else BorderStroke(1.dp, accent)
+        return if (selected) null else BorderStroke(Dp.Hairline, MaterialTheme.colorScheme.outline)
+    }
+}
+
+object AppSuggestionChipDefaults {
+    @Composable
+    fun shape(): Shape {
+        return androidx.compose.material3.SuggestionChipDefaults.shape
     }
 }

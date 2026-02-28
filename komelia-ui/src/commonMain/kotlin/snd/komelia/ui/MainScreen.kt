@@ -260,21 +260,24 @@ class MainScreen(
             NavigationBarItem(
                 alwaysShowLabel = true,
                 selected = navigator.lastItem is HomeScreen,
-                onClick = { navigator.replaceAll(HomeScreen()) },
+                onClick = { if (navigator.lastItem !is HomeScreen) navigator.replaceAll(HomeScreen()) },
                 icon = { Icon(Icons.Rounded.Home, null) },
                 label = { Text("Home") }
             )
             NavigationBarItem(
                 alwaysShowLabel = true,
                 selected = navigator.lastItem is SearchScreen,
-                onClick = { navigator.push(SearchScreen(null)) },
+                onClick = { if (navigator.lastItem !is SearchScreen) navigator.push(SearchScreen(null)) },
                 icon = { Icon(Icons.Rounded.Search, null) },
                 label = { Text("Search") }
             )
             NavigationBarItem(
                 alwaysShowLabel = true,
                 selected = navigator.lastItem is MobileSettingsScreen || navigator.lastItem is SettingsScreen,
-                onClick = { navigator.push(MobileSettingsScreen()) },
+                onClick = {
+                    if (navigator.lastItem !is MobileSettingsScreen && navigator.lastItem !is SettingsScreen)
+                        navigator.push(MobileSettingsScreen())
+                },
                 icon = { Icon(Icons.Rounded.Settings, null) },
                 label = { Text("Settings") }
             )
@@ -307,7 +310,7 @@ class MainScreen(
                     CompactNavButton(
                         text = "Home",
                         icon = Icons.Rounded.Home,
-                        onClick = { navigator.replaceAll(HomeScreen()) },
+                        onClick = { if (navigator.lastItem !is HomeScreen) navigator.replaceAll(HomeScreen()) },
                         isSelected = navigator.lastItem is HomeScreen,
                         modifier = Modifier.weight(1f)
                     )
@@ -315,7 +318,7 @@ class MainScreen(
                     CompactNavButton(
                         text = "Search",
                         icon = Icons.Rounded.Search,
-                        onClick = { navigator.push(SearchScreen(null)) },
+                        onClick = { if (navigator.lastItem !is SearchScreen) navigator.push(SearchScreen(null)) },
                         isSelected = navigator.lastItem is SearchScreen,
                         modifier = Modifier.weight(1f)
                     )
@@ -323,7 +326,10 @@ class MainScreen(
                     CompactNavButton(
                         text = "Settings",
                         icon = Icons.Rounded.Settings,
-                        onClick = { navigator.push(MobileSettingsScreen()) },
+                        onClick = {
+                            if (navigator.lastItem !is MobileSettingsScreen && navigator.lastItem !is SettingsScreen)
+                                navigator.push(MobileSettingsScreen())
+                        },
                         isSelected = navigator.lastItem is SettingsScreen || navigator.lastItem is MobileSettingsScreen,
                         modifier = Modifier.weight(1f)
                     )
