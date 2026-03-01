@@ -114,15 +114,46 @@ class PanelsReaderState(
         screenScaleState.setScrollState(null)
         screenScaleState.setScrollOrientation(Orientation.Vertical, false)
 
-        combine(
-            screenScaleState.transformation,
-            screenScaleState.areaSize,
-        ) {}
-            .drop(1).conflate()
+        var lastAreaSize = screenScaleState.areaSize.value
+        screenScaleState.areaSize
+            .drop(1)
+            .onEach { areaSize ->
+                val page = currentPage.value ?: return@onEach
+                val oldSize = lastAreaSize
+                lastAreaSize = areaSize
+                if (areaSize == IntSize.Zero || areaSize == oldSize) return@onEach
+                
+                // Small delay to allow Compose layout to finish centering the content 
+                // before we calculate the required transformation
+                delay(100)
+
+                val panelIdx = currentPageIndex.value.panel
+                val panelData = page.panelData
+                val image = (page.imageResult as? ReaderImageResult.Success)?.image
+                if (panelData != null && image != null) {
+                    val stretchToFit = readerState.imageStretchToFit.value
+                    val imageDisplaySize = image.calculateSizeForArea(areaSize, stretchToFit)
+                    if (imageDisplaySize != null) {
+                        screenScaleState.setTargetSize(imageDisplaySize.toSize())
+                        val panel = panelData.panels.getOrNull(panelIdx) ?: panelData.panels.first()
+                        scrollToPanel(
+                            imageSize = panelData.originalImageSize,
+                            screenSize = areaSize,
+                            targetSize = imageDisplaySize,
+                            panel = panel,
+                            skipAnimation = false
+                        )
+                    }
+                }
+            }
+            .launchIn(stateScope)
+
+        screenScaleState.transformation
+            .drop(1)
+            .conflate()
             .onEach {
                 currentPage.value?.let { page ->
                     updateImageState(page, screenScaleState, currentPageIndex.value.panel)
-                    delay(100)
                 }
             }
             .launchIn(stateScope)
@@ -582,36 +613,28 @@ class PanelsReaderState(
         val xScale: Float = targetSize.width.toFloat() / imageSize.width
         val yScale: Float = targetSize.height.toFloat() / imageSize.height
 
-        val bboxLeft: Float = panel.left.coerceAtLeast(0) * xScale
-        val bboxRight: Float = panel.right.coerceAtMost(imageSize.width) * xScale
-        val bboxBottom: Float = panel.bottom.coerceAtMost(imageSize.height) * yScale
-        val bboxTop: Float = panel.top.coerceAtLeast(0) * yScale
-        val bboxWidth: Float = bboxRight - bboxLeft
-        val bboxHeight: Float = bboxBottom - bboxTop
+        val panelCenterX = (panel.left + panel.width / 2f) * xScale
+        val panelCenterY = (panel.top + panel.height / 2f) * yScale
+        val imageCenterX = targetSize.width / 2f
+        val imageCenterY = targetSize.height / 2f
 
-        val scale: Float = min(
+        val bboxWidth = panel.width * xScale
+        val bboxHeight = panel.height * yScale
+
+        val totalScale: Float = min(
             areaSize.width / bboxWidth,
             areaSize.height / bboxHeight
         )
-        val fitToScreenScale = max(
+        val scaleFor100PercentZoom = max(
             areaSize.width.toFloat() / targetSize.width,
             areaSize.height.toFloat() / targetSize.height
         )
-        val zoom: Float = scale / fitToScreenScale
+        val zoom: Float = totalScale / scaleFor100PercentZoom
 
-        val bboxHalfWidth: Float = bboxWidth / 2.0f
-        val bboxHalfHeight: Float = bboxHeight / 2.0f
-        val imageHalfWidth: Float = targetSize.width / 2.0f
-        val imageHalfHeight: Float = targetSize.height / 2.0f
+        val offsetX = (imageCenterX - panelCenterX) * totalScale
+        val offsetY = (imageCenterY - panelCenterY) * totalScale
 
-        val centerX: Float = (bboxLeft - imageHalfWidth) * -1.0f
-        val centerY: Float = (bboxTop - imageHalfHeight) * -1.0f
-        val offset = Offset(
-            (centerX - bboxHalfWidth) * scale,
-            (centerY - bboxHalfHeight) * scale
-        )
-
-        return offset to zoom
+        return Offset(offsetX, offsetY) to zoom
     }
 
     data class PanelsPage(

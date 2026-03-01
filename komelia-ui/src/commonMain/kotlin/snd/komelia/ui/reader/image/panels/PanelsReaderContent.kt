@@ -146,7 +146,10 @@ fun BoxScope.PanelsReaderContent(
                             imageResultState.value = panelsReaderState.getImage(pageMeta)
                         }
 
-                        Box(contentAlignment = Alignment.Center) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
                             ReaderImageContent(imageResultState.value)
                         }
                     }
