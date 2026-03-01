@@ -65,9 +65,10 @@ enum class ReduceKernel {
 }
 
 data class EdgeSampling(
-    val vertical: Boolean,
-    val first: EdgeSample,
-    val second: EdgeSample,
+    val top: EdgeSample? = null,
+    val bottom: EdgeSample? = null,
+    val left: EdgeSample? = null,
+    val right: EdgeSample? = null,
 )
 
 data class EdgeSample(

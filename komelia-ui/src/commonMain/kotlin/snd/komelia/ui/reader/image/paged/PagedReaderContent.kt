@@ -55,6 +55,10 @@ import snd.komelia.ui.reader.image.paged.PagedReaderState.TransitionPage.BookSta
 import snd.komelia.ui.reader.image.common.AdaptiveBackground
 import kotlin.math.abs
 
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.unit.toSize
+
 @Composable
 fun BoxScope.PagedReaderContent(
     showHelpDialog: Boolean,
@@ -197,10 +201,18 @@ fun BoxScope.PagedReaderContent(
 
                             val edgeSampling = if (adaptiveBackground && pages.size == 1) pages.first().edgeSampling else null
                             val imageSize = if (pages.size == 1) pages.first().imageSize else null
+                            val imageBounds = remember(imageSize, currentContainerSize) {
+                                if (imageSize == null) null
+                                else {
+                                    val left = (currentContainerSize.width - imageSize.width) / 2f
+                                    val top = (currentContainerSize.height - imageSize.height) / 2f
+                                    Rect(Offset(left, top), imageSize.toSize())
+                                }
+                            }
 
                             AdaptiveBackground(
                                 edgeSampling = edgeSampling,
-                                imageSize = imageSize,
+                                imageBounds = imageBounds,
                             ) {
                                 when (layout) {
                                     SINGLE_PAGE -> pages.firstOrNull()?.let { SinglePageLayout(it) }

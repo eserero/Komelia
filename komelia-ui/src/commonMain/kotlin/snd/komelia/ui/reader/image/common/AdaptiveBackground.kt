@@ -11,9 +11,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.unit.IntSize
 import snd.komelia.image.EdgeSampling
 
@@ -21,98 +23,115 @@ import snd.komelia.image.EdgeSampling
 fun AdaptiveBackground(
     edgeSampling: EdgeSampling?,
     modifier: Modifier = Modifier,
-    imageSize: IntSize? = null,
+    imageBounds: Rect? = null,
     content: @Composable () -> Unit
 ) {
     val backgroundColor = MaterialTheme.colorScheme.background
-    val topColor = remember(edgeSampling) {
-        if (edgeSampling?.vertical == true) Color(edgeSampling.first.averageColor) else Color.Transparent
-    }
-    val bottomColor = remember(edgeSampling) {
-        if (edgeSampling?.vertical == true) Color(edgeSampling.second.averageColor) else Color.Transparent
-    }
-    val leftColor = remember(edgeSampling) {
-        if (edgeSampling?.vertical == false) Color(edgeSampling.first.averageColor) else Color.Transparent
-    }
-    val rightColor = remember(edgeSampling) {
-        if (edgeSampling?.vertical == false) Color(edgeSampling.second.averageColor) else Color.Transparent
-    }
+    val topColor = remember(edgeSampling) { edgeSampling?.top?.averageColor?.let { Color(it) } ?: Color.Transparent }
+    val bottomColor = remember(edgeSampling) { edgeSampling?.bottom?.averageColor?.let { Color(it) } ?: Color.Transparent }
+    val leftColor = remember(edgeSampling) { edgeSampling?.left?.averageColor?.let { Color(it) } ?: Color.Transparent }
+    val rightColor = remember(edgeSampling) { edgeSampling?.right?.averageColor?.let { Color(it) } ?: Color.Transparent }
 
     val animatedTop by animateColorAsState(targetValue = topColor, animationSpec = tween(durationMillis = 500))
     val animatedBottom by animateColorAsState(targetValue = bottomColor, animationSpec = tween(durationMillis = 500))
     val animatedLeft by animateColorAsState(targetValue = leftColor, animationSpec = tween(durationMillis = 500))
     val animatedRight by animateColorAsState(targetValue = rightColor, animationSpec = tween(durationMillis = 500))
 
-        Box(
-            modifier = modifier
-                .fillMaxSize()
-                .drawBehind {
-                    if (edgeSampling != null) {
-                        if (edgeSampling.vertical) {
-                            val containerHeight = size.height.toInt()
-                            val imageTop = if (imageSize != null) ((containerHeight - imageSize.height) / 2).coerceAtLeast(0).toFloat()
-                            else size.height / 2
-                            val imageBottom = if (imageSize != null) (imageTop + imageSize.height).coerceAtMost(size.height)
-                            else size.height / 2
-    
-                            // Top bloom
-                            drawRect(
-                                brush = Brush.verticalGradient(
-                                    0f to backgroundColor,
-                                    1f to animatedTop,
-                                    startY = 0f,
-                                    endY = imageTop + 1f // Overlap by 1px
-                                ),
-                                topLeft = Offset.Zero,
-                                size = Size(size.width, imageTop + 1f)
-                            )
-    
-                            // Bottom bloom
-                            drawRect(
-                                brush = Brush.verticalGradient(
-                                    0f to animatedBottom,
-                                    1f to backgroundColor,
-                                    startY = imageBottom - 1f, // Overlap by 1px
-                                    endY = size.height
-                                ),
-                                topLeft = Offset(0f, imageBottom - 1f),
-                                size = Size(size.width, size.height - imageBottom + 1f)
-                            )
-                        } else {
-                            val containerWidth = size.width.toInt()
-                            val imageLeft = if (imageSize != null) ((containerWidth - imageSize.width) / 2).coerceAtLeast(0).toFloat()
-                            else size.width / 2
-                            val imageRight = if (imageSize != null) (imageLeft + imageSize.width).coerceAtMost(size.width)
-                            else size.width / 2
-    
-                            // Left bloom
-                            drawRect(
-                                brush = Brush.horizontalGradient(
-                                    0f to backgroundColor,
-                                    1f to animatedLeft,
-                                    startX = 0f,
-                                    endX = imageLeft + 1f // Overlap by 1px
-                                ),
-                                topLeft = Offset.Zero,
-                                size = Size(imageLeft + 1f, size.height)
-                            )
-    
-                            // Right bloom
-                            drawRect(
-                                brush = Brush.horizontalGradient(
-                                    0f to animatedRight,
-                                    1f to backgroundColor,
-                                    startX = imageRight - 1f, // Overlap by 1px
-                                    endX = size.width
-                                ),
-                                topLeft = Offset(imageRight - 1f, 0f),
-                                size = Size(size.width - imageRight + 1f, size.height)
-                            )
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .drawBehind {
+                if (edgeSampling != null) {
+                    val containerWidth = size.width
+                    val containerHeight = size.height
+
+                    val imageLeft = imageBounds?.left ?: 0f
+                    val imageTop = imageBounds?.top ?: 0f
+                    val imageRight = imageBounds?.right ?: containerWidth
+                    val imageBottom = imageBounds?.bottom ?: containerHeight
+
+                    // Top Zone
+                    if (imageTop > 0) {
+                        val path = Path().apply {
+                            moveTo(0f, 0f)
+                            lineTo(containerWidth, 0f)
+                            lineTo(imageRight, imageTop)
+                            lineTo(imageLeft, imageTop)
+                            close()
                         }
+                        drawPath(
+                            path = path,
+                            brush = Brush.verticalGradient(
+                                0f to backgroundColor,
+                                1f to animatedTop,
+                                startY = 0f,
+                                endY = imageTop
+                            )
+                        )
+                    }
+
+                    // Bottom Zone
+                    if (imageBottom < containerHeight) {
+                        val path = Path().apply {
+                            moveTo(0f, containerHeight)
+                            lineTo(containerWidth, containerHeight)
+                            lineTo(imageRight, imageBottom)
+                            lineTo(imageLeft, imageBottom)
+                            close()
+                        }
+                        drawPath(
+                            path = path,
+                            brush = Brush.verticalGradient(
+                                0f to animatedBottom,
+                                1f to backgroundColor,
+                                startY = imageBottom,
+                                endY = containerHeight
+                            )
+                        )
+                    }
+
+                    // Left Zone
+                    if (imageLeft > 0) {
+                        val path = Path().apply {
+                            moveTo(0f, 0f)
+                            lineTo(imageLeft, imageTop)
+                            lineTo(imageLeft, imageBottom)
+                            lineTo(0f, containerHeight)
+                            close()
+                        }
+                        drawPath(
+                            path = path,
+                            brush = Brush.horizontalGradient(
+                                0f to backgroundColor,
+                                1f to animatedLeft,
+                                startX = 0f,
+                                endX = imageLeft
+                            )
+                        )
+                    }
+
+                    // Right Zone
+                    if (imageRight < containerWidth) {
+                        val path = Path().apply {
+                            moveTo(containerWidth, 0f)
+                            lineTo(imageRight, imageTop)
+                            lineTo(imageRight, imageBottom)
+                            lineTo(containerWidth, containerHeight)
+                            close()
+                        }
+                        drawPath(
+                            path = path,
+                            brush = Brush.horizontalGradient(
+                                0f to animatedRight,
+                                1f to backgroundColor,
+                                startX = imageRight,
+                                endX = containerWidth
+                            )
+                        )
                     }
                 }
-        )
-     {
+            }
+    ) {
         content()
     }
 }

@@ -386,14 +386,7 @@ class PagedReaderState(
                 val edgeSampling = if (adaptiveBackground.value && imageResult is ReaderImageResult.Success) {
                     val originalImage = imageResult.image.getOriginalImage().getOrNull()
                     if (originalImage != null) {
-                        val isVerticalGaps = if (containerSize.width == 0 || containerSize.height == 0) true
-                        else {
-                            val containerRatio = containerSize.width.toDouble() / containerSize.height
-                            val imageRatio = originalImage.width.toDouble() / originalImage.height
-                            imageRatio > containerRatio
-                        }
-
-                        originalImage.getEdgeSampling(isVerticalGaps)
+                        originalImage.getEdgeSampling()
                     } else null
                 } else null
                 Page(meta, imageResult, edgeSampling, imageSize)
@@ -460,14 +453,7 @@ class PagedReaderState(
                 val edgeSampling = if (adaptiveBackground.value && imageResult is ReaderImageResult.Success) {
                     val originalImage = imageResult.image.getOriginalImage().getOrNull()
                     if (originalImage != null) {
-                        val isVerticalGaps = if (containerSize.width == 0 || containerSize.height == 0) true
-                        else {
-                            val containerRatio = containerSize.width.toDouble() / containerSize.height
-                            val imageRatio = originalImage.width.toDouble() / originalImage.height
-                            imageRatio > containerRatio
-                        }
-
-                        originalImage.getEdgeSampling(isVerticalGaps)
+                        originalImage.getEdgeSampling()
                     } else null
                 } else null
                 Page(page, imageResult, edgeSampling, imageSize)

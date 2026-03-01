@@ -46,6 +46,10 @@ import snd.komelia.ui.reader.image.paged.PagedReaderState.PageNavigationEvent
 import snd.komelia.ui.reader.image.paged.PagedReaderState.TransitionPage
 import snd.komelia.ui.reader.image.paged.PagedReaderState.TransitionPage.BookEnd
 import snd.komelia.ui.reader.image.paged.PagedReaderState.TransitionPage.BookStart
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.toSize
 import snd.komelia.ui.reader.image.common.AdaptiveBackground
 
 @Composable
@@ -107,32 +111,51 @@ fun BoxScope.PanelsReaderContent(
     }
 
     val coroutineScope = rememberCoroutineScope()
-    ReaderControlsOverlay(
-        readingDirection = layoutDirection,
-        onNexPageClick = panelsReaderState::nextPanel,
-        onPrevPageClick = panelsReaderState::previousPanel,
-        contentAreaSize = currentContainerSize,
-        scaleState = screenScaleState,
-        tapToZoom = tapToZoom,
-        isSettingsMenuOpen = showSettingsMenu,
-        onSettingsMenuToggle = { onShowSettingsMenuChange(!showSettingsMenu) },
-        modifier = Modifier.onKeyEvent { event ->
-            pagedReaderOnKeyEvents(
-                event = event,
-                readingDirection = readingDirection,
-                onReadingDirectionChange = panelsReaderState::onReadingDirectionChange,
-                onMoveToNextPage = { coroutineScope.launch { panelsReaderState.nextPanel() } },
-                onMoveToPrevPage = { coroutineScope.launch { panelsReaderState.previousPanel() } },
-                volumeKeysNavigation = volumeKeysNavigation
-            )
+    val currentPage = panelsReaderState.currentPage.collectAsState().value
+    val edgeSampling = if (adaptiveBackground) currentPage?.edgeSampling else null
+    val transforms = screenScaleState.transformation.collectAsState().value
+    val targetSize = screenScaleState.targetSize.collectAsState().value
+    val imageBounds = remember(transforms, targetSize, currentContainerSize) {
+        if (targetSize == Size.Zero || currentContainerSize == IntSize.Zero) null
+        else {
+            val width = targetSize.width * transforms.scale
+            val height = targetSize.height * transforms.scale
+            val left = (currentContainerSize.width / 2f) - (width / 2f) + transforms.offset.x
+            val top = (currentContainerSize.height / 2f) - (height / 2f) + transforms.offset.y
+            Rect(left, top, left + width, top + height)
         }
+    }
+
+    AdaptiveBackground(
+        edgeSampling = edgeSampling,
+        imageBounds = imageBounds,
     ) {
-        ScalableContainer(scaleState = screenScaleState) {
-            val transitionPage = panelsReaderState.transitionPage.collectAsState().value
-            if (transitionPage != null) {
-                TransitionPage(transitionPage)
-            } else {
-                if (metadata.isNotEmpty()) {
+        ReaderControlsOverlay(
+            readingDirection = layoutDirection,
+            onNexPageClick = panelsReaderState::nextPanel,
+            onPrevPageClick = panelsReaderState::previousPanel,
+            contentAreaSize = currentContainerSize,
+            scaleState = screenScaleState,
+            tapToZoom = tapToZoom,
+            isSettingsMenuOpen = showSettingsMenu,
+            onSettingsMenuToggle = { onShowSettingsMenuChange(!showSettingsMenu) },
+            modifier = Modifier.onKeyEvent { event ->
+                pagedReaderOnKeyEvents(
+                    event = event,
+                    readingDirection = readingDirection,
+                    onReadingDirectionChange = panelsReaderState::onReadingDirectionChange,
+                    onMoveToNextPage = { coroutineScope.launch { panelsReaderState.nextPanel() } },
+                    onMoveToPrevPage = { coroutineScope.launch { panelsReaderState.previousPanel() } },
+                    volumeKeysNavigation = volumeKeysNavigation
+                )
+            }
+        ) {
+            ScalableContainer(scaleState = screenScaleState) {
+                val transitionPage = panelsReaderState.transitionPage.collectAsState().value
+                if (transitionPage != null) {
+                    TransitionPage(transitionPage)
+                } else {
+                    if (metadata.isNotEmpty()) {
                         HorizontalPager(
                             state = pagerState,
                             userScrollEnabled = false,
@@ -148,21 +171,14 @@ fun BoxScope.PanelsReaderContent(
                                 pageState.value = panelsReaderState.getPage(pageMeta)
                             }
 
-                            val edgeSampling = if (adaptiveBackground) pageState.value?.edgeSampling else null
-                            val imageSize = pageState.value?.imageSize
-
-                            AdaptiveBackground(
-                                edgeSampling = edgeSampling,
-                                imageSize = imageSize,
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Box(
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    ReaderImageContent(pageState.value?.imageResult)
-                                }
+                                ReaderImageContent(pageState.value?.imageResult)
                             }
                         }
+                    }
                 }
             }
         }

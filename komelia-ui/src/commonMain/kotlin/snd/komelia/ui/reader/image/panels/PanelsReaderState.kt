@@ -542,13 +542,7 @@ class PanelsReaderState(
                         val fitToScreenSize = image.calculateSizeForArea(containerSize, true)
                         val originalImageSize = IntSize(originalImage.width, originalImage.height)
                         val edgeSampling = if (adaptiveBackground.value) {
-                            val isVerticalGaps = if (containerSize.width == 0 || containerSize.height == 0) true
-                            else {
-                                val containerRatio = containerSize.width.toDouble() / containerSize.height
-                                val imageRatio = originalImageSize.width.toDouble() / originalImageSize.height
-                                imageRatio > containerRatio
-                            }
-                            originalImage.getEdgeSampling(isVerticalGaps)
+                            originalImage.getEdgeSampling()
                         } else null
             
                         val (panels, duration) = measureTimedValue {
