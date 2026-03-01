@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.systemBars
@@ -190,7 +191,11 @@ class MainScreen(
                 navigator.lastItem is OneshotScreen
 
         val rawStatusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-        CompositionLocalProvider(LocalRawStatusBarHeight provides rawStatusBarHeight) {
+        val rawNavBarHeight = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+        CompositionLocalProvider(
+            LocalRawStatusBarHeight provides rawStatusBarHeight,
+            LocalRawNavBarHeight provides rawNavBarHeight,
+        ) {
             Scaffold(
                 containerColor = MaterialTheme.colorScheme.surface,
                 bottomBar = {

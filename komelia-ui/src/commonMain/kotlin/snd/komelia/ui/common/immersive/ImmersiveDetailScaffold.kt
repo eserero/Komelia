@@ -55,11 +55,13 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
 import snd.komelia.ui.LocalAnimatedVisibilityScope
+import snd.komelia.ui.LocalRawNavBarHeight
 import snd.komelia.ui.LocalRawStatusBarHeight
 import snd.komelia.ui.LocalSharedTransitionScope
 import snd.komelia.ui.common.images.ThumbnailImage
@@ -191,7 +193,12 @@ fun ImmersiveDetailScaffold(
 
     BoxWithConstraints(modifier = modifier.fillMaxSize().then(scaffoldEnterExitModifier)) {
         val screenHeight = maxHeight
-        val collapsedOffset = screenHeight * 0.65f
+        val statusBarDp = LocalRawStatusBarHeight.current
+        val navBarDp    = LocalRawNavBarHeight.current
+        val windowHeightDp = with(density) { LocalWindowInfo.current.containerSize.height.toDp() }
+        // Use actual window height (invariant to app nav bar showing/hiding) for stable collapsedOffset.
+        val stableScreenHeight = windowHeightDp - statusBarDp - navBarDp
+        val collapsedOffset = stableScreenHeight * 0.65f
         val collapsedOffsetPx = with(density) { collapsedOffset.toPx() }
 
         // Use remember (not rememberSaveable) so pager pages don't restore stale saved state.
@@ -286,7 +293,6 @@ fun ImmersiveDetailScaffold(
         }
 
         val topCornerRadiusDp = lerp(28f, 0f, expandFraction).dp
-        val statusBarDp = LocalRawStatusBarHeight.current
         val statusBarPx = with(density) { statusBarDp.toPx() }
 
         Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
