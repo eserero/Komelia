@@ -74,6 +74,7 @@ fun MainView(
     var navBarColor by remember { mutableStateOf<Color?>(null) }
     var accentColor by remember { mutableStateOf<Color?>(null) }
     var useNewLibraryUI by remember { mutableStateOf(true) }
+    var cardLayoutBelow by remember { mutableStateOf(false) }
     LaunchedEffect(dependencies) {
         dependencies?.appRepositories?.settingsRepository?.getAppTheme()?.collect { theme = it.toTheme() }
     }
@@ -88,6 +89,10 @@ fun MainView(
     LaunchedEffect(dependencies) {
         dependencies?.appRepositories?.settingsRepository?.getUseNewLibraryUI()
             ?.collect { useNewLibraryUI = it }
+    }
+    LaunchedEffect(dependencies) {
+        dependencies?.appRepositories?.settingsRepository?.getCardLayoutBelow()
+            ?.collect { cardLayoutBelow = it }
     }
 
     MaterialTheme(colorScheme = theme.colorScheme) {
@@ -136,6 +141,7 @@ fun MainView(
                 LocalNavBarColor provides navBarColor,
                 LocalAccentColor provides accentColor,
                 LocalUseNewLibraryUI provides useNewLibraryUI,
+                LocalCardLayoutBelow provides cardLayoutBelow,
             ) {
                 MainContent(platformType, dependencies.komgaSharedState)
 

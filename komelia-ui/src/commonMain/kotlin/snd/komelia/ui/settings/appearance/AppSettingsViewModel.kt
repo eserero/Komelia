@@ -25,6 +25,7 @@ class AppSettingsViewModel(
     var navBarColor by mutableStateOf<Color?>(null)
     var accentColor by mutableStateOf<Color?>(null)
     var useNewLibraryUI by mutableStateOf(true)
+    var cardLayoutBelow by mutableStateOf(false)
 
     suspend fun initialize() {
         if (state.value !is LoadState.Uninitialized) return
@@ -34,6 +35,7 @@ class AppSettingsViewModel(
         navBarColor = settingsRepository.getNavBarColor().first()?.let { Color(it.toInt()) }
         accentColor = settingsRepository.getAccentColor().first()?.let { Color(it.toInt()) }
         useNewLibraryUI = settingsRepository.getUseNewLibraryUI().first()
+        cardLayoutBelow = settingsRepository.getCardLayoutBelow().first()
         mutableState.value = LoadState.Success(Unit)
     }
 
@@ -60,6 +62,11 @@ class AppSettingsViewModel(
     fun onUseNewLibraryUIChange(enabled: Boolean) {
         this.useNewLibraryUI = enabled
         screenModelScope.launch { settingsRepository.putUseNewLibraryUI(enabled) }
+    }
+
+    fun onCardLayoutBelowChange(enabled: Boolean) {
+        this.cardLayoutBelow = enabled
+        screenModelScope.launch { settingsRepository.putCardLayoutBelow(enabled) }
     }
 
 }

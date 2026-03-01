@@ -127,4 +127,12 @@ class SettingsRepositoryWrapper(
         wrapper.transform { it.copy(useNewLibraryUI = enabled) }
     }
 
+    override fun getCardLayoutBelow(): Flow<Boolean> {
+        return wrapper.state.map { it.cardLayoutBelow }.distinctUntilChanged()
+    }
+
+    override suspend fun putCardLayoutBelow(enabled: Boolean) {
+        wrapper.transform { it.copy(cardLayoutBelow = enabled) }
+    }
+
 }

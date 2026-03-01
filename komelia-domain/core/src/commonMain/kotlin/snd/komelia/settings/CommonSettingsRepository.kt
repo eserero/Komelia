@@ -48,4 +48,7 @@ interface CommonSettingsRepository {
 
     fun getUseNewLibraryUI(): Flow<Boolean>
     suspend fun putUseNewLibraryUI(enabled: Boolean)
+
+    fun getCardLayoutBelow(): Flow<Boolean>
+    suspend fun putCardLayoutBelow(enabled: Boolean)
 }

@@ -34,8 +34,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import snd.komelia.ui.LocalCardLayoutBelow
 import snd.komelia.ui.LocalLibraries
 import snd.komelia.ui.common.components.NoPaddingChip
 import snd.komelia.ui.common.images.SeriesThumbnail
@@ -57,6 +62,8 @@ fun SeriesImageCard(
     val libraryIsDeleted = remember {
         libraries.value.firstOrNull { it.id == series.libraryId }?.unavailable ?: false
     }
+    val cardLayoutBelow = LocalCardLayoutBelow.current
+
     ItemCard(
         modifier = modifier,
         onClick = onSeriesClick,
@@ -68,12 +75,49 @@ fun SeriesImageCard(
                 isSelected = isSelected,
                 seriesActions = seriesMenuActions,
             ) {
-                SeriesImageOverlay(series = series, libraryIsDeleted = libraryIsDeleted) {
+                SeriesImageOverlay(
+                    series = series,
+                    libraryIsDeleted = libraryIsDeleted,
+                    showTitle = !cardLayoutBelow
+                ) {
                     SeriesThumbnail(
                         series.id,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
                     )
+                }
+            }
+        },
+        content = {
+            if (cardLayoutBelow) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    val isUnavailable = series.deleted || libraryIsDeleted
+                    if (isUnavailable) {
+                        Text(
+                            text = series.metadata.title,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                        Text(
+                            text = "Unavailable",
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    } else {
+                        Text(
+                            text = series.metadata.title,
+                            maxLines = 2,
+                            minLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
                 }
             }
         }
@@ -86,6 +130,7 @@ fun SeriesSimpleImageCard(
     onSeriesClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
+    val cardLayoutBelow = LocalCardLayoutBelow.current
     ItemCard(
         modifier = modifier,
         onClick = onSeriesClick,
@@ -93,13 +138,27 @@ fun SeriesSimpleImageCard(
             SeriesImageOverlay(
                 series = series,
                 libraryIsDeleted = false,
-                showTitle = false,
+                showTitle = !cardLayoutBelow,
             ) {
                 SeriesThumbnail(
                     series.id,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
                 )
+            }
+        },
+        content = {
+            if (cardLayoutBelow) {
+                Column(Modifier.padding(8.dp)) {
+                    Text(
+                        text = series.metadata.title,
+                        maxLines = 2,
+                        minLines = 2,
+                        style = MaterialTheme.typography.bodyMedium,
+                        overflow = TextOverflow.Ellipsis,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
             }
         }
     )

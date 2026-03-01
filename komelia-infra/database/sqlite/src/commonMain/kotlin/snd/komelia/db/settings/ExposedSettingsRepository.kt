@@ -42,6 +42,7 @@ class ExposedSettingsRepository(database: Database) : ExposedRepository(database
                 it[navBarColor] = settings.navBarColor?.toString(16)
                 it[accentColor] = settings.accentColor?.toString(16)
                 it[useNewLibraryUI] = settings.useNewLibraryUI
+                it[cardLayoutBelow] = settings.cardLayoutBelow
             }
         }
     }
@@ -66,6 +67,7 @@ class ExposedSettingsRepository(database: Database) : ExposedRepository(database
             navBarColor = get(AppSettingsTable.navBarColor)?.toLong(16),
             accentColor = get(AppSettingsTable.accentColor)?.toLong(16),
             useNewLibraryUI = get(AppSettingsTable.useNewLibraryUI),
+            cardLayoutBelow = get(AppSettingsTable.cardLayoutBelow),
         )
     }
 

@@ -33,10 +33,13 @@ class AppSettingsScreen : Screen {
                     onNavBarColorChange = vm::onNavBarColorChange,
                     accentColor = vm.accentColor,
                     onAccentColorChange = vm::onAccentColorChange,
-                    useNewLibraryUI = vm.useNewLibraryUI,
-                    onUseNewLibraryUIChange = vm::onUseNewLibraryUIChange,
-                )
-            }
-        }
-    }
-}
+                                        useNewLibraryUI = vm.useNewLibraryUI,
+                                        onUseNewLibraryUIChange = vm::onUseNewLibraryUIChange,
+                                        cardLayoutBelow = vm.cardLayoutBelow,
+                                        onCardLayoutBelowChange = vm::onCardLayoutBelowChange,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    

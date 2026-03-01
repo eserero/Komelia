@@ -1,0 +1,1 @@
+ALTER TABLE AppSettings ADD COLUMN card_layout_below INTEGER NOT NULL DEFAULT 0;

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -23,6 +24,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
+import snd.komelia.ui.LocalCardLayoutBelow
+import androidx.compose.runtime.CompositionLocalProvider
+import snd.komelia.ui.common.cards.ItemCard
+import snd.komelia.ui.common.cards.DEFAULT_CARD_MAX_LINES
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -90,6 +100,8 @@ fun AppearanceSettingsContent(
     onAccentColorChange: (Color?) -> Unit,
     useNewLibraryUI: Boolean,
     onUseNewLibraryUIChange: (Boolean) -> Unit,
+    cardLayoutBelow: Boolean,
+    onCardLayoutBelowChange: (Boolean) -> Unit,
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -112,6 +124,28 @@ fun AppearanceSettingsContent(
             Switch(
                 checked = useNewLibraryUI,
                 onCheckedChange = onUseNewLibraryUIChange,
+                modifier = Modifier.cursorForHand(),
+            )
+        }
+
+        HorizontalDivider()
+
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text("Card layout", style = MaterialTheme.typography.bodyLarge)
+                Text(
+                    "Show title and metadata below the thumbnail instead of on top",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Switch(
+                checked = cardLayoutBelow,
+                onCheckedChange = onCardLayoutBelowChange,
                 modifier = Modifier.cursorForHand(),
             )
         }
@@ -166,11 +200,40 @@ fun AppearanceSettingsContent(
         ) {
             Text("${cardWidth.value}")
 
-            Card(
-                Modifier
-                    .width(cardWidth)
-                    .aspectRatio(0.703f)
-            ) {
+            CompositionLocalProvider(LocalCardLayoutBelow provides cardLayoutBelow) {
+                ItemCard(
+                    modifier = Modifier.width(cardWidth),
+                    image = {
+                        Box(
+                            Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("Thumbnail")
+                        }
+                    },
+                    content = {
+                        if (cardLayoutBelow) {
+                            Column(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Text(
+                                    text = "Series Example",
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                Text(
+                                    text = "Book Title Example",
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                )
+                            }
+                        }
+                    }
+                )
             }
         }
     }

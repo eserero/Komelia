@@ -44,6 +44,7 @@ val LocalKomgaState = staticCompositionLocalOf<KomgaAuthenticationState> { error
 val LocalNavBarColor = compositionLocalOf<Color?> { null }
 val LocalAccentColor = compositionLocalOf<Color?> { null }
 val LocalUseNewLibraryUI = compositionLocalOf { true }
+val LocalCardLayoutBelow = compositionLocalOf { false }
 val LocalRawStatusBarHeight = staticCompositionLocalOf { 0.dp }
 
 @OptIn(ExperimentalSharedTransitionApi::class)

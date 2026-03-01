@@ -25,4 +25,5 @@ data class AppSettings(
     val navBarColor: Long? = null,
     val accentColor: Long? = null,
     val useNewLibraryUI: Boolean = true,
+    val cardLayoutBelow: Boolean = false,
 )

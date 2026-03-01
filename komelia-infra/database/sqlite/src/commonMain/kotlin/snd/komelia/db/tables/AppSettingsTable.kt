@@ -25,6 +25,7 @@ object AppSettingsTable : Table("AppSettings") {
     val navBarColor = text("nav_bar_color").nullable()
     val accentColor = text("accent_color").nullable()
     val useNewLibraryUI = bool("use_new_library_ui").default(true)
+    val cardLayoutBelow = bool("card_layout_below").default(false)
 
     override val primaryKey = PrimaryKey(version)
 }
