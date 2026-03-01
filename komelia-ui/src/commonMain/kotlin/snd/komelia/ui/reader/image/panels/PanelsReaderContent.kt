@@ -148,22 +148,12 @@ fun BoxScope.PanelsReaderContent(
                                 pageState.value = panelsReaderState.getPage(pageMeta)
                             }
 
-                            val edgeColors = if (adaptiveBackground) pageState.value?.edgeColors else null
-                            val isVerticalGaps = remember(pageState.value, currentContainerSize) {
-                                val imageSize = pageState.value?.imageResult?.let {
-                                    if (it is ReaderImageResult.Success) it.image.displaySize.value else null
-                                }
-                                if (imageSize == null || currentContainerSize.width == 0 || currentContainerSize.height == 0) true
-                                else {
-                                    val containerRatio = currentContainerSize.width.toDouble() / currentContainerSize.height
-                                    val imageRatio = imageSize.width.toDouble() / imageSize.height
-                                    imageRatio < containerRatio
-                                }
-                            }
+                            val edgeSampling = if (adaptiveBackground) pageState.value?.edgeSampling else null
+                            val imageSize = pageState.value?.imageSize
 
                             AdaptiveBackground(
-                                edgeColors = edgeColors,
-                                isVerticalGaps = isVerticalGaps,
+                                edgeSampling = edgeSampling,
+                                imageSize = imageSize,
                             ) {
                                 Box(
                                     modifier = Modifier.fillMaxSize(),

@@ -33,11 +33,12 @@ import kotlinx.coroutines.launch
 import snd.komelia.AppNotification
 import snd.komelia.AppNotifications
 import snd.komelia.image.BookImageLoader
+import snd.komelia.image.EdgeSampling
 import snd.komelia.image.ImageRect
 import snd.komelia.image.KomeliaPanelDetector
 import snd.komelia.image.ReaderImage.PageId
 import snd.komelia.image.ReaderImageResult
-import snd.komelia.image.getEdgeColors
+import snd.komelia.image.getEdgeSampling
 import snd.komelia.onnxruntime.OnnxRuntimeException
 import snd.komelia.settings.ImageReaderSettingsRepository
 import snd.komelia.settings.model.PagedReadingDirection
@@ -433,12 +434,14 @@ class PanelsReaderState(
                     metadata = pageMeta,
                     imageResult = null,
                     panelData = null,
-                    edgeColors = null
+                    edgeSampling = null,
+                    imageSize = null
                 ) ?: PanelsPage(
                     metadata = pageMeta,
                     imageResult = null,
                     panelData = null,
-                    edgeColors = null
+                    edgeSampling = null,
+                    imageSize = null
                 )
             }
             currentPageIndex.update { PageIndex(pageIndex, 0) }
@@ -535,16 +538,17 @@ class PanelsReaderState(
                     panelData = null
                 )
 
-                        val imageSize = IntSize(originalImage.width, originalImage.height)
-                        val edgeColors = if (adaptiveBackground.value) {
-                            val containerSize = screenScaleState.areaSize.value
+                        val containerSize = screenScaleState.areaSize.value
+                        val fitToScreenSize = image.calculateSizeForArea(containerSize, true)
+                        val originalImageSize = IntSize(originalImage.width, originalImage.height)
+                        val edgeSampling = if (adaptiveBackground.value) {
                             val isVerticalGaps = if (containerSize.width == 0 || containerSize.height == 0) true
                             else {
                                 val containerRatio = containerSize.width.toDouble() / containerSize.height
-                                val imageRatio = imageSize.width.toDouble() / imageSize.height
+                                val imageRatio = originalImageSize.width.toDouble() / originalImageSize.height
                                 imageRatio > containerRatio
                             }
-                            originalImage.getEdgeColors(isVerticalGaps)
+                            originalImage.getEdgeSampling(isVerticalGaps)
                         } else null
             
                         val (panels, duration) = measureTimedValue {
@@ -563,7 +567,7 @@ class PanelsReaderState(
 
             val panelData = PanelData(
                 panels = panels,
-                originalImageSize = imageSize,
+                originalImageSize = originalImageSize,
                 panelCoversMajorityOfImage = false // Placeholder for Phase 2
             )
 
@@ -571,7 +575,8 @@ class PanelsReaderState(
                 metadata = meta,
                 imageResult = imageResult,
                 panelData = panelData,
-                edgeColors = edgeColors
+                edgeSampling = edgeSampling,
+                imageSize = fitToScreenSize
             )
         }
         imageCache.put(pageId, loadJob)
@@ -675,7 +680,8 @@ class PanelsReaderState(
         val metadata: PageMetadata,
         val imageResult: ReaderImageResult?,
         val panelData: PanelData?,
-        val edgeColors: Pair<Int, Int>? = null,
+        val edgeSampling: EdgeSampling? = null,
+        val imageSize: IntSize? = null,
     )
 
     data class PanelData(

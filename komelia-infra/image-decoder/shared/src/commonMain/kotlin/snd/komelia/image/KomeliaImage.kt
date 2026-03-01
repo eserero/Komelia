@@ -63,3 +63,14 @@ enum class ReduceKernel {
     MKS2021,
     DEFAULT,
 }
+
+data class EdgeSampling(
+    val vertical: Boolean,
+    val first: EdgeSample,
+    val second: EdgeSample,
+)
+
+data class EdgeSample(
+    val averageColor: Int,
+    val colorLine: ByteArray,
+)

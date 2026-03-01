@@ -12,6 +12,14 @@ import org.jetbrains.skia.ImageInfo
 actual suspend fun KomeliaImage.toImageBitmap(): ImageBitmap =
     this.toBitmap().asComposeImageBitmap()
 
+actual fun ByteArray.toImageBitmap(width: Int, height: Int): ImageBitmap {
+    val bitmap = Bitmap()
+    bitmap.allocPixels(ImageInfo.makeS32(width, height, ColorAlphaType.PREMUL))
+    bitmap.installPixels(this)
+    bitmap.setImmutable()
+    return bitmap.asComposeImageBitmap()
+}
+
 suspend fun KomeliaImage.toBitmap(): Bitmap {
     val colorInfo = when (type) {
         ImageFormat.GRAYSCALE_8 -> {

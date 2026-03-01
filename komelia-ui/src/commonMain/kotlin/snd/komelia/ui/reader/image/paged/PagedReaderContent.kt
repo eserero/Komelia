@@ -195,22 +195,12 @@ fun BoxScope.PagedReaderContent(
                                 pageState.value ?: Page(meta, null)
                             }
 
-                            val edgeColors = if (adaptiveBackground && pages.size == 1) pages.first().edgeColors else null
-                            val isVerticalGaps = remember(pages, currentContainerSize) {
-                                val imageSize = pages.firstOrNull()?.imageResult?.let {
-                                    if (it is ReaderImageResult.Success) it.image.displaySize.value else null
-                                }
-                                if (imageSize == null || currentContainerSize.width == 0 || currentContainerSize.height == 0) true
-                                else {
-                                    val containerRatio = currentContainerSize.width.toDouble() / currentContainerSize.height
-                                    val imageRatio = imageSize.width.toDouble() / imageSize.height
-                                    imageRatio < containerRatio
-                                }
-                            }
+                            val edgeSampling = if (adaptiveBackground && pages.size == 1) pages.first().edgeSampling else null
+                            val imageSize = if (pages.size == 1) pages.first().imageSize else null
 
                             AdaptiveBackground(
-                                edgeColors = edgeColors,
-                                isVerticalGaps = isVerticalGaps,
+                                edgeSampling = edgeSampling,
+                                imageSize = imageSize,
                             ) {
                                 when (layout) {
                                     SINGLE_PAGE -> pages.firstOrNull()?.let { SinglePageLayout(it) }

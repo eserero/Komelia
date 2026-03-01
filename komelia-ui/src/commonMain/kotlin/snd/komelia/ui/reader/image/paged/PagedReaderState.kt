@@ -31,9 +31,10 @@ import kotlinx.coroutines.launch
 import snd.komelia.AppNotification
 import snd.komelia.AppNotifications
 import snd.komelia.image.BookImageLoader
+import snd.komelia.image.EdgeSampling
 import snd.komelia.image.ReaderImage.PageId
 import snd.komelia.image.ReaderImageResult
-import snd.komelia.image.getEdgeColors
+import snd.komelia.image.getEdgeSampling
 import snd.komelia.komga.api.model.KomeliaBook
 import snd.komelia.settings.ImageReaderSettingsRepository
 import snd.komelia.settings.model.LayoutScaleType
@@ -377,10 +378,14 @@ class PagedReaderState(
             if (cached != null && !cached.isCancelled) cached
             else pageLoadScope.async {
                 val imageResult = imageLoader.loadReaderImage(meta.bookId, meta.pageNumber)
-                val edgeColors = if (adaptiveBackground.value && imageResult is ReaderImageResult.Success) {
+                val containerSize = screenScaleState.areaSize.value
+                val imageSize = if (imageResult is ReaderImageResult.Success) {
+                    imageResult.image.calculateSizeForArea(containerSize, true)
+                } else null
+
+                val edgeSampling = if (adaptiveBackground.value && imageResult is ReaderImageResult.Success) {
                     val originalImage = imageResult.image.getOriginalImage().getOrNull()
                     if (originalImage != null) {
-                        val containerSize = screenScaleState.areaSize.value
                         val isVerticalGaps = if (containerSize.width == 0 || containerSize.height == 0) true
                         else {
                             val containerRatio = containerSize.width.toDouble() / containerSize.height
@@ -388,11 +393,10 @@ class PagedReaderState(
                             imageRatio > containerRatio
                         }
 
-                        val colors = originalImage.getEdgeColors(isVerticalGaps)
-                        colors
+                        originalImage.getEdgeSampling(isVerticalGaps)
                     } else null
                 } else null
-                Page(meta, imageResult, edgeColors)
+                Page(meta, imageResult, edgeSampling, imageSize)
             }.also { imageCache.put(pageId, it) }
         }
 
@@ -448,10 +452,14 @@ class PagedReaderState(
         } else {
             val job = pageLoadScope.async {
                 val imageResult = imageLoader.loadReaderImage(page.bookId, page.pageNumber)
-                val edgeColors = if (adaptiveBackground.value && imageResult is ReaderImageResult.Success) {
+                val containerSize = screenScaleState.areaSize.value
+                val imageSize = if (imageResult is ReaderImageResult.Success) {
+                    imageResult.image.calculateSizeForArea(containerSize, true)
+                } else null
+
+                val edgeSampling = if (adaptiveBackground.value && imageResult is ReaderImageResult.Success) {
                     val originalImage = imageResult.image.getOriginalImage().getOrNull()
                     if (originalImage != null) {
-                        val containerSize = screenScaleState.areaSize.value
                         val isVerticalGaps = if (containerSize.width == 0 || containerSize.height == 0) true
                         else {
                             val containerRatio = containerSize.width.toDouble() / containerSize.height
@@ -459,10 +467,10 @@ class PagedReaderState(
                             imageRatio > containerRatio
                         }
 
-                        originalImage.getEdgeColors(isVerticalGaps)
+                        originalImage.getEdgeSampling(isVerticalGaps)
                     } else null
                 } else null
-                Page(page, imageResult, edgeColors)
+                Page(page, imageResult, edgeSampling, imageSize)
             }.also { imageCache.put(pageId, it) }
             job.await()
         }
@@ -743,7 +751,8 @@ class PagedReaderState(
     data class Page(
         val metadata: PageMetadata,
         val imageResult: ReaderImageResult?,
-        val edgeColors: Pair<Int, Int>? = null,
+        val edgeSampling: EdgeSampling? = null,
+        val imageSize: IntSize? = null,
     )
 
 
