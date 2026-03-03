@@ -27,6 +27,7 @@ import snd.komelia.komga.api.KomgaSeriesApi
 import snd.komelia.komga.api.model.KomeliaBook
 import snd.komelia.settings.ImageReaderSettingsRepository
 import snd.komelia.settings.model.ReaderFlashColor
+import snd.komelia.settings.model.ReaderTapNavigationMode
 import snd.komelia.settings.model.ReaderType
 import snd.komelia.ui.BookSiblingsContext
 import snd.komelia.ui.LoadState
@@ -80,6 +81,7 @@ class ReaderState(
     val flashEveryNPages = MutableStateFlow(1)
     val flashWith = MutableStateFlow(ReaderFlashColor.BLACK)
 
+    val tapNavigationMode = MutableStateFlow(ReaderTapNavigationMode.LEFT_RIGHT)
     val volumeKeysNavigation = MutableStateFlow(false)
     val pixelDensity = MutableStateFlow<Density?>(null)
 
@@ -94,6 +96,7 @@ class ReaderState(
         flashDuration.value = readerSettingsRepository.getFlashDuration().first()
         flashEveryNPages.value = readerSettingsRepository.getFlashEveryNPages().first()
         flashWith.value = readerSettingsRepository.getFlashWith().first()
+        tapNavigationMode.value = readerSettingsRepository.getReaderTapNavigationMode().first()
         volumeKeysNavigation.value = readerSettingsRepository.getVolumeKeysNavigation().first()
 
         appNotifications.runCatchingToNotifications {
@@ -282,6 +285,11 @@ class ReaderState(
     fun onFlashWithChange(flashWith: ReaderFlashColor) {
         this.flashWith.value = flashWith
         stateScope.launch { readerSettingsRepository.putFlashWith(flashWith) }
+    }
+
+    fun onTapNavigationModeChange(mode: ReaderTapNavigationMode) {
+        this.tapNavigationMode.value = mode
+        stateScope.launch { readerSettingsRepository.putReaderTapNavigationMode(mode) }
     }
 
     fun onUpsamplingModeChange(mode: UpsamplingMode) {

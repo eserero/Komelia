@@ -161,6 +161,16 @@ val EnStrings = AppStrings(
         memoryUsage = "Memory usage",
         pageDisplaySize = "display size",
         pageOriginalSize = "original size",
+
+        tapNavigation = "Tap Navigation",
+        modeLeftRight = "Default",
+        modeLeftRightDesc = "Left = previous page · Right = next page",
+        modeRightLeft = "Reversed",
+        modeRightLeftDesc = "Left = next page · Right = previous page",
+        modeHorizontalSplit = "Top/Bottom Split",
+        modeHorizontalSplitDesc = "Top half = previous page · Bottom half = next page",
+        modeReversedHorizontalSplit = "Reversed Split",
+        modeReversedHorizontalSplitDesc = "Top half = next page · Bottom half = previous page",
     ),
     pagedReader = PagedReaderStrings(
         scaleType = "Scale type",

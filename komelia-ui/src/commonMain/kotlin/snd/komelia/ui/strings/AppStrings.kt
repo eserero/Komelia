@@ -276,6 +276,16 @@ data class ReaderStrings(
     val memoryUsage: String,
     val pageDisplaySize: String,
     val pageOriginalSize: String,
+
+    val tapNavigation: String,
+    val modeLeftRight: String,
+    val modeLeftRightDesc: String,
+    val modeRightLeft: String,
+    val modeRightLeftDesc: String,
+    val modeHorizontalSplit: String,
+    val modeHorizontalSplitDesc: String,
+    val modeReversedHorizontalSplit: String,
+    val modeReversedHorizontalSplitDesc: String,
 ) {
     fun forReaderType(type: ReaderType): String {
         return when (type) {

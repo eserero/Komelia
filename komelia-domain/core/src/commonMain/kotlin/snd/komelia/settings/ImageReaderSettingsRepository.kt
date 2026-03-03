@@ -11,6 +11,7 @@ import snd.komelia.settings.model.PageDisplayLayout
 import snd.komelia.settings.model.PagedReadingDirection
 import snd.komelia.settings.model.PanelsFullPageDisplayMode
 import snd.komelia.settings.model.ReaderFlashColor
+import snd.komelia.settings.model.ReaderTapNavigationMode
 import snd.komelia.settings.model.ReaderType
 
 interface ImageReaderSettingsRepository {
@@ -94,4 +95,7 @@ interface ImageReaderSettingsRepository {
 
     fun getPanelReaderAdaptiveBackground(): Flow<Boolean>
     suspend fun putPanelReaderAdaptiveBackground(enabled: Boolean)
+
+    fun getReaderTapNavigationMode(): Flow<ReaderTapNavigationMode>
+    suspend fun putReaderTapNavigationMode(mode: ReaderTapNavigationMode)
 }

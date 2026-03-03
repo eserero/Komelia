@@ -53,6 +53,7 @@ import snd.komelia.image.ReaderImageResult
 import snd.komelia.settings.model.ContinuousReadingDirection.LEFT_TO_RIGHT
 import snd.komelia.settings.model.ContinuousReadingDirection.RIGHT_TO_LEFT
 import snd.komelia.settings.model.ContinuousReadingDirection.TOP_TO_BOTTOM
+import snd.komelia.settings.model.ReaderTapNavigationMode
 import snd.komelia.ui.reader.image.PageMetadata
 import snd.komelia.ui.reader.image.ScreenScaleState
 import snd.komelia.ui.reader.image.common.ContinuousReaderHelpDialog
@@ -69,7 +70,8 @@ fun BoxScope.ContinuousReaderContent(
     onShowSettingsMenuChange: (Boolean) -> Unit,
     screenScaleState: ScreenScaleState,
     continuousReaderState: ContinuousReaderState,
-    volumeKeysNavigation: Boolean
+    volumeKeysNavigation: Boolean,
+    tapNavigationMode: ReaderTapNavigationMode,
 ) {
     val coroutineScope = rememberCoroutineScope()
     val readingDirection = continuousReaderState.readingDirection.collectAsState().value
@@ -109,6 +111,7 @@ fun BoxScope.ContinuousReaderContent(
         contentAreaSize = areaSize,
         scaleState = screenScaleState,
         tapToZoom = true,
+        tapNavigationMode = tapNavigationMode,
         isSettingsMenuOpen = showSettingsMenu,
         onSettingsMenuToggle = { onShowSettingsMenuChange(!showSettingsMenu) },
         modifier = Modifier.onKeyEvent { event ->

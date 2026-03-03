@@ -11,6 +11,7 @@ import snd.komelia.settings.model.PageDisplayLayout
 import snd.komelia.settings.model.PagedReadingDirection
 import snd.komelia.settings.model.PanelsFullPageDisplayMode
 import snd.komelia.settings.model.ReaderFlashColor
+import snd.komelia.settings.model.ReaderTapNavigationMode
 import snd.komelia.settings.model.ReaderType
 import snd.komelia.settings.model.ReaderType.PAGED
 
@@ -46,4 +47,5 @@ data class ImageReaderSettings(
     val panelReaderTapToZoom: Boolean = true,
     val pagedReaderAdaptiveBackground: Boolean = false,
     val panelReaderAdaptiveBackground: Boolean = false,
+    val tapNavigationMode: ReaderTapNavigationMode = ReaderTapNavigationMode.LEFT_RIGHT,
 )

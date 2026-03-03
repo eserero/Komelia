@@ -19,6 +19,7 @@ import snd.komelia.settings.model.PageDisplayLayout
 import snd.komelia.settings.model.PagedReadingDirection
 import snd.komelia.settings.model.PanelsFullPageDisplayMode
 import snd.komelia.settings.model.ReaderFlashColor
+import snd.komelia.settings.model.ReaderTapNavigationMode
 import snd.komelia.settings.model.ReaderType
 
 class ExposedImageReaderSettingsRepository(database: Database) : ExposedRepository(database) {
@@ -60,6 +61,8 @@ class ExposedImageReaderSettingsRepository(database: Database) : ExposedReposito
                         panelReaderTapToZoom = it[ImageReaderSettingsTable.panelReaderTapToZoom],
                         pagedReaderAdaptiveBackground = it[ImageReaderSettingsTable.pagedReaderAdaptiveBackground],
                         panelReaderAdaptiveBackground = it[ImageReaderSettingsTable.panelReaderAdaptiveBackground],
+                        tapNavigationMode = it[ImageReaderSettingsTable.tapNavigationMode]
+                            .let { mode -> ReaderTapNavigationMode.valueOf(mode) },
                     )
                 }
         }
@@ -96,6 +99,7 @@ class ExposedImageReaderSettingsRepository(database: Database) : ExposedReposito
                 it[panelReaderTapToZoom] = settings.panelReaderTapToZoom
                 it[pagedReaderAdaptiveBackground] = settings.pagedReaderAdaptiveBackground
                 it[panelReaderAdaptiveBackground] = settings.panelReaderAdaptiveBackground
+                it[tapNavigationMode] = settings.tapNavigationMode.name
             }
         }
     }

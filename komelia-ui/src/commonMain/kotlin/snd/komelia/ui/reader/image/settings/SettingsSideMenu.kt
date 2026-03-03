@@ -53,6 +53,7 @@ import snd.komelia.image.UpsamplingMode
 import snd.komelia.komga.api.model.KomeliaBook
 import snd.komelia.settings.model.ContinuousReadingDirection
 import snd.komelia.settings.model.LayoutScaleType
+import snd.komelia.settings.model.ReaderTapNavigationMode
 import snd.komelia.settings.model.PageDisplayLayout
 import snd.komelia.settings.model.PagedReadingDirection
 import snd.komelia.settings.model.PanelsFullPageDisplayMode
@@ -111,6 +112,9 @@ fun SettingsSideMenuOverlay(
     onFlashWithChange: (ReaderFlashColor) -> Unit,
     flashDuration: Long,
     onFlashDurationChange: (Long) -> Unit,
+
+    tapNavigationMode: ReaderTapNavigationMode,
+    onTapNavigationModeChange: (ReaderTapNavigationMode) -> Unit,
 
     pagedReaderState: PagedReaderState,
     panelsReaderState: PanelsReaderState?,
@@ -180,6 +184,31 @@ fun SettingsSideMenuOverlay(
 
                     CONTINUOUS -> ContinuousReaderSettingsContent(continuousReaderState)
                 }
+            }
+
+            HorizontalDivider()
+            var showNavigationSettings by remember { mutableStateOf(false) }
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .clickable { showNavigationSettings = !showNavigationSettings }
+                    .cursorForHand()
+                    .padding(10.dp)
+            ) {
+                val strings = LocalStrings.current.reader
+                Text(strings.tapNavigation)
+                Spacer(Modifier.weight(1f))
+                Icon(
+                    Icons.Filled.ArrowDropDown,
+                    null,
+                    Modifier.rotate(if (showNavigationSettings) 180f else 0f)
+                )
+            }
+            AnimatedVisibility(showNavigationSettings) {
+                NavigationSettings(
+                    currentMode = tapNavigationMode,
+                    onModeChange = onTapNavigationModeChange
+                )
             }
 
             HorizontalDivider()

@@ -14,6 +14,7 @@ import snd.komelia.settings.model.PageDisplayLayout
 import snd.komelia.settings.model.PagedReadingDirection
 import snd.komelia.settings.model.PanelsFullPageDisplayMode
 import snd.komelia.settings.model.ReaderFlashColor
+import snd.komelia.settings.model.ReaderTapNavigationMode
 import snd.komelia.settings.model.ReaderType
 
 class ReaderSettingsRepositoryWrapper(
@@ -234,5 +235,13 @@ class ReaderSettingsRepositoryWrapper(
 
     override suspend fun putPanelReaderAdaptiveBackground(enabled: Boolean) {
         wrapper.transform { it.copy(panelReaderAdaptiveBackground = enabled) }
+    }
+
+    override fun getReaderTapNavigationMode(): Flow<ReaderTapNavigationMode> {
+        return wrapper.mapState { it.tapNavigationMode }
+    }
+
+    override suspend fun putReaderTapNavigationMode(mode: ReaderTapNavigationMode) {
+        wrapper.transform { it.copy(tapNavigationMode = mode) }
     }
 }

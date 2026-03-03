@@ -76,6 +76,7 @@ fun BoxScope.SettingsOverlay(
     val flashDuration = commonReaderState.flashDuration.collectAsState().value
     val flashEveryNPages = commonReaderState.flashEveryNPages.collectAsState().value
     val flashWith = commonReaderState.flashWith.collectAsState().value
+    val tapNavigationMode = commonReaderState.tapNavigationMode.collectAsState().value
 
     if ((windowWidth == COMPACT || windowWidth == MEDIUM) && platform != DESKTOP) {
         BottomSheetSettingsOverlay(
@@ -110,6 +111,9 @@ fun BoxScope.SettingsOverlay(
             flashWith = flashWith,
             onFlashWithChange = commonReaderState::onFlashWithChange,
 
+            tapNavigationMode = tapNavigationMode,
+            onTapNavigationModeChange = commonReaderState::onTapNavigationModeChange,
+
             onBackPress = onBackPress,
         )
     } else {
@@ -143,6 +147,9 @@ fun BoxScope.SettingsOverlay(
             onFlashEveryNPagesChange = commonReaderState::onFlashEveryNPagesChange,
             flashWith = flashWith,
             onFlashWithChange = commonReaderState::onFlashWithChange,
+
+            tapNavigationMode = tapNavigationMode,
+            onTapNavigationModeChange = commonReaderState::onTapNavigationModeChange,
 
             pagedReaderState = pagedReaderState,
             continuousReaderState = continuousReaderState,

@@ -36,6 +36,7 @@ import snd.komelia.image.ReaderImageResult
 import snd.komelia.settings.model.PagedReadingDirection
 import snd.komelia.settings.model.PagedReadingDirection.LEFT_TO_RIGHT
 import snd.komelia.settings.model.PagedReadingDirection.RIGHT_TO_LEFT
+import snd.komelia.settings.model.ReaderTapNavigationMode
 import snd.komelia.ui.reader.image.ScreenScaleState
 import snd.komelia.ui.reader.image.common.PagedReaderHelpDialog
 import snd.komelia.ui.reader.image.common.ReaderAnimation
@@ -60,7 +61,8 @@ fun BoxScope.PanelsReaderContent(
     onShowSettingsMenuChange: (Boolean) -> Unit,
     screenScaleState: ScreenScaleState,
     panelsReaderState: PanelsReaderState,
-    volumeKeysNavigation: Boolean
+    volumeKeysNavigation: Boolean,
+    tapNavigationMode: ReaderTapNavigationMode,
 ) {
     if (showHelpDialog) {
         PagedReaderHelpDialog(onDismissRequest = { onShowHelpDialogChange(false) })
@@ -137,6 +139,7 @@ fun BoxScope.PanelsReaderContent(
             contentAreaSize = currentContainerSize,
             scaleState = screenScaleState,
             tapToZoom = tapToZoom,
+            tapNavigationMode = tapNavigationMode,
             isSettingsMenuOpen = showSettingsMenu,
             onSettingsMenuToggle = { onShowSettingsMenuChange(!showSettingsMenu) },
             modifier = Modifier.onKeyEvent { event ->

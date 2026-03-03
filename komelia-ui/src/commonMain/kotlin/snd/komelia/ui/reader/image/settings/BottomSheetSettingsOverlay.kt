@@ -66,6 +66,7 @@ import snd.komelia.image.UpsamplingMode
 import snd.komelia.komga.api.model.KomeliaBook
 import snd.komelia.settings.model.ContinuousReadingDirection
 import snd.komelia.settings.model.LayoutScaleType
+import snd.komelia.settings.model.ReaderTapNavigationMode
 import snd.komelia.settings.model.PageDisplayLayout
 import snd.komelia.settings.model.PagedReadingDirection
 import snd.komelia.settings.model.PanelsFullPageDisplayMode
@@ -116,6 +117,9 @@ fun BottomSheetSettingsOverlay(
     onFlashWithChange: (ReaderFlashColor) -> Unit,
     flashDuration: Long,
     onFlashDurationChange: (Long) -> Unit,
+
+    tapNavigationMode: ReaderTapNavigationMode,
+    onTapNavigationModeChange: (ReaderTapNavigationMode) -> Unit,
 
     pagedReaderState: PagedReaderState,
     continuousReaderState: ContinuousReaderState,
@@ -212,6 +216,13 @@ fun BottomSheetSettingsOverlay(
                         onClick = { selectedTab = 1 },
                         modifier = Modifier.heightIn(min = 40.dp).cursorForHand(),
                     ) {
+                        Text("Navigation")
+                    }
+                    Tab(
+                        selected = selectedTab == 2,
+                        onClick = { selectedTab = 2 },
+                        modifier = Modifier.heightIn(min = 40.dp).cursorForHand(),
+                    ) {
                         Text("Image settings")
                     }
                 }
@@ -243,7 +254,12 @@ fun BottomSheetSettingsOverlay(
                             )
                         }
 
-                        1 -> BottomSheetImageSettings(
+                        1 -> NavigationSettings(
+                            currentMode = tapNavigationMode,
+                            onModeChange = onTapNavigationModeChange
+                        )
+
+                        2 -> BottomSheetImageSettings(
                             readerType = readerType,
                             pagedReaderState = pagedReaderState,
                             continuousReaderState = continuousReaderState,

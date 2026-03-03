@@ -31,6 +31,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import kotlinx.coroutines.launch
+import snd.komelia.settings.model.ReaderTapNavigationMode
 import snd.komelia.settings.model.ReaderType.CONTINUOUS
 import snd.komelia.settings.model.ReaderType.PAGED
 import snd.komelia.settings.model.ReaderType.PANELS
@@ -88,6 +89,7 @@ fun ReaderContent(
 
     val topLevelFocus = remember { FocusRequester() }
     val volumeKeysNavigation = commonReaderState.volumeKeysNavigation.collectAsState().value
+    val tapNavigationMode = commonReaderState.tapNavigationMode.collectAsState().value
     var hasFocus by remember { mutableStateOf(false) }
     Box(
         Modifier
@@ -130,7 +132,8 @@ fun ReaderContent(
                     onShowSettingsMenuChange = { showSettingsMenu = it },
                     screenScaleState = screenScaleState,
                     pagedReaderState = pagedReaderState,
-                    volumeKeysNavigation = volumeKeysNavigation
+                    volumeKeysNavigation = volumeKeysNavigation,
+                    tapNavigationMode = tapNavigationMode
                 )
             }
 
@@ -142,7 +145,8 @@ fun ReaderContent(
                     onShowSettingsMenuChange = { showSettingsMenu = it },
                     screenScaleState = screenScaleState,
                     continuousReaderState = continuousReaderState,
-                    volumeKeysNavigation = volumeKeysNavigation
+                    volumeKeysNavigation = volumeKeysNavigation,
+                    tapNavigationMode = tapNavigationMode
                 )
             }
 
@@ -155,7 +159,8 @@ fun ReaderContent(
                     onShowSettingsMenuChange = { showSettingsMenu = it },
                     screenScaleState = screenScaleState,
                     panelsReaderState = panelsReaderState,
-                    volumeKeysNavigation = volumeKeysNavigation
+                    volumeKeysNavigation = volumeKeysNavigation,
+                    tapNavigationMode = tapNavigationMode
                 )
             }
 
@@ -195,6 +200,7 @@ fun ReaderControlsOverlay(
     onPrevPageClick: suspend () -> Unit,
     isSettingsMenuOpen: Boolean,
     onSettingsMenuToggle: () -> Unit,
+    tapNavigationMode: ReaderTapNavigationMode,
     contentAreaSize: IntSize,
     scaleState: ScreenScaleState,
     tapToZoom: Boolean,
@@ -202,17 +208,9 @@ fun ReaderControlsOverlay(
     content: @Composable () -> Unit,
 ) {
     val coroutineScope = rememberCoroutineScope()
-    val leftAction = {
-        if (isSettingsMenuOpen) onSettingsMenuToggle()
-        else if (readingDirection == LayoutDirection.Ltr) coroutineScope.launch { onPrevPageClick() }
-        else coroutineScope.launch { onNexPageClick() }
-    }
-    val centerAction = { onSettingsMenuToggle() }
-    val rightAction = {
-        if (isSettingsMenuOpen) onSettingsMenuToggle()
-        else if (readingDirection == LayoutDirection.Ltr) coroutineScope.launch { onNexPageClick() }
-        else coroutineScope.launch { onPrevPageClick() }
-    }
+
+    val nextAction = { coroutineScope.launch { onNexPageClick() } }
+    val prevAction = { coroutineScope.launch { onPrevPageClick() } }
 
     val areaCenter = remember(contentAreaSize) { Offset(contentAreaSize.width / 2f, contentAreaSize.height / 2f) }
     Box(
@@ -224,15 +222,50 @@ fun ReaderControlsOverlay(
                 readingDirection,
                 onSettingsMenuToggle,
                 isSettingsMenuOpen,
+                tapNavigationMode,
                 tapToZoom
             ) {
                 detectTapGestures(
                     onTap = { offset ->
-                        val actionWidth = contentAreaSize.width.toFloat() / 3
-                        when (offset.x) {
-                            in 0f..<actionWidth -> leftAction()
-                            in actionWidth..actionWidth * 2 -> centerAction()
-                            else -> rightAction()
+                        val width = contentAreaSize.width.toFloat()
+                        val height = contentAreaSize.height.toFloat()
+                        val actionWidth = width / 3
+
+                        if (isSettingsMenuOpen) {
+                            onSettingsMenuToggle()
+                            return@detectTapGestures
+                        }
+
+                        if (offset.x in actionWidth..actionWidth * 2) {
+                            onSettingsMenuToggle()
+                            return@detectTapGestures
+                        }
+
+                        val isLeft = offset.x < actionWidth
+                        when (tapNavigationMode) {
+                            ReaderTapNavigationMode.LEFT_RIGHT -> {
+                                if (readingDirection == LayoutDirection.Ltr) {
+                                    if (isLeft) prevAction() else nextAction()
+                                } else {
+                                    if (isLeft) nextAction() else prevAction()
+                                }
+                            }
+
+                            ReaderTapNavigationMode.RIGHT_LEFT -> {
+                                if (readingDirection == LayoutDirection.Ltr) {
+                                    if (isLeft) nextAction() else prevAction()
+                                } else {
+                                    if (isLeft) prevAction() else nextAction()
+                                }
+                            }
+
+                            ReaderTapNavigationMode.HORIZONTAL_SPLIT -> {
+                                if (offset.y < height / 2) prevAction() else nextAction()
+                            }
+
+                            ReaderTapNavigationMode.REVERSED_HORIZONTAL_SPLIT -> {
+                                if (offset.y < height / 2) nextAction() else prevAction()
+                            }
                         }
                     },
                     onDoubleTap = if (tapToZoom) { offset ->
