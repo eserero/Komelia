@@ -3,8 +3,8 @@ package snd.komelia.ui.common.menus
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.DeleteForever
 import androidx.compose.material.icons.rounded.Edit
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import snd.komelia.ui.common.components.AnimatedDropdownMenu
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
@@ -54,7 +54,7 @@ fun CollectionActionsMenu(
     }
 
     val showDropdown = derivedStateOf { expanded && !showDeleteDialog && !showEditDialog }
-    DropdownMenu(
+    AnimatedDropdownMenu(
         expanded = showDropdown.value,
         onDismissRequest = onDismissRequest
     ) {

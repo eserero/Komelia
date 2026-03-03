@@ -76,7 +76,9 @@ fun <T> DropdownChoiceMenu(
     modifier: Modifier = Modifier,
     label: @Composable (() -> Unit)? = null,
     inputFieldColor: Color = MaterialTheme.colorScheme.surfaceVariant,
-    contentPadding: PaddingValues = PaddingValues(10.dp)
+    contentPadding: PaddingValues = PaddingValues(10.dp),
+    selectedOptionContent: @Composable (LabeledEntry<T>) -> Unit = { Text(it.label, maxLines = 1) },
+    optionContent: @Composable (LabeledEntry<T>) -> Unit = { Text(it.label) }
 ) {
     var isExpanded by remember { mutableStateOf(false) }
     ExposedDropdownMenuBox(
@@ -85,7 +87,7 @@ fun <T> DropdownChoiceMenu(
         onExpandedChange = { isExpanded = it },
     ) {
         InputField(
-            value = selectedOption?.label ?: "",
+            content = selectedOption?.let { { selectedOptionContent(it) } } ?: {},
             modifier = Modifier
                 .menuAnchor(PrimaryNotEditable)
                 .clip(RoundedCornerShape(topStart = 5.dp, topEnd = 5.dp))
@@ -106,7 +108,7 @@ fun <T> DropdownChoiceMenu(
 
             options.forEach {
                 DropdownMenuItem(
-                    text = { Text(it.label) },
+                    text = { optionContent(it) },
                     onClick = {
                         onOptionChange(it)
                         isExpanded = false
@@ -137,7 +139,7 @@ fun <T> DropdownMultiChoiceMenu(
         onExpandedChange = { isExpanded = it },
     ) {
         InputField(
-            value = selectedOptions.joinToString { it.label }.ifBlank { placeholder ?: "Any" },
+            content = { Text(selectedOptions.joinToString { it.label }.ifBlank { placeholder ?: "Any" }, maxLines = 1) },
             modifier = Modifier
                 .menuAnchor(PrimaryNotEditable)
                 .clip(RoundedCornerShape(topStart = 5.dp, topEnd = 5.dp))
@@ -170,7 +172,7 @@ fun <T> DropdownMultiChoiceMenu(
 
 @Composable
 private fun InputField(
-    value: String,
+    content: @Composable () -> Unit,
     modifier: Modifier,
     label: @Composable (() -> Unit)? = null,
     trailingIcon: @Composable (() -> Unit),
@@ -199,7 +201,7 @@ private fun InputField(
                 CompositionLocalProvider(LocalTextStyle provides MaterialTheme.typography.labelMedium) {
                     label?.let { it() }
                 }
-                Text(value, maxLines = 1)
+                content()
             }
 
             Spacer(Modifier.weight(1f))
@@ -234,7 +236,7 @@ fun <T> DropdownChoiceMenuWithSearch(
         onExpandedChange = { isExpanded = it },
     ) {
         InputField(
-            value = selectedOptions.joinToString { it.label }.ifBlank { placeholder ?: "Any" },
+            content = { Text(selectedOptions.joinToString { it.label }.ifBlank { placeholder ?: "Any" }, maxLines = 1) },
             modifier = Modifier
                 .menuAnchor(PrimaryNotEditable)
                 .then(textFieldModifier),
@@ -433,7 +435,7 @@ fun TagFiltersDropdownMenu(
             onExpandedChange = { isExpanded = it },
         ) {
             InputField(
-                value = inputValue,
+                content = { Text(inputValue, maxLines = 1) },
                 modifier = Modifier
                     .menuAnchor(PrimaryNotEditable)
                     .then(inputFieldModifier),

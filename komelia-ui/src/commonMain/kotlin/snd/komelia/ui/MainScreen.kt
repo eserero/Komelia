@@ -189,7 +189,6 @@ class MainScreen(
         val isImmersiveScreen = navigator.lastItem is SeriesScreen ||
                 navigator.lastItem is BookScreen ||
                 navigator.lastItem is OneshotScreen
-
         val rawStatusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
         val rawNavBarHeight = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
         CompositionLocalProvider(
@@ -199,19 +198,19 @@ class MainScreen(
             Scaffold(
                 containerColor = MaterialTheme.colorScheme.surface,
                 bottomBar = {
-                    if (!isImmersiveScreen) {
-                        if (useNewLibraryUI) {
-                            AppNavigationBar(
-                                navigator = navigator,
-                                toggleLibrariesDrawer = { coroutineScope.launch { vm.toggleNavBar() } }
-                            )
-                        } else {
-                            StandardBottomNavigationBar(
-                                navigator = navigator,
-                                toggleLibrariesDrawer = { coroutineScope.launch { vm.toggleNavBar() } },
-                                modifier = Modifier
-                            )
-                        }
+                    if (useNewLibraryUI) {
+                        AppNavigationBar(
+                            navigator = navigator,
+                            toggleLibrariesDrawer = { coroutineScope.launch { vm.toggleNavBar() } },
+                            containerColor = if (isImmersiveScreen) MaterialTheme.colorScheme.surfaceVariant
+                            else LocalNavBarColor.current ?: MaterialTheme.colorScheme.surface
+                        )
+                    } else {
+                        StandardBottomNavigationBar(
+                            navigator = navigator,
+                            toggleLibrariesDrawer = { coroutineScope.launch { vm.toggleNavBar() } },
+                            modifier = Modifier
+                        )
                     }
                 }
             ) { paddingValues ->
@@ -254,8 +253,8 @@ class MainScreen(
     private fun AppNavigationBar(
         navigator: Navigator,
         toggleLibrariesDrawer: () -> Unit,
+        containerColor: Color = LocalNavBarColor.current ?: MaterialTheme.colorScheme.surface,
     ) {
-        val containerColor = LocalNavBarColor.current ?: MaterialTheme.colorScheme.surface
         val accentColor = LocalAccentColor.current
         val itemColors = if (accentColor != null) {
             NavigationBarItemDefaults.colors(
@@ -405,12 +404,18 @@ class MainScreen(
                 if (width != FULL) coroutineScope.launch { vm.navBarState.snapTo(Closed) }
             },
             onLibrariesClick = {
-                navigator.replaceAll(LibraryScreen())
+                val current = navigator.lastItem
+                if (current !is LibraryScreen || current.libraryId != null) {
+                    navigator.replaceAll(LibraryScreen())
+                }
                 if (width != FULL) coroutineScope.launch { vm.navBarState.snapTo(Closed) }
             },
 
-            onLibraryClick = {
-                navigator.replaceAll(LibraryScreen(it))
+            onLibraryClick = { libraryId ->
+                val current = navigator.lastItem
+                if (current !is LibraryScreen || current.libraryId != libraryId) {
+                    navigator.replaceAll(LibraryScreen(libraryId))
+                }
                 if (width != FULL) coroutineScope.launch { vm.navBarState.snapTo(Closed) }
             },
             onSettingsClick = { navigator.parent!!.push(SettingsScreen()) },
@@ -429,12 +434,18 @@ class MainScreen(
             libraries = vm.libraries.collectAsState().value,
             libraryActions = vm.getLibraryActions(),
             onLibrariesClick = {
-                navigator.replaceAll(LibraryScreen())
+                val current = navigator.lastItem
+                if (current !is LibraryScreen || current.libraryId != null) {
+                    navigator.replaceAll(LibraryScreen())
+                }
                 coroutineScope.launch { vm.navBarState.snapTo(Closed) }
             },
 
-            onLibraryClick = {
-                navigator.replaceAll(LibraryScreen(it))
+            onLibraryClick = { libraryId ->
+                val current = navigator.lastItem
+                if (current !is LibraryScreen || current.libraryId != libraryId) {
+                    navigator.replaceAll(LibraryScreen(libraryId))
+                }
                 coroutineScope.launch { vm.navBarState.snapTo(Closed) }
             },
         )

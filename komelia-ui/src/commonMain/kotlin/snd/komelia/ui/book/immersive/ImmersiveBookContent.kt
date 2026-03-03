@@ -169,12 +169,16 @@ fun ImmersiveBookContent(
         }
     } else Modifier
 
-    val uiOverlayModifier = if (animatedVisibilityScope != null) {
-        with(animatedVisibilityScope) {
-            Modifier.animateEnterExit(
-                enter = fadeIn(tween(durationMillis = 150, delayMillis = 450)),
-                exit = fadeOut(tween(durationMillis = 100))
-            )
+    val uiOverlayModifier = if (sharedTransitionScope != null && animatedVisibilityScope != null) {
+        with(sharedTransitionScope) {
+            with(animatedVisibilityScope) {
+                Modifier
+                    .renderInSharedTransitionScopeOverlay(zIndexInOverlay = 0.75f)
+                    .animateEnterExit(
+                        enter = fadeIn(tween(durationMillis = 500)),
+                        exit = fadeOut(tween(durationMillis = 100))
+                    )
+            }
         }
     } else Modifier
 

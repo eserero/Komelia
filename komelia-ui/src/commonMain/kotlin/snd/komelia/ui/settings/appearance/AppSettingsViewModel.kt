@@ -22,7 +22,6 @@ class AppSettingsViewModel(
 ) : StateScreenModel<LoadState<Unit>>(LoadState.Uninitialized) {
     var cardWidth by mutableStateOf(defaultCardWidth.dp)
     var currentTheme by mutableStateOf(AppTheme.DARK)
-    var navBarColor by mutableStateOf<Color?>(null)
     var accentColor by mutableStateOf<Color?>(null)
     var useNewLibraryUI by mutableStateOf(true)
     var cardLayoutBelow by mutableStateOf(false)
@@ -32,10 +31,11 @@ class AppSettingsViewModel(
         mutableState.value = LoadState.Loading
         cardWidth = settingsRepository.getCardWidth().map { it.dp }.first()
         currentTheme = settingsRepository.getAppTheme().first()
-        navBarColor = settingsRepository.getNavBarColor().first()?.let { Color(it.toInt()) }
         accentColor = settingsRepository.getAccentColor().first()?.let { Color(it.toInt()) }
         useNewLibraryUI = settingsRepository.getUseNewLibraryUI().first()
         cardLayoutBelow = settingsRepository.getCardLayoutBelow().first()
+
+        settingsRepository.putNavBarColor(null)
         mutableState.value = LoadState.Success(Unit)
     }
 
@@ -47,11 +47,6 @@ class AppSettingsViewModel(
     fun onAppThemeChange(theme: AppTheme) {
         this.currentTheme = theme
         screenModelScope.launch { settingsRepository.putAppTheme(theme) }
-    }
-
-    fun onNavBarColorChange(color: Color?) {
-        this.navBarColor = color
-        screenModelScope.launch { settingsRepository.putNavBarColor(color?.toArgb()?.toLong()) }
     }
 
     fun onAccentColorChange(color: Color?) {

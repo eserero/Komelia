@@ -4,8 +4,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.DeleteForever
 import androidx.compose.material.icons.rounded.DeleteSweep
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import snd.komelia.ui.common.components.AnimatedDropdownMenu
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -114,7 +114,7 @@ fun LibraryActionsMenu(
 
     val isAdmin = LocalKomgaState.current.authenticatedUser.collectAsState().value?.roleAdmin() ?: true
     val isOffline = LocalOfflineMode.current.collectAsState().value
-    DropdownMenu(expanded = expanded, onDismissRequest = onDismissRequest) {
+    AnimatedDropdownMenu(expanded = expanded, onDismissRequest = onDismissRequest) {
         if (isAdmin && !isOffline) {
             DropdownMenuItem(
                 text = { Text("Scan library files", style = MaterialTheme.typography.labelLarge) },

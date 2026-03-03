@@ -8,8 +8,8 @@ import androidx.compose.material.icons.rounded.Label
 import androidx.compose.material.icons.rounded.LabelOff
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import snd.komelia.ui.common.components.AnimatedDropdownMenu
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
@@ -126,7 +126,7 @@ fun OneshotActionsMenu(
                 !showAddToReadListDialog
     }
 
-    DropdownMenu(
+    AnimatedDropdownMenu(
         expanded = showDropdown.value,
         onDismissRequest = onDismissRequest
     ) {

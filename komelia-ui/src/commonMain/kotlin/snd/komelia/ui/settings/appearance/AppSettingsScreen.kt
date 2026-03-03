@@ -29,15 +29,13 @@ class AppSettingsScreen : Screen {
                     onCardWidthChange = vm::onCardWidthChange,
                     currentTheme = vm.currentTheme,
                     onThemeChange = vm::onAppThemeChange,
-                    navBarColor = vm.navBarColor,
-                    onNavBarColorChange = vm::onNavBarColorChange,
                     accentColor = vm.accentColor,
                     onAccentColorChange = vm::onAccentColorChange,
-                                        useNewLibraryUI = vm.useNewLibraryUI,
-                                        onUseNewLibraryUIChange = vm::onUseNewLibraryUIChange,
-                                        cardLayoutBelow = vm.cardLayoutBelow,
-                                        onCardLayoutBelowChange = vm::onCardLayoutBelowChange,
-                                    )
+                    useNewLibraryUI = vm.useNewLibraryUI,
+                    onUseNewLibraryUIChange = vm::onUseNewLibraryUIChange,
+                    cardLayoutBelow = vm.cardLayoutBelow,
+                    onCardLayoutBelowChange = vm::onCardLayoutBelowChange,
+                )
                                 }
                             }
                         }
