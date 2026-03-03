@@ -28,6 +28,7 @@ import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.unit.dp
 import snd.komelia.settings.model.ReaderFlashColor
+import snd.komelia.ui.LocalAccentColor
 import snd.komelia.ui.LocalPlatform
 import snd.komelia.ui.LocalStrings
 import snd.komelia.ui.common.components.AppSliderDefaults
@@ -61,6 +62,7 @@ fun CommonImageSettings(
     val strings = LocalStrings.current
     val readerStrings = strings.reader
     val platform = LocalPlatform.current
+    val accentColor = LocalAccentColor.current
     Column(modifier = modifier) {
         SwitchWithLabel(
             checked = stretchToFit,
@@ -128,7 +130,7 @@ fun CommonImageSettings(
                             onValueChange = { onFlashDurationChange(it.roundToLong()) },
                             steps = 13,
                             valueRange = 100f..1500f,
-                            colors = AppSliderDefaults.colors()
+                            colors = AppSliderDefaults.colors(accentColor = accentColor)
                         )
                     }
 
@@ -146,7 +148,7 @@ fun CommonImageSettings(
                             onValueChange = { onFlashEveryNPagesChange(it.roundToInt()) },
                             steps = 10,
                             valueRange = 1f..10f,
-                            colors = AppSliderDefaults.colors()
+                            colors = AppSliderDefaults.colors(accentColor = accentColor)
                         )
                     }
 

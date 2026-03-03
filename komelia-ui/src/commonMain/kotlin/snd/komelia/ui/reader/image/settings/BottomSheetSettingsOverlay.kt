@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.add
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
@@ -27,11 +29,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -52,6 +55,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.style.TextOverflow
@@ -70,6 +74,7 @@ import snd.komelia.settings.model.ReaderType
 import snd.komelia.settings.model.ReaderType.CONTINUOUS
 import snd.komelia.settings.model.ReaderType.PAGED
 import snd.komelia.settings.model.ReaderType.PANELS
+import snd.komelia.ui.LocalAccentColor
 import snd.komelia.ui.LocalStrings
 import snd.komelia.ui.LocalWindowWidth
 import snd.komelia.ui.common.components.AppSliderDefaults
@@ -119,54 +124,65 @@ fun BottomSheetSettingsOverlay(
 ) {
 
     val windowWidth = LocalWindowWidth.current
+    val accentColor = LocalAccentColor.current
     var showSettingsDialog by remember { mutableStateOf(false) }
-    Row(
-        modifier = Modifier
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .fillMaxWidth()
-            .windowInsetsPadding(
-                WindowInsets.statusBars
-                    .add(WindowInsets.navigationBars.only(WindowInsetsSides.Horizontal))
-            ),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        IconButton(
-            onClick = onBackPress,
-            modifier = Modifier.size(46.dp)
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Row(
+            modifier = Modifier
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .fillMaxWidth()
+                .windowInsetsPadding(
+                    WindowInsets.statusBars
+                        .add(WindowInsets.navigationBars.only(WindowInsetsSides.Horizontal))
+                ),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, null)
-        }
-
-        book?.let {
-            Column(
-                Modifier.weight(1f)
-                    .padding(horizontal = 10.dp)
+            IconButton(
+                onClick = onBackPress,
+                modifier = Modifier.size(46.dp)
             ) {
-                val titleStyle =
-                    if (windowWidth == COMPACT) MaterialTheme.typography.titleMedium
-                    else MaterialTheme.typography.titleLarge
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, null)
+            }
 
-                Text(
-                    it.seriesTitle,
-                    maxLines = 1,
-                    style = titleStyle,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    it.metadata.title,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.basicMarquee(iterations = Int.MAX_VALUE)
-                )
+            book?.let {
+                Column(
+                    Modifier.weight(1f)
+                        .padding(horizontal = 10.dp)
+                ) {
+                    val titleStyle =
+                        if (windowWidth == COMPACT) MaterialTheme.typography.titleMedium
+                        else MaterialTheme.typography.titleLarge
+
+                    Text(
+                        it.seriesTitle,
+                        maxLines = 1,
+                        style = titleStyle,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        it.metadata.title,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.basicMarquee(iterations = Int.MAX_VALUE)
+                    )
+                }
             }
         }
-        FilledIconButton(
-            onClick = { showSettingsDialog = true },
-//            shape = RoundedCornerShape(13.dp),
-            modifier = Modifier.size(46.dp)
 
+        FloatingActionButton(
+            onClick = { showSettingsDialog = true },
+            containerColor = accentColor ?: MaterialTheme.colorScheme.primaryContainer,
+            contentColor = if (accentColor != null) {
+                if (accentColor.luminance() > 0.5f) Color.Black else Color.White
+            } else MaterialTheme.colorScheme.onPrimaryContainer,
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .windowInsetsPadding(WindowInsets.navigationBars)
+                .padding(bottom = 80.dp, end = 16.dp)
         ) {
-            Icon(Icons.Default.Settings, null)
+            Icon(Icons.Rounded.Tune, null)
         }
     }
 
@@ -178,8 +194,6 @@ fun BottomSheetSettingsOverlay(
             ModalBottomSheet(
                 onDismissRequest = { showSettingsDialog = false },
                 sheetState = sheetState,
-                dragHandle = {},
-                scrimColor = Color.Transparent,
                 containerColor = MaterialTheme.colorScheme.surface,
             ) {
                 var selectedTab by remember { mutableStateOf(0) }
@@ -468,6 +482,7 @@ private fun ContinuousModeSettings(
 ) {
     val strings = LocalStrings.current.continuousReader
     val windowWidth = LocalWindowWidth.current
+    val accentColor = LocalAccentColor.current
     Column {
         val readingDirection = state.readingDirection.collectAsState().value
         Text(strings.readingDirection)
@@ -503,7 +518,7 @@ private fun ContinuousModeSettings(
                 onValueChange = state::onSidePaddingChange,
                 steps = 15,
                 valueRange = 0f..0.4f,
-                colors = AppSliderDefaults.colors()
+                colors = AppSliderDefaults.colors(accentColor = accentColor)
             )
         }
 
@@ -519,7 +534,7 @@ private fun ContinuousModeSettings(
                     onValueChange = { state.onPageSpacingChange(it.roundToInt()) },
                     steps = 24,
                     valueRange = 0f..250f,
-                    colors = AppSliderDefaults.colors()
+                    colors = AppSliderDefaults.colors(accentColor = accentColor)
                 )
 
                 else -> Slider(
@@ -527,7 +542,7 @@ private fun ContinuousModeSettings(
                     onValueChange = { state.onPageSpacingChange(it.roundToInt()) },
                     steps = 49,
                     valueRange = 0f..500f,
-                    colors = AppSliderDefaults.colors()
+                    colors = AppSliderDefaults.colors(accentColor = accentColor)
                 )
             }
 
