@@ -29,6 +29,15 @@ object ImageReaderSettingsTable : Table("ImageReaderSettings") {
     val linearLightDownsampling = bool("linear_light_downsampling")
     val upsamplingMode = text("upsampling_mode")
 
+    val ncnnEnabled = bool("ncnn_enabled").default(false)
+    val ncnnEngine = text("ncnn_engine").default("WAIFU2X")
+    val ncnnModel = text("ncnn_model").default("models-cunet/scale2.0x_model")
+    val ncnnGpuId = integer("ncnn_gpu_id").default(0)
+    val ncnnTtaMode = bool("ncnn_tta_mode").default(false)
+    val ncnnNumThreads = integer("ncnn_num_threads").default(4)
+    val ncnnUpscaleOnLoad = bool("ncnn_upscale_on_load").default(false)
+    val ncnnUpscaleThreshold = integer("ncnn_upscale_threshold").default(1200)
+
     val ortDeviceId = integer("onnx_runtime_device_id")
     val ortUpscalerMode = text("onnx_runtime_mode")
     val ortUpscalerTileSize = integer("onnx_runtime_tile_size")

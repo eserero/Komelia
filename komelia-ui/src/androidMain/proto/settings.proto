@@ -46,12 +46,28 @@ message ReaderBaseSettings{
   optional bool stretchToFit = 2;
   PagedReaderSettings pagedReaderSettings = 3;
   ContinuousReaderSettings continuousReaderSettings = 4;
+  NcnnUpscalerSettings ncnnUpscalerSettings = 5;
 
   enum PBReaderType{
     PAGED = 0;
     CONTINUOUS = 1;
   }
+}
 
+message NcnnUpscalerSettings {
+  PBNcnnEngine engine = 1;
+  string model = 2;
+  bool enabled = 3;
+  int32 gpuId = 4;
+  bool ttaMode = 5;
+  int32 numThreads = 6;
+  bool upscaleOnLoad = 7;
+  int32 upscaleThreshold = 8;
+
+  enum PBNcnnEngine {
+    WAIFU2X = 0;
+    REALCUGAN = 1;
+  }
 }
 
 message PagedReaderSettings{

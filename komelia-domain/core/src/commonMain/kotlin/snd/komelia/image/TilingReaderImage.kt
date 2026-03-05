@@ -73,7 +73,7 @@ abstract class TilingReaderImage(
     protected val defaultFrameDelay = 100L
 
     @Volatile
-    private var originalImage: KomeliaImage? = null
+    protected var originalImage: KomeliaImage? = null
 
     @Volatile
     protected var lastUpdateRequest: UpdateRequest? = null
@@ -188,7 +188,7 @@ abstract class TilingReaderImage(
         }
     }
 
-    private suspend fun loadImage() {
+    protected open suspend fun loadImage() {
         try {
             val originalImage = decodeImage(imageSource)
             this.originalImage = originalImage

@@ -11,6 +11,7 @@ class AndroidReaderImageFactory(
     private val linearLightDownSampling: StateFlow<Boolean>,
     private val stretchImages: StateFlow<Boolean>,
     private val processingPipeline: ImageProcessingPipeline,
+    private val ncnnUpscaler: AndroidNcnnUpscaler?,
 ) : ReaderImageFactory {
 
     override suspend fun getImage(
@@ -26,6 +27,7 @@ class AndroidReaderImageFactory(
             downSamplingKernel = downSamplingKernel,
             linearLightDownSampling = linearLightDownSampling,
             pageId = pageId,
+            ncnnUpscaler = ncnnUpscaler
         )
     }
 }

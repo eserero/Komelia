@@ -7,6 +7,7 @@ import snd.komelia.image.UpsamplingMode
 import snd.komelia.image.UpscaleMode
 import snd.komelia.settings.model.ContinuousReadingDirection
 import snd.komelia.settings.model.LayoutScaleType
+import snd.komelia.settings.model.NcnnUpscalerSettings
 import snd.komelia.settings.model.PageDisplayLayout
 import snd.komelia.settings.model.PagedReadingDirection
 import snd.komelia.settings.model.PanelsFullPageDisplayMode
@@ -19,6 +20,7 @@ import snd.komelia.settings.model.ReaderType.PAGED
 data class ImageReaderSettings(
     val readerType: ReaderType = PAGED,
     val stretchToFit: Boolean = true,
+    val ncnnUpscalerSettings: NcnnUpscalerSettings = NcnnUpscalerSettings(),
     val pagedScaleType: LayoutScaleType = LayoutScaleType.SCREEN,
     val pagedReadingDirection: PagedReadingDirection = PagedReadingDirection.LEFT_TO_RIGHT,
     val pagedPageLayout: PageDisplayLayout = PageDisplayLayout.SINGLE_PAGE,

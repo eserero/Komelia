@@ -85,6 +85,7 @@ import snd.komelia.ui.platform.cursorForHand
 import snd.komelia.ui.reader.image.continuous.ContinuousReaderState
 import snd.komelia.ui.reader.image.paged.PagedReaderState
 import snd.komelia.ui.reader.image.panels.PanelsReaderState
+import snd.komelia.ui.settings.imagereader.ncnn.NcnnSettingsState
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -124,6 +125,7 @@ fun BottomSheetSettingsOverlay(
     pagedReaderState: PagedReaderState,
     continuousReaderState: ContinuousReaderState,
     panelsReaderState: PanelsReaderState?,
+    ncnnSettingsState: NcnnSettingsState,
     onBackPress: () -> Unit,
 ) {
 
@@ -286,7 +288,8 @@ fun BottomSheetSettingsOverlay(
                             flashWith = flashWith,
                             onFlashWithChange = onFlashWithChange,
                             flashDuration = flashDuration,
-                            onFlashDurationChange = onFlashDurationChange
+                            onFlashDurationChange = onFlashDurationChange,
+                            ncnnSettingsState = ncnnSettingsState,
                         )
                     }
                 }
@@ -598,8 +601,8 @@ private fun BottomSheetImageSettings(
     onFlashWithChange: (ReaderFlashColor) -> Unit,
     flashDuration: Long,
     onFlashDurationChange: (Long) -> Unit,
-
-    ) {
+    ncnnSettingsState: NcnnSettingsState,
+) {
     Column {
         SamplingModeSettings(
             availableUpsamplingModes = availableUpsamplingModes,
@@ -627,6 +630,15 @@ private fun BottomSheetImageSettings(
             flashDuration = flashDuration,
             onFlashDurationChange = onFlashDurationChange,
         )
+
+        if (snd.komelia.ui.settings.imagereader.ncnn.isNcnnSupported()) {
+            HorizontalDivider(Modifier.padding(vertical = 10.dp))
+            snd.komelia.ui.settings.imagereader.ncnn.NcnnSettingsContent(
+                settings = ncnnSettingsState.ncnnUpscalerSettings.collectAsState().value,
+                onSettingsChange = ncnnSettingsState::onSettingsChange
+            )
+        }
+
         HorizontalDivider(Modifier.padding(vertical = 5.dp))
 
         val strings = LocalStrings.current.reader

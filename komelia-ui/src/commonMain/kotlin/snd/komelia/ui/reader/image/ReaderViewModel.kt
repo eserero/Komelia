@@ -35,6 +35,7 @@ import snd.komelia.ui.LoadState
 import snd.komelia.ui.reader.image.continuous.ContinuousReaderState
 import snd.komelia.ui.reader.image.paged.PagedReaderState
 import snd.komelia.ui.reader.image.panels.PanelsReaderState
+import snd.komelia.ui.settings.imagereader.ncnn.NcnnSettingsState
 import snd.komelia.ui.settings.imagereader.onnxruntime.OnnxRuntimeSettingsState
 import snd.komelia.ui.strings.AppStrings
 import snd.komga.client.book.KomgaBookId
@@ -78,6 +79,11 @@ class ReaderViewModel(
             coroutineScope = screenModelScope,
         )
     }
+
+    val ncnnSettingsState = NcnnSettingsState(
+        settingsRepository = readerSettingsRepository,
+        coroutineScope = screenModelScope,
+    )
 
     val readerState: ReaderState = ReaderState(
         bookApi = bookApi,
@@ -136,6 +142,7 @@ class ReaderViewModel(
         if (currentState is LoadState.Success || currentState == LoadState.Loading) return
 
         onnxRuntimeSettingsState?.initialize()
+        ncnnSettingsState.initialize()
         readerState.initialize(bookId)
         screenScaleState.areaSize.takeWhile { it == IntSize.Zero }.collect()
 

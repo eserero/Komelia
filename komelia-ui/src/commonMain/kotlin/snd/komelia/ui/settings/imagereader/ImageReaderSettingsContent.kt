@@ -13,6 +13,9 @@ import androidx.compose.ui.unit.dp
 import snd.komelia.ui.LocalPlatform
 import snd.komelia.ui.common.components.SwitchWithLabel
 import snd.komelia.ui.platform.PlatformType
+import snd.komelia.ui.settings.imagereader.ncnn.NcnnSettingsContent
+import snd.komelia.ui.settings.imagereader.ncnn.NcnnSettingsState
+import snd.komelia.ui.settings.imagereader.ncnn.isNcnnSupported
 import snd.komelia.ui.settings.imagereader.onnxruntime.OnnxRuntimeSettingsContent
 import snd.komelia.ui.settings.imagereader.onnxruntime.OnnxRuntimeSettingsState
 import snd.komelia.ui.settings.imagereader.onnxruntime.isOnnxRuntimeSupported
@@ -27,6 +30,7 @@ fun ImageReaderSettingsContent(
 
     onCacheClear: () -> Unit,
     onnxRuntimeSettingsState: OnnxRuntimeSettingsState,
+    ncnnSettingsState: NcnnSettingsState,
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -70,6 +74,14 @@ fun ImageReaderSettingsContent(
                 panelModelIsDownloaded = onnxRuntimeSettingsState.panelModelIsDownloaded.collectAsState().value,
                 onPanelDetectionModelDownloadRequest = onnxRuntimeSettingsState::onPanelDetectionModelDownloadRequest
 
+            )
+        }
+
+        if (isNcnnSupported()) {
+            HorizontalDivider(Modifier.padding(vertical = 10.dp))
+            NcnnSettingsContent(
+                settings = ncnnSettingsState.ncnnUpscalerSettings.collectAsState().value,
+                onSettingsChange = ncnnSettingsState::onSettingsChange
             )
         }
     }

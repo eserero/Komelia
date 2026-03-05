@@ -42,6 +42,7 @@ import snd.komelia.ui.reader.image.common.ProgressSlider
 import snd.komelia.ui.reader.image.continuous.ContinuousReaderState
 import snd.komelia.ui.reader.image.paged.PagedReaderState
 import snd.komelia.ui.reader.image.panels.PanelsReaderState
+import snd.komelia.ui.settings.imagereader.ncnn.NcnnSettingsState
 import snd.komelia.ui.settings.imagereader.onnxruntime.OnnxRuntimeSettingsState
 
 @Composable
@@ -52,6 +53,7 @@ fun BoxScope.SettingsOverlay(
     continuousReaderState: ContinuousReaderState,
     panelsReaderState: PanelsReaderState?,
     onnxRuntimeSettingsState: OnnxRuntimeSettingsState?,
+    ncnnSettingsState: NcnnSettingsState,
     screenScaleState: ScreenScaleState,
     isColorCorrectionsActive: Boolean,
     onColorCorrectionClick: () -> Unit,
@@ -114,6 +116,7 @@ fun BoxScope.SettingsOverlay(
             tapNavigationMode = tapNavigationMode,
             onTapNavigationModeChange = commonReaderState::onTapNavigationModeChange,
 
+            ncnnSettingsState = ncnnSettingsState,
             onBackPress = onBackPress,
         )
     } else {

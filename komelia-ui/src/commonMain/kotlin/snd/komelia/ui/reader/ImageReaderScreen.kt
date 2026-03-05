@@ -152,7 +152,9 @@ class ImageReaderScreen(
             panelsReaderState = vm.panelsReaderState,
             screenScaleState = vm.screenScaleState,
             onnxRuntimeSettingsState = vm.onnxRuntimeSettingsState,
+            ncnnSettingsState = vm.ncnnSettingsState,
             isColorCorrectionActive = vm.colorCorrectionIsActive.collectAsState(false).value,
+
             onColorCorrectionClick = {
                 vm.readerState.booksState.value?.currentBook?.let { book ->
                     val page = vm.readerState.readProgressPage.value

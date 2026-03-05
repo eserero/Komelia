@@ -57,6 +57,7 @@ import snd.komelia.ui.reader.image.paged.PagedReaderState
 import snd.komelia.ui.reader.image.panels.PanelsReaderContent
 import snd.komelia.ui.reader.image.panels.PanelsReaderState
 import snd.komelia.ui.reader.image.settings.SettingsOverlay
+import snd.komelia.ui.settings.imagereader.ncnn.NcnnSettingsState
 import snd.komelia.ui.settings.imagereader.onnxruntime.OnnxRuntimeSettingsState
 
 @Composable
@@ -66,6 +67,7 @@ fun ReaderContent(
     continuousReaderState: ContinuousReaderState,
     panelsReaderState: PanelsReaderState?,
     onnxRuntimeSettingsState: OnnxRuntimeSettingsState?,
+    ncnnSettingsState: NcnnSettingsState,
     screenScaleState: ScreenScaleState,
 
     isColorCorrectionActive: Boolean,
@@ -212,6 +214,7 @@ fun ReaderContent(
             continuousReaderState = continuousReaderState,
             panelsReaderState = panelsReaderState,
             onnxRuntimeSettingsState = onnxRuntimeSettingsState,
+            ncnnSettingsState = ncnnSettingsState,
             screenScaleState = screenScaleState,
             isColorCorrectionsActive = isColorCorrectionActive,
             onColorCorrectionClick = onColorCorrectionClick,

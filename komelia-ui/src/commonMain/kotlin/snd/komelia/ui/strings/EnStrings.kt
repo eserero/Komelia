@@ -301,11 +301,19 @@ val EnStrings = AppStrings(
         downsamplingKernelMKS2013 = "Magic Kernel Sharp 2013",
         downsamplingKernelMKS2021 = "Magic Kernel Sharp 2021",
         downsamplingKernelDefault = "Default",
-        onnxRuntimeExecutionProvider = "Onnx Runtime execution provider",
 
+        ncnnUpscaleMode = "NCNN upscale mode",
+        ncnnUpscaleModeNone = "Disabled",
+        ncnnUpscaleModeWaifu2x = "Waifu2x (Anime)",
+        ncnnUpscaleModeRealCugan = "RealCUGAN (Conservative)",
+        ncnnUpscaleOnLoad = "Upscale on load",
+        ncnnUpscaleOnLoadThreshold = "Min width threshold (px)",
+        ncnnUpscaleOnLoadTooltip = "Trigger upscaling immediately when a page is opened if its width is smaller than the threshold.",
+
+        onnxRuntimeExecutionProvider = "Onnx Runtime execution provider",
         onnxRuntimeUpscaleMode = "Onnx Runtime upscale mode",
         onnxRuntimeUpscaleModeNone = "Disabled",
         onnxRuntimeUpscaleModeUserModel = "User specified model",
         onnxRuntimeUpscaleModeMangaJaNai = "MangaJaNai preset"
-    ),
-)
+        ),
+        )

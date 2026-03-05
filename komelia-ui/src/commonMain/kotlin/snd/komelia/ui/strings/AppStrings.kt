@@ -660,6 +660,14 @@ data class ImageSettingsStrings(
     val downsamplingKernelMKS2021: String,
     val downsamplingKernelDefault: String,
 
+    val ncnnUpscaleMode: String,
+    val ncnnUpscaleModeNone: String,
+    val ncnnUpscaleModeWaifu2x: String,
+    val ncnnUpscaleModeRealCugan: String,
+    val ncnnUpscaleOnLoad: String,
+    val ncnnUpscaleOnLoadThreshold: String,
+    val ncnnUpscaleOnLoadTooltip: String,
+
     val onnxRuntimeExecutionProvider: String,
     val onnxRuntimeUpscaleMode: String,
     val onnxRuntimeUpscaleModeNone: String,

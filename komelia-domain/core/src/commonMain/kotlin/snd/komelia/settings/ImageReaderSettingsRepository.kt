@@ -7,6 +7,7 @@ import snd.komelia.image.UpsamplingMode
 import snd.komelia.image.UpscaleMode
 import snd.komelia.settings.model.ContinuousReadingDirection
 import snd.komelia.settings.model.LayoutScaleType
+import snd.komelia.settings.model.NcnnUpscalerSettings
 import snd.komelia.settings.model.PageDisplayLayout
 import snd.komelia.settings.model.PagedReadingDirection
 import snd.komelia.settings.model.PanelsFullPageDisplayMode
@@ -17,6 +18,9 @@ import snd.komelia.settings.model.ReaderType
 interface ImageReaderSettingsRepository {
     fun getReaderType(): Flow<ReaderType>
     suspend fun putReaderType(type: ReaderType)
+
+    fun getNcnnUpscalerSettings(): Flow<NcnnUpscalerSettings>
+    suspend fun putNcnnUpscalerSettings(settings: NcnnUpscalerSettings)
 
     fun getStretchToFit(): Flow<Boolean>
     suspend fun putStretchToFit(stretch: Boolean)

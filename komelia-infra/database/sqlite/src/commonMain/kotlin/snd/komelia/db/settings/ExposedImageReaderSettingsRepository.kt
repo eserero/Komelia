@@ -15,6 +15,8 @@ import snd.komelia.image.UpsamplingMode
 import snd.komelia.image.UpscaleMode
 import snd.komelia.settings.model.ContinuousReadingDirection
 import snd.komelia.settings.model.LayoutScaleType
+import snd.komelia.settings.model.NcnnEngine
+import snd.komelia.settings.model.NcnnUpscalerSettings
 import snd.komelia.settings.model.PageDisplayLayout
 import snd.komelia.settings.model.PagedReadingDirection
 import snd.komelia.settings.model.PanelsFullPageDisplayMode
@@ -34,6 +36,16 @@ class ExposedImageReaderSettingsRepository(database: Database) : ExposedReposito
                     ImageReaderSettings(
                         readerType = ReaderType.valueOf(it[ImageReaderSettingsTable.readerType]),
                         stretchToFit = it[ImageReaderSettingsTable.stretchToFit],
+                        ncnnUpscalerSettings = NcnnUpscalerSettings(
+                            enabled = it[ImageReaderSettingsTable.ncnnEnabled],
+                            engine = NcnnEngine.valueOf(it[ImageReaderSettingsTable.ncnnEngine]),
+                            model = it[ImageReaderSettingsTable.ncnnModel],
+                            gpuId = it[ImageReaderSettingsTable.ncnnGpuId],
+                            ttaMode = it[ImageReaderSettingsTable.ncnnTtaMode],
+                            numThreads = it[ImageReaderSettingsTable.ncnnNumThreads],
+                            upscaleOnLoad = it[ImageReaderSettingsTable.ncnnUpscaleOnLoad],
+                            upscaleThreshold = it[ImageReaderSettingsTable.ncnnUpscaleThreshold],
+                        ),
                         pagedScaleType = LayoutScaleType.valueOf(it[ImageReaderSettingsTable.pagedScaleType]),
                         pagedReadingDirection = PagedReadingDirection.valueOf(it[ImageReaderSettingsTable.pagedReadingDirection]),
                         pagedPageLayout = PageDisplayLayout.valueOf(it[ImageReaderSettingsTable.pagedPageLayout]),
@@ -74,6 +86,16 @@ class ExposedImageReaderSettingsRepository(database: Database) : ExposedReposito
                 it[bookId] = defaultBookId
                 it[readerType] = settings.readerType.name
                 it[stretchToFit] = settings.stretchToFit
+
+                it[ncnnEnabled] = settings.ncnnUpscalerSettings.enabled
+                it[ncnnEngine] = settings.ncnnUpscalerSettings.engine.name
+                it[ncnnModel] = settings.ncnnUpscalerSettings.model
+                it[ncnnGpuId] = settings.ncnnUpscalerSettings.gpuId
+                it[ncnnTtaMode] = settings.ncnnUpscalerSettings.ttaMode
+                it[ncnnNumThreads] = settings.ncnnUpscalerSettings.numThreads
+                it[ncnnUpscaleOnLoad] = settings.ncnnUpscalerSettings.upscaleOnLoad
+                it[ncnnUpscaleThreshold] = settings.ncnnUpscalerSettings.upscaleThreshold
+
                 it[pagedScaleType] = settings.pagedScaleType.name
                 it[pagedReadingDirection] = settings.pagedReadingDirection.name
                 it[pagedPageLayout] = settings.pagedPageLayout.name

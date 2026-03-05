@@ -27,6 +27,8 @@ class AppMigrations : MigrationResourcesProvider() {
         "V18__reader_adaptive_background.sql",
         "V19__card_layout_below.sql",
         "V20__reader_tap_navigation_mode.sql",
+        "V21__ncnn_upscaler_settings.sql",
+        "V22__ncnn_upscale_on_load.sql",
     )
 
     override suspend fun getMigration(name: String): ByteArray? {

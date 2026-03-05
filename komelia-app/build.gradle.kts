@@ -61,6 +61,7 @@ kotlin {
             implementation(libs.androidx.workManager)
             implementation(libs.androidx.workManager.ktx)
             implementation(projects.komeliaInfra.database.sqlite)
+            implementation(projects.komeliaInfra.ncnnUpscaler)
             implementation(libs.filekit.core)
             implementation(libs.filekit.dialogs)
             implementation(projects.komeliaInfra.onnxruntime.jvm)

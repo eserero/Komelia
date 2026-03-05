@@ -18,6 +18,10 @@ object AndroidBitmap {
         } else createSoftwareBitmap(this)
     }
 
+    fun VipsImage.toSoftwareBitmap(): Bitmap {
+        return createSoftwareBitmap(this)
+    }
+
     private external fun createHardwareBuffer(image: VipsImage): HardwareBuffer
     private external fun createSoftwareBitmap(image: VipsImage): Bitmap
 }
