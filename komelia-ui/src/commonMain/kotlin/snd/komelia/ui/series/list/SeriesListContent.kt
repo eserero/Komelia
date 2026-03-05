@@ -2,28 +2,43 @@ package snd.komelia.ui.series.list
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.FilterListOff
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Text
+import androidx.compose.material3.contentColorFor
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -32,10 +47,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import snd.komelia.komga.api.model.KomeliaBook
+import snd.komelia.ui.LocalAccentColor
+import snd.komelia.ui.LocalStrings
 import snd.komelia.ui.LocalUseNewLibraryUI
 import snd.komelia.ui.LocalWindowWidth
 import snd.komelia.ui.common.cards.BookImageCard
@@ -56,6 +74,7 @@ import snd.komelia.ui.series.SeriesFilterState
 import snd.komelia.ui.series.view.SeriesFilterContent
 import snd.komga.client.series.KomgaSeries
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SeriesListContent(
     series: List<KomgaSeries>,
@@ -85,77 +104,156 @@ fun SeriesListContent(
     onBookReadClick: (KomeliaBook, Boolean) -> Unit = { _, _ -> },
 ) {
     val useNewLibraryUI = LocalUseNewLibraryUI.current
-    Column {
-        if (editMode) {
-            BulkActionsToolbar(
-                onCancel = { onEditModeChange(false) },
+    val strings = LocalStrings.current.seriesFilter
+    var showFilters by remember { mutableStateOf(false) }
+    val accentColor = LocalAccentColor.current
+    val fabContainerColor = accentColor ?: MaterialTheme.colorScheme.primaryContainer
+    val fabContentColor = if (accentColor != null) {
+        if (accentColor.luminance() > 0.5f) Color.Black else Color.White
+    } else contentColorFor(fabContainerColor)
+
+    Box(Modifier.fillMaxSize()) {
+        Column {
+            if (editMode) {
+                BulkActionsToolbar(
+                    onCancel = { onEditModeChange(false) },
+                    series = series,
+                    selectedSeries = selectedSeries,
+                    onSeriesSelect = onSeriesSelect
+                )
+            }
+
+            SeriesLazyCardGrid(
                 series = series,
+                onSeriesClick = if (editMode) onSeriesSelect else onSeriesClick,
+                seriesMenuActions = if (editMode) null else seriesActions,
+
                 selectedSeries = selectedSeries,
-                onSeriesSelect = onSeriesSelect
-            )
-        }
+                onSeriesSelect = onSeriesSelect,
 
-        SeriesLazyCardGrid(
-            series = series,
-            onSeriesClick = if (editMode) onSeriesSelect else onSeriesClick,
-            seriesMenuActions = if (editMode) null else seriesActions,
+                totalPages = totalPages,
+                currentPage = currentPage,
+                onPageChange = onPageChange,
 
-            selectedSeries = selectedSeries,
-            onSeriesSelect = onSeriesSelect,
-
-            totalPages = totalPages,
-            currentPage = currentPage,
-            onPageChange = onPageChange,
-
-            beforeContent = {
-                AnimatedVisibility(!editMode) {
-                    Column {
-                        if (useNewLibraryUI && keepReadingBooks.isNotEmpty() && bookMenuActions != null) {
-                            LibrarySectionHeader("Keep Reading")
-                            val gridPadding = 10.dp
-                            val density = LocalDensity.current
-                            LazyRow(
-                                modifier = Modifier.layout { measurable, constraints ->
-                                    val insetPx = with(density) { gridPadding.roundToPx() }
-                                    val placeable = measurable.measure(
-                                        constraints.copy(maxWidth = constraints.maxWidth + insetPx * 2)
-                                    )
-                                    layout(constraints.maxWidth, placeable.height) {
-                                        placeable.place(-insetPx, 0)
+                beforeContent = {
+                    AnimatedVisibility(!editMode) {
+                        Column {
+                            if (useNewLibraryUI && keepReadingBooks.isNotEmpty() && bookMenuActions != null) {
+                                LibrarySectionHeader("Keep Reading")
+                                val gridPadding = 10.dp
+                                val density = LocalDensity.current
+                                LazyRow(
+                                    modifier = Modifier.layout { measurable, constraints ->
+                                        val insetPx = with(density) { gridPadding.roundToPx() }
+                                        val placeable = measurable.measure(
+                                            constraints.copy(maxWidth = constraints.maxWidth + insetPx * 2)
+                                        )
+                                        layout(constraints.maxWidth, placeable.height) {
+                                            placeable.place(-insetPx, 0)
+                                        }
+                                    },
+                                    contentPadding = PaddingValues(horizontal = gridPadding),
+                                    horizontalArrangement = Arrangement.spacedBy(7.dp),
+                                ) {
+                                    items(keepReadingBooks) { book ->
+                                        BookImageCard(
+                                            book = book,
+                                            onBookClick = { onBookClick(book) },
+                                            onBookReadClick = { onBookReadClick(book, it) },
+                                            bookMenuActions = bookMenuActions,
+                                            showSeriesTitle = true,
+                                            modifier = Modifier.width(minSize),
+                                        )
                                     }
-                                },
-                                contentPadding = PaddingValues(horizontal = gridPadding),
-                                horizontalArrangement = Arrangement.spacedBy(7.dp),
-                            ) {
-                                items(keepReadingBooks) { book ->
-                                    BookImageCard(
-                                        book = book,
-                                        onBookClick = { onBookClick(book) },
-                                        onBookReadClick = { onBookReadClick(book, it) },
-                                        bookMenuActions = bookMenuActions,
-                                        showSeriesTitle = true,
-                                        modifier = Modifier.width(minSize),
-                                    )
                                 }
                             }
+                            if (useNewLibraryUI) LibrarySectionHeader("Browse")
+                            ToolBar(
+                                seriesTotalCount = seriesTotalCount,
+                                pageSize = pageSize,
+                                onPageSizeChange = onPageSizeChange,
+                                isLoading = isLoading,
+                            )
                         }
-                        if (useNewLibraryUI) LibrarySectionHeader("Browse")
-                        ToolBar(
-                            seriesTotalCount = seriesTotalCount,
-                            pageSize = pageSize,
-                            onPageSizeChange = onPageSizeChange,
-                            isLoading = isLoading,
-                            filterState = filterState
-                        )
                     }
+                },
+                minSize = minSize,
+            )
+            val width = LocalWindowWidth.current
+            if ((width == COMPACT || width == MEDIUM) && selectedSeries.isNotEmpty()) {
+                BottomPopupBulkActionsPanel {
+                    SeriesBulkActionsContent(selectedSeries, true)
                 }
-            },
-            minSize = minSize,
-        )
-        val width = LocalWindowWidth.current
-        if ((width == COMPACT || width == MEDIUM) && selectedSeries.isNotEmpty()) {
-            BottomPopupBulkActionsPanel {
-                SeriesBulkActionsContent(selectedSeries, true)
+            }
+        }
+
+        // Filter bottom sheet
+        if (filterState != null && showFilters) {
+            ModalBottomSheet(
+                onDismissRequest = { showFilters = false },
+                sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+                containerColor = MaterialTheme.colorScheme.surface,
+            ) {
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .fillMaxHeight(0.75f)
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                ) {
+                    SeriesFilterContent(filterState = filterState)
+                }
+                HorizontalDivider()
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                        .windowInsetsPadding(WindowInsets.navigationBars),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End),
+                ) {
+                    ExtendedFloatingActionButton(
+                        onClick = filterState::reset,
+                        containerColor = if (filterState.isChanged)
+                            fabContainerColor
+                        else MaterialTheme.colorScheme.surfaceVariant,
+                        contentColor = if (filterState.isChanged) fabContentColor else contentColorFor(MaterialTheme.colorScheme.surfaceVariant),
+                        icon = { Icon(Icons.Default.FilterListOff, null) },
+                        text = { Text(strings.resetFilters) },
+                    )
+                    ExtendedFloatingActionButton(
+                        onClick = { showFilters = false },
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        icon = { Icon(Icons.Default.FilterList, null) },
+                        text = { Text(strings.hideFilters) },
+                    )
+                }
+            }
+        }
+
+        // Filter FAB
+        if (filterState != null) {
+            AnimatedVisibility(
+                visible = !showFilters && !editMode,
+                enter = fadeIn(),
+                exit = fadeOut(),
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .windowInsetsPadding(WindowInsets.navigationBars)
+                    .padding(bottom = 16.dp, end = 16.dp),
+            ) {
+                ExtendedFloatingActionButton(
+                    onClick = { showFilters = true },
+                    containerColor = fabContainerColor,
+                    contentColor = fabContentColor,
+                    icon = {
+                        Icon(
+                            Icons.Default.FilterList,
+                            null,
+                            tint = if (filterState.isChanged) Color(0xFFFFD600) else fabContentColor,
+                        )
+                    },
+                    text = { Text("Filter") },
+                )
             }
         }
     }
@@ -198,7 +296,6 @@ private fun ToolBar(
     pageSize: Int,
     onPageSizeChange: (Int) -> Unit,
     isLoading: Boolean,
-    filterState: SeriesFilterState?,
 ) {
     Box {
         if (isLoading) {
@@ -208,45 +305,21 @@ private fun ToolBar(
                 modifier = Modifier.fillMaxWidth().animateContentSize(),
             )
         }
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            var showFilters by remember { mutableStateOf(false) }
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            if (seriesTotalCount != 0) {
+                SuggestionChip(
+                    onClick = {},
+                    label = { Text("$seriesTotalCount series") },
+                    shape = AppSuggestionChipDefaults.shape(),
+                )
 
-            if (filterState != null) {
-                AnimatedVisibility(visible = showFilters) {
-                    SeriesFilterContent(
-                        filterState = filterState,
-                        onDismiss = { showFilters = false }
-                    )
-                }
-            }
+                Spacer(Modifier.weight(1f))
 
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-
-                if (seriesTotalCount != 0) {
-                    SuggestionChip(
-                        onClick = {},
-                        label = { Text("$seriesTotalCount series") },
-                        shape = AppSuggestionChipDefaults.shape(),
-                    )
-
-                    Spacer(Modifier.weight(1f))
-
-                    if (filterState != null) {
-                        val color =
-                            if (filterState.isChanged) MaterialTheme.colorScheme.tertiary
-                            else MaterialTheme.colorScheme.primary
-
-                        IconButton(onClick = { showFilters = !showFilters }, modifier = Modifier.cursorForHand()) {
-                            Icon(Icons.Default.FilterList, null, tint = color)
-                        }
-                    }
-
-                    PageSizeSelectionDropdown(pageSize, onPageSizeChange)
-                }
+                PageSizeSelectionDropdown(pageSize, onPageSizeChange)
             }
         }
     }
