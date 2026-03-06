@@ -16,7 +16,7 @@ project(ncnn-upscaler)
 
 cmake_minimum_required(VERSION 3.4.1)
 
-include_directories(${CMAKE_CURRENT_BINARY_DIR} . waifu2x realcugan)
+include_directories(${CMAKE_CURRENT_BINARY_DIR} . waifu2x realcugan realsr)
 # NCNN
 if (USE_PREBUILT_NCNN)
     if (USE_SHARED_NCNN)
@@ -95,7 +95,7 @@ waifu2x_add_shader(waifu2x_postproc_tta.comp)
 add_custom_target(generate-spirv DEPENDS ${SHADER_SPV_HEX_FILES})
 
 # ncnn-upscaler link library
-add_library(ncnn-upscaler SHARED upscaler_jni.cpp waifu2x/waifu2x.cpp realcugan/realcugan.cpp)
+add_library(ncnn-upscaler SHARED upscaler_jni.cpp waifu2x/waifu2x.cpp realcugan/realcugan.cpp realsr/realsr.cpp)
 add_dependencies(ncnn-upscaler generate-spirv)
 
 target_link_libraries(ncnn-upscaler

@@ -17,5 +17,7 @@ data class NcnnUpscalerSettings(
 @Serializable
 enum class NcnnEngine {
     WAIFU2X,
-    REALCUGAN
+    REALCUGAN,
+    REALSR,
+    REAL_ESRGAN
 }

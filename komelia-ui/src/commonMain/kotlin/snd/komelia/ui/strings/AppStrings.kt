@@ -664,6 +664,8 @@ data class ImageSettingsStrings(
     val ncnnUpscaleModeNone: String,
     val ncnnUpscaleModeWaifu2x: String,
     val ncnnUpscaleModeRealCugan: String,
+    val ncnnUpscaleModeRealSr: String,
+    val ncnnUpscaleModeRealEsrgan: String,
     val ncnnUpscaleOnLoad: String,
     val ncnnUpscaleOnLoadThreshold: String,
     val ncnnUpscaleOnLoadTooltip: String,

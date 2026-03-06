@@ -39,5 +39,7 @@ class NcnnUpscaler {
     companion object {
         const val ENGINE_WAIFU2X = 0
         const val ENGINE_REALCUGAN = 1
+        const val ENGINE_REALSR = 2
+        const val ENGINE_REAL_ESRGAN = 3
     }
 }

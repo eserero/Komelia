@@ -66,14 +66,18 @@ fun NcnnSettingsContent(
                 selectedOption = when (settings.engine) {
                     NcnnEngine.WAIFU2X -> LabeledEntry(NcnnEngine.WAIFU2X, strings.ncnnUpscaleModeWaifu2x)
                     NcnnEngine.REALCUGAN -> LabeledEntry(NcnnEngine.REALCUGAN, strings.ncnnUpscaleModeRealCugan)
+                    NcnnEngine.REALSR -> LabeledEntry(NcnnEngine.REALSR, strings.ncnnUpscaleModeRealSr)
+                    NcnnEngine.REAL_ESRGAN -> LabeledEntry(NcnnEngine.REAL_ESRGAN, strings.ncnnUpscaleModeRealEsrgan)
                 },
                 options = remember {
                     listOf(
                         LabeledEntry(NcnnEngine.WAIFU2X, strings.ncnnUpscaleModeWaifu2x),
                         LabeledEntry(NcnnEngine.REALCUGAN, strings.ncnnUpscaleModeRealCugan),
+                        LabeledEntry(NcnnEngine.REALSR, strings.ncnnUpscaleModeRealSr),
+                        LabeledEntry(NcnnEngine.REAL_ESRGAN, strings.ncnnUpscaleModeRealEsrgan),
                     )
                 },
-                onOptionChange = { onSettingsChange(settings.copy(engine = it.value)) },
+                onOptionChange = { onSettingsChange(settings.copy(engine = it.value, model = getDefaultModelForEngine(it.value))) },
                 label = { Text("Engine") },
                 inputFieldModifier = Modifier.fillMaxSize()
             )
@@ -81,6 +85,8 @@ fun NcnnSettingsContent(
             val models = when (settings.engine) {
                 NcnnEngine.WAIFU2X -> ncnnWaifu2xModels
                 NcnnEngine.REALCUGAN -> ncnnRealCuganModels
+                NcnnEngine.REALSR -> ncnnRealSrModels
+                NcnnEngine.REAL_ESRGAN -> ncnnRealEsrganModels
             }
 
             DropdownChoiceMenu(
@@ -134,3 +140,18 @@ val ncnnWaifu2xModels = listOf(
 val ncnnRealCuganModels = listOf(
     "models-realcugan/up2x-conservative"
 )
+val ncnnRealSrModels = listOf(
+    "models-realsr"
+)
+val ncnnRealEsrganModels = listOf(
+    "models-realesrgan"
+)
+
+private fun getDefaultModelForEngine(engine: NcnnEngine): String {
+    return when (engine) {
+        NcnnEngine.WAIFU2X -> ncnnWaifu2xModels.first()
+        NcnnEngine.REALCUGAN -> ncnnRealCuganModels.first()
+        NcnnEngine.REALSR -> ncnnRealSrModels.first()
+        NcnnEngine.REAL_ESRGAN -> ncnnRealEsrganModels.first()
+    }
+}

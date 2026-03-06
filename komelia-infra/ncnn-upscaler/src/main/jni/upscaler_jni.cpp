@@ -28,6 +28,7 @@
 #include "benchmark.h"
 #include "waifu2x/waifu2x.h"
 #include "realcugan/realcugan.h"
+#include "realsr/realsr.h"
 
 static ncnn::UnlockedPoolAllocator g_blob_pool_allocator;
 static ncnn::PoolAllocator g_workspace_pool_allocator;
@@ -35,7 +36,8 @@ static ncnn::PoolAllocator g_workspace_pool_allocator;
 static std::mutex engine_mutex;
 static Waifu2x* waifu2x = 0;
 static RealCUGAN* realcugan = 0;
-static int current_engine = 0; // 0 for waifu2x, 1 for realcugan
+static RealSR* realsr = 0;
+static int current_engine = 0; // 0 for waifu2x, 1 for realcugan, 2 for realsr
 static auto gpu_mode = true;
 
 extern "C" {
@@ -86,13 +88,20 @@ Java_io_github_snd_1r_komelia_infra_ncnn_NcnnUpscaler_init(JNIEnv *env, jobject 
         }
         waifu2x = new Waifu2x(gpuid, tta_mode, num_threads);
         __android_log_print(ANDROID_LOG_DEBUG, TAG, "waifu2x class: %p successfully initialized", waifu2x);
-    } else {
+    } else if (current_engine == 1) {
         if (realcugan) {
             delete realcugan;
             realcugan = 0;
         }
         realcugan = new RealCUGAN(gpuid, tta_mode, num_threads);
         __android_log_print(ANDROID_LOG_DEBUG, TAG, "realcugan class: %p successfully initialized", realcugan);
+    } else if (current_engine == 2 || current_engine == 3) {
+        if (realsr) {
+            delete realsr;
+            realsr = 0;
+        }
+        realsr = new RealSR(gpuid, tta_mode, num_threads);
+        __android_log_print(ANDROID_LOG_DEBUG, TAG, "realsr class: %p successfully initialized", realsr);
     }
 
     if (gpu_mode) {
@@ -101,7 +110,8 @@ Java_io_github_snd_1r_komelia_infra_ncnn_NcnnUpscaler_init(JNIEnv *env, jobject 
             __android_log_print(ANDROID_LOG_ERROR, TAG, "GPU device %d not found, falling back to CPU", gpuid);
             gpu_mode = false;
             if (current_engine == 0) waifu2x->tilesize = -1;
-            else realcugan->tilesize = -1;
+            else if (current_engine == 1) realcugan->tilesize = -1;
+            else if (current_engine == 2 || current_engine == 3) realsr->tilesize = -1;
             return -1;
         }
 
@@ -118,12 +128,15 @@ Java_io_github_snd_1r_komelia_infra_ncnn_NcnnUpscaler_init(JNIEnv *env, jobject 
             tilesize = 32;
         }
         if (current_engine == 0) waifu2x->tilesize = tilesize;
-        else realcugan->tilesize = tilesize;
+        else if (current_engine == 1) realcugan->tilesize = tilesize;
+        else if (current_engine == 2 || current_engine == 3) realsr->tilesize = tilesize;
     } else {
         if (current_engine == 0) {
             if (waifu2x) waifu2x->tilesize = -1;
-        } else {
+        } else if (current_engine == 1) {
             if (realcugan) realcugan->tilesize = -1;
+        } else if (current_engine == 2 || current_engine == 3) {
+            if (realsr) realsr->tilesize = -1;
         }
     }
     return 0;
@@ -166,12 +179,17 @@ Java_io_github_snd_1r_komelia_infra_ncnn_NcnnUpscaler_load(JNIEnv *env, jobject 
         waifu2x->prepadding = prepadding;
         if (asset_manager) ret = waifu2x->load(env, asset_manager, parampath, modelpath);
         else ret = waifu2x->load(parampath, modelpath);
-    } else {
+    } else if (current_engine == 1) {
         if (!realcugan) return -1;
         // RealCUGAN prepadding: 18 for up2x-conservative
         realcugan->prepadding = 18;
         if (asset_manager) ret = realcugan->load(env, asset_manager, parampath, modelpath);
         else ret = realcugan->load(parampath, modelpath);
+    } else if (current_engine == 2 || current_engine == 3) {
+        if (!realsr) return -1;
+        realsr->prepadding = 10;
+        if (asset_manager) ret = realsr->load(env, asset_manager, parampath, modelpath);
+        else ret = realsr->load(parampath, modelpath);
     }
     return ret;
 }
@@ -204,7 +222,7 @@ Java_io_github_snd_1r_komelia_infra_ncnn_NcnnUpscaler_process(JNIEnv *env, jobje
             __android_log_print(ANDROID_LOG_ERROR, TAG, "waifu2x not initialized");
             ret = -1;
         }
-    } else {
+    } else if (current_engine == 1) {
         if (realcugan) {
             if (!gpu_mode) {
                 realcugan->tilesize = in_info.width > in_info.height ? in_info.width : in_info.height;
@@ -213,6 +231,17 @@ Java_io_github_snd_1r_komelia_infra_ncnn_NcnnUpscaler_process(JNIEnv *env, jobje
             if (ret != 0) __android_log_print(ANDROID_LOG_ERROR, TAG, "realcugan process failed: %d", ret);
         } else {
             __android_log_print(ANDROID_LOG_ERROR, TAG, "realcugan not initialized");
+            ret = -1;
+        }
+    } else if (current_engine == 2 || current_engine == 3) {
+        if (realsr) {
+            if (!gpu_mode) {
+                realsr->tilesize = in_info.width > in_info.height ? in_info.width : in_info.height;
+            }
+            ret = realsr->process(in, out);
+            if (ret != 0) __android_log_print(ANDROID_LOG_ERROR, TAG, "realsr process failed: %d", ret);
+        } else {
+            __android_log_print(ANDROID_LOG_ERROR, TAG, "realsr not initialized");
             ret = -1;
         }
     }
@@ -230,8 +259,10 @@ Java_io_github_snd_1r_komelia_infra_ncnn_NcnnUpscaler_setScale(JNIEnv *env, jobj
     std::lock_guard<std::mutex> lock(engine_mutex);
     if (current_engine == 0) {
         if (waifu2x) waifu2x->scale = scale > 1 ? 2 : 1;
-    } else {
+    } else if (current_engine == 1) {
         if (realcugan) realcugan->scale = scale;
+    } else if (current_engine == 2 || current_engine == 3) {
+        if (realsr) realsr->scale = scale;
     }
 }
 
@@ -241,7 +272,7 @@ Java_io_github_snd_1r_komelia_infra_ncnn_NcnnUpscaler_setNoise(JNIEnv *env, jobj
     std::lock_guard<std::mutex> lock(engine_mutex);
     if (current_engine == 0) {
         if (waifu2x) waifu2x->noise = noise;
-    } else {
+    } else if (current_engine == 1) {
         if (realcugan) realcugan->noise = noise;
     }
 }
@@ -251,7 +282,9 @@ JNIEXPORT jint JNICALL
 Java_io_github_snd_1r_komelia_infra_ncnn_NcnnUpscaler_getTileSize(JNIEnv *env, jobject thiz) {
     std::lock_guard<std::mutex> lock(engine_mutex);
     if (current_engine == 0) return waifu2x ? waifu2x->tilesize : 0;
-    else return realcugan ? realcugan->tilesize : 0;
+    else if (current_engine == 1) return realcugan ? realcugan->tilesize : 0;
+    else if (current_engine == 2 || current_engine == 3) return realsr ? realsr->tilesize : 0;
+    else return 0;
 }
 
 extern "C"
@@ -261,8 +294,10 @@ Java_io_github_snd_1r_komelia_infra_ncnn_NcnnUpscaler_setTileSize(JNIEnv *env, j
     if(tile_size >= 32) {
         if (current_engine == 0) {
             if (waifu2x) waifu2x->tilesize = tile_size;
-        } else {
+        } else if (current_engine == 1) {
             if (realcugan) realcugan->tilesize = tile_size;
+        } else if (current_engine == 2 || current_engine == 3) {
+            if (realsr) realsr->tilesize = tile_size;
         }
     } else {
         __android_log_print(ANDROID_LOG_ERROR, TAG, "tile size too short: cannot be %d", tile_size);
@@ -280,5 +315,9 @@ Java_io_github_snd_1r_komelia_infra_ncnn_NcnnUpscaler_release(JNIEnv *env, jobje
     if (realcugan) {
         delete realcugan;
         realcugan = 0;
+    }
+    if (realsr) {
+        delete realsr;
+        realsr = 0;
     }
 }

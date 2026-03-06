@@ -235,10 +235,32 @@ Add an option to upscale images immediately after decoding if they fall below a 
     *   **Logging:** Add high-visibility logs when a pre-emptive upscale is triggered: `[NCNN] Pre-emptive upscale triggered: ${image.width}px < ${threshold}px`.
     *   **Async execution:** Ensure this upscaling happens on the `processingScope` to avoid blocking the main thread during page transitions.
 
-### Phase 3 Goals:
-*   Provide explicit control over upscaler activation.
-*   Verify upscaler behavior by forcing it on small images even at 100% zoom.
-*   Improve "base" quality for older or low-resolution manga/comics.
+### Phase 5 Goals:
+*   Add high-quality `realsr-general-v3` and `real-esrganv3-anime-x2` models.
+*   Incorporate `RealSR` engine into the native upscaler module.
+*   Update UI and domain logic to support new engines and models.
+
+### Phase 5 Completion Summary (March 6, 2026)
+**Status: COMPLETED**
+- **Native Integration:**
+    - Integrated `RealSR` engine source from `RealSR-NCNN-Android-CLI` into `komelia-infra:ncnn-upscaler`.
+    - Added JNI `load` method with `AAssetManager` support to `RealSR` class.
+    - Updated `upscaler_jni.cpp` to handle `ENGINE_REALSR` (2) and `ENGINE_REAL_ESRGAN` (3) using the unified `RealSR` engine.
+    - Configured `CMakeLists.txt` to include `realsr/realsr.cpp` and necessary include paths.
+- **Model Assets:**
+    - Added `realsr-general-v3` (as `models-realsr/x4.bin/param`) to Android assets.
+    - Added `real-esrganv3-anime-x2` (as `models-realesrgan/x2.bin/param`) to Android assets.
+- **Kotlin & Domain Update:**
+    - Updated `NcnnUpscaler.kt` with new engine constants.
+    - Updated `NcnnUpscalerSettings.kt` with `REALSR` and `REAL_ESRGAN` engines.
+    - Enhanced `AndroidNcnnUpscaler.kt` to handle new engine types and specific model file naming (e.g., `x4.bin`).
+    - Made `upscale` method scale-aware based on the selected model.
+- **UI & Strings:**
+    - Added localized labels for RealSR and Real-ESRGAN in `EnStrings.kt`.
+    - Updated `NcnnSettingsContent.kt` with new engine options and model selection logic.
+    - Added a helper to set default models when switching engines in the UI.
+- **Build:** Verified successful AAR generation with `./gradlew :komelia-infra:ncnn-upscaler:assembleDebug`.
+
 
 ### Phase 3 Completion Summary (March 5, 2026)
 **Status: COMPLETED (Integrated, Stability Issues Persist)**
@@ -296,3 +318,54 @@ To achieve the stability observed in the demo app, the integration must be stric
 #### App Integration
 - `AndroidAppModule.kt`: Wired the `AndroidNcnnUpscaler` as a singleton and injected it into the `ReaderImageFactory`.
 - `settings.gradle.kts`: Included the new `:komelia-infra:ncnn-upscaler` module in the project build.
+
+---
+
+## Phase 5: Expanding Model Support (RealSR & Real-ESRGAN)
+Add high-quality `realsr-general-v3` and `real-esrganv3-anime-x2` models to provide more choices for different content types (photographic vs anime).
+
+### Detailed Steps:
+
+1. **Source Integration (Native):**
+    *   **RealSR:**
+        *   Create `komelia-infra/ncnn-upscaler/src/main/jni/realsr/`.
+        *   Copy the following files from `/home/eyal/RealSR-NCNN-Android/RealSR-NCNN-Android-CLI/RealSR/src/main/jni/`:
+            *   `realsr.cpp`, `realsr.h`
+            *   `realsr_preproc.comp.hex.h`, `realsr_postproc.comp.hex.h`
+            *   `realsr_preproc_tta.comp.hex.h`, `realsr_postproc_tta.comp.hex.h`
+    *   **Real-ESRGAN:**
+        *   Create `komelia-infra/ncnn-upscaler/src/main/jni/realesrgan/`.
+        *   Copy the following files from `/home/eyal/RealSR-NCNN-Android/RealSR-NCNN-Android-CLI/RealESRGAN/src/main/jni/`:
+            *   `realesrgan.cpp`, `realesrgan.h`
+            *   `realesrgan_preproc.comp.hex.h`, `realesrgan_postproc.comp.hex.h`
+            *   `realesrgan_preproc_tta.comp.hex.h`, `realesrgan_postproc_tta.comp.hex.h`
+
+2. **JNI Layer Expansion (`upscaler_jni.cpp`):**
+    *   **Includes:** Add `#include "realsr/realsr.h"` and `#include "realesrgan/realesrgan.h"`.
+    *   **Globals:** Add `static RealSR* realsr = 0;` and `static RealESRGAN* realesrgan = 0;`.
+    *   **`init`:** Handle `ENGINE_REALSR` (type 2) and `ENGINE_REALESRGAN` (type 3). Initialize the corresponding engine class.
+    *   **`load`:**
+        *   Add handling for `current_engine == 2` and `current_engine == 3`.
+        *   For `RealSR`, set `prepadding = 0` (it typically handles padding internally or doesn't need it the same way).
+        *   For `Real-ESRGAN`, set `prepadding = 10` (verify based on model).
+    *   **`process`:** Add routing to `realsr->process()` and `realesrgan->process()`.
+    *   **`release`:** Ensure both new engine pointers are deleted and nulled.
+
+3. **Build System Update (`CMakeLists.txt`):**
+    *   Add `realsr` and `realesrgan` to `include_directories`.
+    *   Update `add_library(ncnn-upscaler ...)` to include `realsr/realsr.cpp` and `realesrgan/realesrgan.cpp`.
+
+4. **Kotlin & Domain Update:**
+    *   **`NcnnUpscaler.kt`:** Add `const val ENGINE_REALSR = 2` and `const val ENGINE_REALESRGAN = 3`.
+    *   **`NcnnUpscalerSettings.kt`:** Add `REALSR` and `REAL_ESRGAN` to `NcnnEngine` enum.
+    *   **`AndroidNcnnUpscaler.kt`:** Update engine initialization logic to support the new types.
+
+5. **Model Assets:**
+    *   **RealSR:** Copy `realsr-general-v3` folder from `/home/eyal/RealSR-NCNN-Android/Assets/realsr/models-se/` to `komelia-infra/ncnn-upscaler/src/main/assets/models-realsr/`.
+    *   **Real-ESRGAN:** Copy `real-esrganv3-anime` folder from `/home/eyal/RealSR-NCNN-Android/Assets/realsr/models-se/` to `komelia-infra/ncnn-upscaler/src/main/assets/models-realesrgan/`.
+
+6. **UI & Localization:**
+    *   **`EnStrings.kt`:** Add labels for "RealSR" and "Real-ESRGAN".
+    *   **`NcnnSettingsContent.kt`:** Update the engine selection dropdown and conditionally show models for the new engines.
+    *   **Models Mapping:** Ensure the UI knows which models belong to which engine.
+

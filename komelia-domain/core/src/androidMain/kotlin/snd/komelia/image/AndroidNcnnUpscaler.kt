@@ -6,6 +6,8 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import io.github.snd_r.komelia.infra.ncnn.NcnnSharedLibraries
 import io.github.snd_r.komelia.infra.ncnn.NcnnUpscaler
 import io.github.snd_r.komelia.infra.ncnn.NcnnUpscaler.Companion.ENGINE_REALCUGAN
+import io.github.snd_r.komelia.infra.ncnn.NcnnUpscaler.Companion.ENGINE_REALSR
+import io.github.snd_r.komelia.infra.ncnn.NcnnUpscaler.Companion.ENGINE_REAL_ESRGAN
 import io.github.snd_r.komelia.infra.ncnn.NcnnUpscaler.Companion.ENGINE_WAIFU2X
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -93,9 +95,10 @@ class AndroidNcnnUpscaler(
         }
 
         return try {
+            val scale = parseModelScaleAndNoise(currentSettings?.model ?: "").first
             val bitmapOut = Bitmap.createBitmap(
-                bitmapIn.width * 2,
-                bitmapIn.height * 2,
+                bitmapIn.width * scale,
+                bitmapIn.height * scale,
                 Bitmap.Config.ARGB_8888
             )
 
@@ -154,6 +157,9 @@ class AndroidNcnnUpscaler(
                 Pair(1, noise)
             }
             modelName.contains("up2x") -> Pair(2, 0)
+            modelName.contains("realsr") -> Pair(4, -1)
+            modelName.contains("x2") -> Pair(2, -1)
+            modelName.contains("x4") -> Pair(4, -1)
             else -> Pair(2, -1)
         }
     }
@@ -164,6 +170,8 @@ class AndroidNcnnUpscaler(
         val engineType = when (settings.engine) {
             NcnnEngine.WAIFU2X -> ENGINE_WAIFU2X
             NcnnEngine.REALCUGAN -> ENGINE_REALCUGAN
+            NcnnEngine.REALSR -> ENGINE_REALSR
+            NcnnEngine.REAL_ESRGAN -> ENGINE_REAL_ESRGAN
         }
         newNcnn.init(engineType, settings.gpuId, settings.ttaMode, settings.numThreads)
 
@@ -172,8 +180,17 @@ class AndroidNcnnUpscaler(
         newNcnn.setNoise(noise)
 
         val modelPath = settings.model
-        val paramPath = "$modelPath.param"
-        val binPath = "$modelPath.bin"
+        val paramPath: String
+        val binPath: String
+
+        if (settings.engine == NcnnEngine.REALSR || settings.engine == NcnnEngine.REAL_ESRGAN) {
+            val scale = parseModelScaleAndNoise(modelPath).first
+            paramPath = "$modelPath/x$scale.param"
+            binPath = "$modelPath/x$scale.bin"
+        } else {
+            paramPath = "$modelPath.param"
+            binPath = "$modelPath.bin"
+        }
 
         val loadResult = newNcnn.load(context.assets, paramPath, binPath)
         if (loadResult != 0) {
