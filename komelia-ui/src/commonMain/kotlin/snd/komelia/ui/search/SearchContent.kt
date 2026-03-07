@@ -69,8 +69,8 @@ fun SearchContent(
             SearchToolBar(
                 searchType = searchType,
                 onSearchTypeChange = onSearchTypeChange,
-                hasSeries = seriesResults.isNotEmpty(),
-                hasBooks = bookResults.isNotEmpty(),
+                hasSeries = seriesTotalPages > 0,
+                hasBooks = bookTotalPages > 0,
                 modifier = widthModifier
             )
 
@@ -143,9 +143,14 @@ fun SearchToolBar(
     hasBooks: Boolean,
     modifier: Modifier,
 ) {
-    if (!hasSeries && !hasBooks) return
+    val tabs = listOfNotNull(
+        if (hasSeries) SearchResultsTab.SERIES else null,
+        if (hasBooks) SearchResultsTab.BOOKS else null
+    )
+    if (tabs.isEmpty()) return
+
     SecondaryTabRow(
-        selectedTabIndex = if (searchType == SearchResultsTab.SERIES) 0 else 1,
+        selectedTabIndex = tabs.indexOf(searchType).coerceAtLeast(0),
         modifier = modifier,
     ) {
         if (hasSeries) Tab(

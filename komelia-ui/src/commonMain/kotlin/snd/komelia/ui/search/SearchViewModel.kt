@@ -86,6 +86,8 @@ class SearchViewModel(
         loadBooksPage(1)
         if (seriesResults.isEmpty() && bookResults.isNotEmpty() && currentTab == SearchResultsTab.SERIES) {
             currentTab = SearchResultsTab.BOOKS
+        } else if (bookResults.isEmpty() && seriesResults.isNotEmpty() && currentTab == SearchResultsTab.BOOKS) {
+            currentTab = SearchResultsTab.SERIES
         }
     }
 
