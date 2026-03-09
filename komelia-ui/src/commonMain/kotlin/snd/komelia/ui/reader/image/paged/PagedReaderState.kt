@@ -66,6 +66,7 @@ class PagedReaderState(
     private val appStrings: Flow<AppStrings>,
     private val pageChangeFlow: MutableSharedFlow<Unit>,
     val screenScaleState: ScreenScaleState,
+    private val onBookChange: () -> Unit = {},
 ) {
     private val stateScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val pageLoadScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -139,6 +140,12 @@ class PagedReaderState(
         readerState.booksState
             .filterNotNull()
             .onEach { newBook -> onNewBookLoaded(newBook) }
+            .launchIn(stateScope)
+
+        readerState.booksState
+            .filterNotNull()
+            .drop(1)
+            .onEach { onBookChange() }
             .launchIn(stateScope)
 
         val strings = appStrings.first().pagedReader

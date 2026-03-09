@@ -28,12 +28,16 @@ import snd.komelia.ui.common.components.SwitchWithLabel
 expect fun NcnnLogViewerDialog(onDismiss: () -> Unit)
 
 @Composable
+expect fun NcnnCrashLogViewerDialog(onDismiss: () -> Unit)
+
+@Composable
 fun NcnnSettingsContent(
     settings: NcnnUpscalerSettings,
     onSettingsChange: (NcnnUpscalerSettings) -> Unit,
 ) {
     val strings = LocalStrings.current.imageSettings
     var showLogs by remember { mutableStateOf(false) }
+    var showCrashLogs by remember { mutableStateOf(false) }
 
     Column(
         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -54,11 +58,17 @@ fun NcnnSettingsContent(
                 TextButton(onClick = { showLogs = true }) {
                     Text("View Logs")
                 }
+                TextButton(onClick = { showCrashLogs = true }) {
+                    Text("Crash Logs")
+                }
             }
         }
 
         if (showLogs) {
             NcnnLogViewerDialog(onDismiss = { showLogs = false })
+        }
+        if (showCrashLogs) {
+            NcnnCrashLogViewerDialog(onDismiss = { showCrashLogs = false })
         }
 
         if (settings.enabled) {

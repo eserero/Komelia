@@ -286,6 +286,8 @@ class AndroidAppModule(
         )
     }
 
+    override fun createOnBookChange(): () -> Unit = { AndroidNcnnUpscaler.cancelPendingRequests() }
+
     override fun createWindowState() = AndroidWindowState(mainActivity)
 
     override fun createCoilContext() = context

@@ -6,6 +6,8 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import java.io.File
+import java.util.Date
 import kotlin.system.exitProcess
 
 private val logger = KotlinLogging.logger {}
@@ -25,6 +27,12 @@ class GlobalExceptionHandler private constructor(
     override fun uncaughtException(thread: Thread, exception: Throwable) {
         try {
             logger.catching(exception)
+            try {
+                val logDir = File(applicationContext.getExternalFilesDir(null), "komelia/logs")
+                logDir.mkdirs()
+                File(logDir, "java_crash_report.txt")
+                    .writeText("Crash at ${Date()}\n\n${exception.stackTraceToString()}")
+            } catch (_: Exception) { /* non-fatal */ }
             val exceptionData = ExceptionData(
                 exceptionName = exception::class.simpleName ?: "Unknown Error",
                 message = exception.message,

@@ -10,16 +10,45 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
+import org.slf4j.LoggerFactory
+import ch.qos.logback.classic.LoggerContext
 import snd.komelia.offline.sync.downloadChannelId
 import snd.komelia.ui.DependencyContainer
+import java.io.File
+import java.util.concurrent.TimeUnit
 
 val dependencies = MutableStateFlow<DependencyContainer?>(null)
 class App : Application() {
     override fun onCreate() {
         super.onCreate()
+        initLogging()
         GlobalExceptionHandler.initialize(applicationContext)
+        saveLogcatSnapshot()
         setupNotificationChannels()
         initWorkManager()
+    }
+
+    private fun initLogging() {
+        val logDir = File(getExternalFilesDir(null), "komelia/logs")
+        logDir.mkdirs()
+        System.setProperty("LOG_DIR", logDir.absolutePath)       // before logback init
+        val lc = LoggerFactory.getILoggerFactory() as LoggerContext
+        lc.putProperty("LOG_DIR", logDir.absolutePath)           // belt-and-suspenders
+    }
+
+    private fun saveLogcatSnapshot() {
+        val logDir = File(getExternalFilesDir(null), "komelia/logs")
+        logDir.mkdirs()
+        val outFile = File(logDir, "last_session_logcat.txt")
+        try {
+            val process = ProcessBuilder("logcat", "-d", "-t", "500", "-v", "threadtime", "*:D")
+                .redirectErrorStream(true)
+                .start()
+            outFile.writeText(process.inputStream.bufferedReader().readText())
+            process.waitFor(5, TimeUnit.SECONDS)
+        } catch (_: Exception) {
+            // best effort — non-fatal
+        }
     }
 
     private fun setupNotificationChannels() {

@@ -3,6 +3,9 @@ package snd.komelia.image
 import android.graphics.Bitmap
 import android.graphics.Paint
 import android.graphics.Paint.FILTER_BITMAP_FLAG
+import android.os.Handler
+import android.os.Looper
+import io.github.oshai.kotlinlogging.KotlinLogging
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.nativeCanvas
@@ -23,6 +26,8 @@ import kotlinx.coroutines.flow.onEach
 import snd.komelia.image.AndroidBitmap.toBitmap
 import snd.komelia.image.ReaderImage.PageId
 import snd.komelia.image.processing.ImageProcessingPipeline
+
+private val logger = KotlinLogging.logger {}
 
 @Suppress("EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING")
 actual typealias RenderImage = Bitmap
@@ -47,6 +52,11 @@ class AndroidReaderImage(
     linearLightDownSampling = linearLightDownSampling,
     pageId = pageId,
 ) {
+    private companion object {
+        // Prefetch window: ±3 pages covers current + neighbors in all layout modes (single, double-spread).
+        const val UPSCALE_PREFETCH_RANGE = 3
+    }
+
     @Volatile
     private var cachedUpscaledImage: KomeliaImage? = null
 
@@ -98,7 +108,10 @@ class AndroidReaderImage(
     }
 
     override fun closeTileBitmaps(tiles: List<ReaderImageTile>) {
-        tiles.forEach { it.renderImage?.recycle() }
+        if (tiles.isEmpty()) return
+        Handler(Looper.getMainLooper()).post {
+            tiles.forEach { it.renderImage?.recycle() }
+        }
     }
 
     override fun createTilePainter(
@@ -202,6 +215,12 @@ class AndroidReaderImage(
 
     private suspend fun retryUpscaleOnLoad() {
         if (cachedUpscaledImage != null) return   // already upscaled, skip
+
+        // Only retry within the prefetch window of the currently-rendered page
+        val currentPage = AndroidNcnnUpscaler.currentPageNumber.get()
+        if (currentPage < 0) return  // no page rendered yet
+        if (kotlin.math.abs(pageId.pageNumber - currentPage) > UPSCALE_PREFETCH_RANGE) return
+
         val currentImage = image.value ?: return
         upscaleStatus.value = UpscaleStatus.Upscaling
         AndroidNcnnUpscaler.registerActivity(pageId.pageNumber)
@@ -230,9 +249,10 @@ class AndroidReaderImage(
         scaleWidth: Int,
         scaleHeight: Int,
     ): ReaderImageData {
+        val cached = cachedUpscaledImage  // capture once to avoid TOCTOU race with close()
         val upscaled = when {
-            cachedUpscaledImage === image -> image          // image IS the cached upscaled version — use directly
-            cachedUpscaledImage != null -> cachedUpscaledImage  // have a 2x cache for original image
+            cached === image -> image          // image IS the cached upscaled version — use directly
+            cached != null -> cached           // have a 2x cache for original image
             else -> {
                 upscaleStatus.value = UpscaleStatus.Upscaling
                 AndroidNcnnUpscaler.registerActivity(pageId.pageNumber)
@@ -254,16 +274,7 @@ class AndroidReaderImage(
         }
 
         if (upscaled != null) {
-            if (upscaled.width > scaleWidth && upscaled.pageHeight > scaleHeight) {
-                val resized = upscaled.resize(
-                    scaleWidth = scaleWidth,
-                    scaleHeight = scaleHeight,
-                    linear = linearLightDownSampling.value,
-                    kernel = downSamplingKernel.value
-                )
-                // do NOT close resized — tile owns resized.bitmap
-                return resized.toReaderImageData()
-            } else {
+            return try {
                 // Resize to target so tile gets a fresh independent bitmap,
                 // not a shared reference to cachedUpscaledImage.bitmap
                 val resized = upscaled.resize(
@@ -273,7 +284,11 @@ class AndroidReaderImage(
                     kernel = downSamplingKernel.value
                 )
                 // do NOT close resized — tile owns resized.bitmap
-                return resized.toReaderImageData()
+                resized.toReaderImageData()
+            } catch (e: IllegalStateException) {
+                logger.warn(e) { "[NCNN] Cached upscaled bitmap recycled during tile render, falling back" }
+                cachedUpscaledImage = null
+                image.toReaderImageData()
             }
         } else {
             return image.toReaderImageData()
@@ -286,9 +301,10 @@ class AndroidReaderImage(
         scaleWidth: Int,
         scaleHeight: Int
     ): ReaderImageData {
+        val cached = cachedUpscaledImage  // capture once to avoid TOCTOU race with close()
         val upscaled = when {
-            cachedUpscaledImage === image -> image          // image IS the cached upscaled version — use directly
-            cachedUpscaledImage != null -> cachedUpscaledImage  // have a 2x cache for original image
+            cached === image -> image          // image IS the cached upscaled version — use directly
+            cached != null -> cached           // have a 2x cache for original image
             else -> {
                 upscaleStatus.value = UpscaleStatus.Upscaling
                 AndroidNcnnUpscaler.registerActivity(pageId.pageNumber)
@@ -312,44 +328,53 @@ class AndroidReaderImage(
         var region: KomeliaImage? = null
         var resized: KomeliaImage? = null
 
-        try {
-            if (upscaled != null) {
-                // assume upscaling is done by integer fraction (2x)
-                val scaleRatio = upscaled.width.toDouble() / image.width
-                val targetRegion = ImageRect(
-                    left = (imageRegion.left * scaleRatio).toInt(),
-                    right = (imageRegion.right * scaleRatio).toInt(),
-                    top = (imageRegion.top * scaleRatio).toInt(),
-                    bottom = (imageRegion.bottom * scaleRatio).toInt()
-                )
-                region = upscaled.extractArea(targetRegion)
-
-                // downscale if region is bigger than requested scale
-                if (region.width > scaleWidth || region.pageHeight > scaleHeight) {
-                    resized = region.resize(
-                        scaleWidth = scaleWidth,
-                        scaleHeight = scaleHeight,
-                        linear = linearLightDownSampling.value,
-                        kernel = downSamplingKernel.value
+        return try {
+            try {
+                if (upscaled != null) {
+                    // assume upscaling is done by integer fraction (2x)
+                    val scaleRatio = upscaled.width.toDouble() / image.width
+                    val targetRegion = ImageRect(
+                        left = (imageRegion.left * scaleRatio).toInt(),
+                        right = (imageRegion.right * scaleRatio).toInt(),
+                        top = (imageRegion.top * scaleRatio).toInt(),
+                        bottom = (imageRegion.bottom * scaleRatio).toInt()
                     )
-                    return resized.toReaderImageData()
+                    region = upscaled.extractArea(targetRegion)
+
+                    // downscale if region is bigger than requested scale
+                    if (region.width > scaleWidth || region.pageHeight > scaleHeight) {
+                        resized = region.resize(
+                            scaleWidth = scaleWidth,
+                            scaleHeight = scaleHeight,
+                            linear = linearLightDownSampling.value,
+                            kernel = downSamplingKernel.value
+                        )
+                        resized.toReaderImageData()
+                    } else {
+                        region.toReaderImageData()
+                    }
                 } else {
-                    return region.toReaderImageData()
+                    region = image.extractArea(imageRegion.toImageRect())
+                    region.toReaderImageData()
                 }
-            } else {
-                region = image.extractArea(imageRegion.toImageRect())
-                return region.toReaderImageData()
+            } finally {
+                if (resized != null) {
+                    region?.close()   // region was intermediate — safe to recycle its bitmap now
+                    // do NOT close resized — tile owns resized.bitmap
+                } else if (region !is AndroidBitmapBackedImage) {
+                    // region is VipsBackedImage (upscale fallback path) — toReaderImageData() created
+                    // an independent bitmap copy, so closing region here is safe
+                    region?.close()
+                }
+                // if region is AndroidBitmapBackedImage: tile owns region.bitmap — don't close
             }
-        } finally {
-            if (resized != null) {
-                region?.close()   // region was intermediate — safe to recycle its bitmap now
-                // do NOT close resized — tile owns resized.bitmap
-            } else if (region !is AndroidBitmapBackedImage) {
-                // region is VipsBackedImage (upscale fallback path) — toReaderImageData() created
-                // an independent bitmap copy, so closing region here is safe
-                region?.close()
-            }
-            // if region is AndroidBitmapBackedImage: tile owns region.bitmap — don't close
+        } catch (e: IllegalStateException) {
+            logger.warn(e) { "[NCNN] Cached upscaled bitmap recycled during tile render (region), falling back" }
+            cachedUpscaledImage = null
+            val fallbackRegion = image.extractArea(imageRegion.toImageRect())
+            val fallbackResult = fallbackRegion.toReaderImageData()
+            if (fallbackRegion !is AndroidBitmapBackedImage) fallbackRegion.close()
+            fallbackResult
         }
     }
 

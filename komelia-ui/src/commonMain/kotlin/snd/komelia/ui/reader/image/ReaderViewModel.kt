@@ -61,6 +61,7 @@ class ReaderViewModel(
     private val panelDetector: KomeliaPanelDetector?,
     private val upscaler: KomeliaUpscaler?,
     val colorCorrectionIsActive: Flow<Boolean>,
+    onBookChange: () -> Unit = {},
 ) : ScreenModel {
     val screenScaleState = ScreenScaleState()
     private val pageChangeFlow = MutableSharedFlow<Unit>(
@@ -109,6 +110,7 @@ class ReaderViewModel(
         appStrings = appStrings,
         pageChangeFlow = pageChangeFlow,
         screenScaleState = screenScaleState,
+        onBookChange = onBookChange,
     )
     val panelsReaderState = panelDetector?.let { panelDetector ->
         if (!panelDetector.isAvailable.value) null

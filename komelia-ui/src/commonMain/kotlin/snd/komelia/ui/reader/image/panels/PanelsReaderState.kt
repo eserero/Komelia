@@ -17,6 +17,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.cancelChildren
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -426,6 +428,8 @@ class PanelsReaderState(
     }
 
     private suspend fun doPageLoad(pageIndex: Int, startAtLast: Boolean = false, isAnimated: Boolean = false) {
+        currentCoroutineContext().ensureActive()
+        if (pageIndex >= pageMetadata.value.size) return
         val pageMeta = pageMetadata.value[pageIndex]
         val downloadJob = launchDownload(pageMeta)
         preloadImagesBetween(pageIndex)

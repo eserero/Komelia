@@ -80,13 +80,19 @@ class AndroidNcnnUpscaler(
                     work.result.complete(null)
                     continue
                 }
-                val image = withContext(NonCancellable) { work.block() }
+                val image = try {
+                    withContext(NonCancellable) { work.block() }
+                } catch (e: Throwable) {
+                    logger.error(e) { "[NCNN] Upscale block failed for page ${work.pageNumber}" }
+                    null
+                }
                 work.result.complete(image)
             }
         }
 
-        internal fun cancelPendingRequests() {
+        fun cancelPendingRequests() {
             generation.incrementAndGet()
+            globalUpscaleActivities.value = emptyMap()
         }
 
         internal fun registerActivity(pageNumber: Int) {
@@ -134,6 +140,7 @@ class AndroidNcnnUpscaler(
                                 settingsFlow.value = settings
                             }
                         } else {
+                            cancelPendingRequests()
                             ncnn?.release()
                             ncnn = null
                             currentSettings = null
@@ -246,6 +253,7 @@ class AndroidNcnnUpscaler(
     }
 
     private fun reinit(settings: NcnnUpscalerSettings) {
+        if (ncnn != null) cancelPendingRequests()
         ncnn?.release()
         val newNcnn = NcnnUpscaler()
         val engineType = when (settings.engine) {

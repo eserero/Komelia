@@ -259,6 +259,7 @@ class ViewModelFactory(
             upscaler = dependencies.upscaler,
             bookSiblingsContext = bookSiblingsContext,
             markReadProgress = markReadProgress,
+            onBookChange = dependencies.onBookChange,
         )
     }
 

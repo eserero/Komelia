@@ -82,6 +82,8 @@ abstract class TilingReaderImage(
     @Volatile
     protected var lastUsedScaleFactor: Double? = null
 
+    private var pendingTilesToClose: List<ReaderImageTile> = emptyList()
+
     data class UpdateRequest(
         val visibleDisplaySize: IntRect,
         val zoomFactor: Float,
@@ -127,6 +129,8 @@ abstract class TilingReaderImage(
         processingScope.launch { loadImage() }
 
         frameData.onEach { data ->
+            val tilesToClose = pendingTilesToClose
+            pendingTilesToClose = emptyList()
             when {
                 data == null -> this.painter.value = null
                 data.frames.size == 1 -> {
@@ -139,7 +143,7 @@ abstract class TilingReaderImage(
 
                 else -> launchAnimation(data)
             }
-
+            closeTileBitmaps(tilesToClose)
         }.launchIn(processingScope)
     }
 
@@ -326,12 +330,12 @@ abstract class TilingReaderImage(
                     delay = resizedImage.delays?.getOrNull(i)?.toLong() ?: defaultFrameDelay
                 )
             }
+            pendingTilesToClose = previousTiles
             frameData.value = FrameData(
                 frames = frames,
                 displaySize = displayArea,
                 scaleFactor = scaleFactor
             )
-            closeTileBitmaps(previousTiles)
         }.also { logger.info { "page ${pageId.pageNumber} completed full resize to $dstWidth x $dstHeight in $it" } }
 
     }
@@ -419,12 +423,12 @@ abstract class TilingReaderImage(
         }
 
         if (addedNewTiles) {
+            pendingTilesToClose = unusedTiles
             frameData.value = FrameData(
                 frames = listOf(ImageFrame(newTiles, 0)),
                 displaySize = displayArea,
                 scaleFactor = scaleFactor
             )
-            closeTileBitmaps(unusedTiles)
 
             val end = timeSource.markNow()
             logger.info { "page ${pageId.pageNumber} completed tiled resize in ${end - start};  ${newTiles.size} tiles" }
@@ -434,6 +438,8 @@ abstract class TilingReaderImage(
     }
 
     override fun close() {
+        closeTileBitmaps(pendingTilesToClose)
+        pendingTilesToClose = emptyList()
         originalImage?.close()
         frameData.value?.frames
             ?.flatMap { it.tiles }

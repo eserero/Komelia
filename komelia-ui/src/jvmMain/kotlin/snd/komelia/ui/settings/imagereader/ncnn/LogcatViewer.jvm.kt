@@ -4,3 +4,6 @@ import androidx.compose.runtime.Composable
 
 @Composable
 actual fun NcnnLogViewerDialog(onDismiss: () -> Unit) {}
+
+@Composable
+actual fun NcnnCrashLogViewerDialog(onDismiss: () -> Unit) {}

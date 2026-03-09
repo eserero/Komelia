@@ -233,8 +233,11 @@ abstract class AppModule {
             upscaler = upscaler,
             panelDetector = panelDetector,
             offlineDependencies = offlineModule,
+            onBookChange = createOnBookChange(),
         )
     }
+
+    protected open fun createOnBookChange(): () -> Unit = {}
 
     protected open suspend fun beforeInit() = Unit
 
