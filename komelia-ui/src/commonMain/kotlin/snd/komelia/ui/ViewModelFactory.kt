@@ -203,10 +203,15 @@ class ViewModelFactory(
         defaultTab = defaultTab ?: SeriesTab.BOOKS,
     )
 
-    fun getBookViewModel(bookId: KomgaBookId, book: KomeliaBook?): BookViewModel {
+    fun getBookViewModel(
+        bookId: KomgaBookId,
+        book: KomeliaBook?,
+        bookSiblingsContext: BookSiblingsContext,
+    ): BookViewModel {
         return BookViewModel(
             book = book,
             bookId = bookId,
+            bookSiblingsContext = bookSiblingsContext,
             bookApi = komgaApi.bookApi,
             notifications = dependencies.appNotifications,
             komgaEvents = dependencies.komgaEvents.events,

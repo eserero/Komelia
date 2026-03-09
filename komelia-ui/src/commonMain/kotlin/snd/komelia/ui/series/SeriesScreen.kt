@@ -37,7 +37,7 @@ import snd.komelia.ui.series.immersive.ImmersiveSeriesContent
 import snd.komelia.ui.platform.PlatformType
 
 fun seriesScreen(series: KomgaSeries): Screen =
-    if (series.oneshot) OneshotScreen(series, BookSiblingsContext.Series)
+    if (series.oneshot) OneshotScreen(series, BookSiblingsContext.Series())
     else SeriesScreen(series)
 
 class SeriesScreen(
@@ -68,7 +68,7 @@ class SeriesScreen(
             vm.initialize()
             val series = vm.series.value
             if (series != null && series.oneshot) {
-                navigator.replace(OneshotScreen(series, BookSiblingsContext.Series))
+                navigator.replace(OneshotScreen(series, BookSiblingsContext.Series()))
                 return@LaunchedEffect
             }
             reloadEvents.collect { vm.reload() }
@@ -93,7 +93,7 @@ class SeriesScreen(
                 currentTab = vm.currentTab,
                 onTabChange = vm::onTabChange,
                 booksState = vm.booksState,
-                onBookClick = { navigator push bookScreen(it) },
+                onBookClick = { navigator push bookScreen(it, BookSiblingsContext.Series(vm.booksState.filterState.state.value)) },
                 onBookReadClick = { book, markProgress ->
                     navigator.parent?.push(readerScreen(book, markProgress))
                 },
@@ -101,7 +101,7 @@ class SeriesScreen(
                 onCollectionClick = { navigator.push(CollectionScreen(it.id)) },
                 onSeriesClick = { s ->
                     navigator.push(
-                        if (s.oneshot) OneshotScreen(s, BookSiblingsContext.Series)
+                        if (s.oneshot) OneshotScreen(s, BookSiblingsContext.Series())
                         else SeriesScreen(s, vm.currentTab)
                     )
                 },
@@ -137,7 +137,7 @@ class SeriesScreen(
                         onTabChange = vm::onTabChange,
 
                         booksState = vm.booksState,
-                        onBookClick = { navigator push bookScreen(it) },
+                        onBookClick = { navigator push bookScreen(it, BookSiblingsContext.Series(vm.booksState.filterState.state.value)) },
                         onBookReadClick = { book, markProgress ->
                             navigator.parent?.push(readerScreen(book, markProgress))
                         },
@@ -146,7 +146,7 @@ class SeriesScreen(
                         onCollectionClick = { collection -> navigator.push(CollectionScreen(collection.id)) },
                         onSeriesClick = { series ->
                             navigator.push(
-                                if (series.oneshot) OneshotScreen(series, BookSiblingsContext.Series)
+                                if (series.oneshot) OneshotScreen(series, BookSiblingsContext.Series())
                                 else SeriesScreen(series, vm.currentTab)
                             )
                         },

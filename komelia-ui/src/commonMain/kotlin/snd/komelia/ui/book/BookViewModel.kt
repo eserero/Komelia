@@ -24,6 +24,7 @@ import snd.komelia.komga.api.KomgaReadListApi
 import snd.komelia.komga.api.model.KomeliaBook
 import snd.komelia.offline.tasks.OfflineTaskEmitter
 import snd.komelia.settings.CommonSettingsRepository
+import snd.komelia.ui.BookSiblingsContext
 import snd.komelia.ui.LoadState
 import snd.komelia.ui.LoadState.Error
 import snd.komelia.ui.LoadState.Loading
@@ -34,6 +35,7 @@ import snd.komelia.ui.common.menus.BookMenuActions
 import snd.komelia.ui.readlist.BookReadListsState
 import snd.komga.client.book.KomgaBookId
 import snd.komga.client.common.KomgaPageRequest
+import snd.komga.client.common.KomgaSort.KomgaBooksSort
 import snd.komga.client.library.KomgaLibrary
 import snd.komga.client.search.allOfBooks
 import snd.komga.client.sse.KomgaEvent
@@ -45,6 +47,7 @@ import snd.komga.client.sse.KomgaEvent.ReadProgressDeleted
 class BookViewModel(
     book: KomeliaBook?,
     bookId: KomgaBookId,
+    private val bookSiblingsContext: BookSiblingsContext,
     private val bookApi: KomgaBookApi,
     private val notifications: AppNotifications,
     private val komgaEvents: SharedFlow<KomgaEvent>,
@@ -107,8 +110,17 @@ class BookViewModel(
             val seriesId = book.value?.seriesId ?: return@launch
             notifications.runCatchingToNotifications {
                 val page = bookApi.getBookList(
-                    conditionBuilder = allOfBooks { seriesId { isEqualTo(seriesId) } },
-                    pageRequest = KomgaPageRequest(unpaged = true)
+                    conditionBuilder = allOfBooks {
+                        seriesId { isEqualTo(seriesId) }
+                        if (bookSiblingsContext is BookSiblingsContext.Series) {
+                            bookSiblingsContext.filter?.addConditionTo(this)
+                        }
+                    },
+                    pageRequest = KomgaPageRequest(
+                        unpaged = true,
+                        sort = (bookSiblingsContext as? BookSiblingsContext.Series)?.filter?.sortOrder?.komgaSort
+                            ?: KomgaBooksSort.byNumberAsc()
+                    )
                 )
                 siblingBooks.value = page.content
             }

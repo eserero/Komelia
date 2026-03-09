@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.update
 import snd.komelia.AppNotifications
 import snd.komelia.komga.api.KomgaReferentialApi
 import snd.komelia.ui.book.BooksFilterState.BooksSort
+import snd.komelia.ui.platform.ScreenSerializable
 import snd.komelia.ui.series.SeriesFilter.Companion.DEFAULT
 import snd.komelia.ui.series.SeriesFilterState.TagExclusionMode
 import snd.komelia.ui.series.SeriesFilterState.TagInclusionMode
@@ -31,7 +32,7 @@ data class BookFilter(
     val inclusionMode: TagInclusionMode = TagInclusionMode.INCLUDE_IF_ALL_MATCH,
     val exclusionMode: TagExclusionMode = TagExclusionMode.EXCLUDE_IF_ANY_MATCH,
     val authors: List<KomgaAuthor> = emptyList()
-) {
+) : ScreenSerializable {
     companion object {
         val DEFAULT = BookFilter()
     }
@@ -178,7 +179,7 @@ class BooksFilterState(
         isChanged = state.value != DEFAULT
     }
 
-    enum class BooksSort(val komgaSort: KomgaBooksSort) {
+    enum class BooksSort(val komgaSort: KomgaBooksSort) : ScreenSerializable {
         NUMBER_ASC(KomgaBooksSort.byNumberAsc()),
         NUMBER_DESC(KomgaBooksSort.byNumberDesc()),
 //        FILENAME_ASC(KomgaBooksSort.byFileNameAsc()),

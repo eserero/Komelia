@@ -165,7 +165,7 @@ class ReaderState(
                 is BookSiblingsContext.ReadList ->
                     readListApi.getBookSiblingNext(bookSiblingsContext.id, currentBookId)
 
-                BookSiblingsContext.Series -> bookApi.getBookSiblingNext(currentBookId)
+                is BookSiblingsContext.Series -> bookApi.getBookSiblingNext(currentBookId)
             }
         } catch (e: ClientRequestException) {
             if (e.response.status != NotFound) throw e
@@ -180,7 +180,7 @@ class ReaderState(
                 is BookSiblingsContext.ReadList ->
                     readListApi.getBookSiblingPrevious(bookSiblingsContext.id, currentBookId)
 
-                BookSiblingsContext.Series -> bookApi.getBookSiblingPrevious(currentBookId)
+                is BookSiblingsContext.Series -> bookApi.getBookSiblingPrevious(currentBookId)
             }
         } catch (e: ClientRequestException) {
             if (e.response.status != NotFound) throw e

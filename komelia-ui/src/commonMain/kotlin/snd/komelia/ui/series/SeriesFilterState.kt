@@ -17,6 +17,7 @@ import snd.komelia.AppNotifications
 import snd.komelia.komga.api.KomgaReferentialApi
 import snd.komelia.ui.library.LibrarySeriesTabState.SeriesSort
 import snd.komelia.ui.library.SeriesScreenFilter
+import snd.komelia.ui.platform.ScreenSerializable
 import snd.komelia.ui.series.SeriesFilter.Companion.DEFAULT
 import snd.komelia.ui.series.SeriesFilterState.Completion
 import snd.komelia.ui.series.SeriesFilterState.Format
@@ -429,11 +430,11 @@ class SeriesFilterState(
         ANY, ONESHOT, NOT_ONESHOT
     }
 
-    enum class TagInclusionMode {
+    enum class TagInclusionMode : ScreenSerializable {
         INCLUDE_IF_ALL_MATCH, INCLUDE_IF_ANY_MATCH
     }
 
-    enum class TagExclusionMode {
+    enum class TagExclusionMode : ScreenSerializable {
         EXCLUDE_IF_ANY_MATCH, EXCLUDE_IF_ALL_MATCH
     }
 }

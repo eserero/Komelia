@@ -37,7 +37,7 @@ fun bookScreen(
     book: KomeliaBook,
     bookSiblingsContext: BookSiblingsContext? = null
 ): Screen {
-    val context = bookSiblingsContext ?: BookSiblingsContext.Series
+    val context = bookSiblingsContext ?: BookSiblingsContext.Series()
     return if (book.oneshot) OneshotScreen(book, context)
     else BookScreen(
         book = book,
@@ -58,7 +58,9 @@ class BookScreen(
     @Composable
     override fun Content() {
         val viewModelFactory = LocalViewModelFactory.current
-        val vm = rememberScreenModel(bookId.value) { viewModelFactory.getBookViewModel(bookId, book) }
+        val vm = rememberScreenModel(bookId.value) {
+            viewModelFactory.getBookViewModel(bookId, book, bookSiblingsContext)
+        }
         val navigator = LocalNavigator.currentOrThrow
         val reloadEvents = LocalReloadEvents.current
 
@@ -167,7 +169,7 @@ class BookScreen(
         } else {
             when (val context = bookSiblingsContext) {
                 is BookSiblingsContext.ReadList -> navigator.replace(ReadListScreen(context.id))
-                BookSiblingsContext.Series -> seriesId?.let { navigator.replace(SeriesScreen(it)) }
+                is BookSiblingsContext.Series -> seriesId?.let { navigator.replace(SeriesScreen(it)) }
             }
 
         }

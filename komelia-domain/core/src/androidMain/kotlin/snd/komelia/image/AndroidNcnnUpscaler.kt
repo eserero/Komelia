@@ -56,6 +56,7 @@ class AndroidNcnnUpscaler(
             val generation: Int,
             val pageNumber: Int,
             val block: suspend () -> KomeliaImage?,
+            val onDiscard: () -> Unit = {},
             val result: CompletableDeferred<KomeliaImage?> = CompletableDeferred()
         )
 
@@ -77,6 +78,7 @@ class AndroidNcnnUpscaler(
                 val work = if (idx >= 0) pending.removeAt(idx) else pending.removeFirst()
 
                 if (work.generation != generation.get()) {
+                    work.onDiscard()
                     work.result.complete(null)
                     continue
                 }
@@ -160,12 +162,24 @@ class AndroidNcnnUpscaler(
     }
 
     suspend fun upscale(image: KomeliaImage, pageNumber: Int): KomeliaImage? {
+        // For VipsBackedImage: convert to an owned Android Bitmap BEFORE enqueueing.
+        // The block lambda captures `image` by reference, and the underlying VipsImage*
+        // can be freed (via close()) on another thread while the request is in the queue,
+        // causing a SIGSEGV in vips_image_get_interpretation when the block finally runs.
+        // Materialising the bitmap here, while the caller still holds a live reference
+        // to `image`, eliminates the race entirely.
+        val preBitmapIn: Bitmap? = when (image) {
+            is VipsBackedImage -> image.vipsImage.toSoftwareBitmap()
+            is AndroidBitmapBackedImage -> image.bitmap.copy(Bitmap.Config.ARGB_8888, false)
+            else -> null
+        }
+
         val request = UpscaleRequest(
             generation = generation.get(),
             pageNumber = pageNumber,
+            onDiscard = { preBitmapIn?.recycle() },
             block = block@{
-                // All bitmap lifecycle owned by the block
-                val bitmapIn = when (image) {
+                val bitmapIn = preBitmapIn ?: when (image) {
                     is AndroidBitmapBackedImage -> {
                         if (image.bitmap.config == Bitmap.Config.HARDWARE) {
                             image.bitmap.copy(Bitmap.Config.ARGB_8888, false)
@@ -173,7 +187,6 @@ class AndroidNcnnUpscaler(
                             image.bitmap
                         }
                     }
-                    is VipsBackedImage -> image.vipsImage.toSoftwareBitmap()
                     else -> return@block null
                 }
                 var bitmapOut: Bitmap? = null
@@ -196,10 +209,12 @@ class AndroidNcnnUpscaler(
                         AndroidBitmapBackedImage(bitmapOut!!)
                     }
                 } finally {
-                    if (image !is AndroidBitmapBackedImage) {
+                    if (preBitmapIn != null) {
+                        preBitmapIn.recycle()   // we own the pre-converted bitmap
+                    } else if (image !is AndroidBitmapBackedImage) {
                         bitmapIn.recycle()
                     } else if (bitmapIn != image.bitmap) {
-                        bitmapIn.recycle()
+                        bitmapIn.recycle()      // hardware→software copy
                     }
                 }
             }
@@ -209,6 +224,7 @@ class AndroidNcnnUpscaler(
             requestChannel.send(request)
             request.result.await()
         } catch (e: Throwable) {
+            preBitmapIn?.recycle()
             logger.error(e) { "Failed to upscale image" }
             null
         }

@@ -188,7 +188,7 @@ class OneshotScreen(
         } else {
             when (val context = bookSiblingsContext) {
                 is BookSiblingsContext.ReadList -> navigator.replace(ReadListScreen(context.id))
-                BookSiblingsContext.Series -> libraryId?.let { navigator.replace(LibraryScreen(it)) }
+                is BookSiblingsContext.Series -> libraryId?.let { navigator.replace(LibraryScreen(it)) }
             }
 
         }

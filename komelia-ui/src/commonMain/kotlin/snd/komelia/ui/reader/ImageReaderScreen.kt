@@ -52,7 +52,7 @@ fun readerScreen(
     markReadProgress: Boolean,
     bookSiblingsContext: BookSiblingsContext? = null,
 ): Screen {
-    val context = bookSiblingsContext ?: BookSiblingsContext.Series
+    val context = bookSiblingsContext ?: BookSiblingsContext.Series()
     val mediaProfile = book.media.mediaProfile
     return when {
         mediaProfile == DIVINA || mediaProfile == PDF || book.media.epubDivinaCompatible -> {
