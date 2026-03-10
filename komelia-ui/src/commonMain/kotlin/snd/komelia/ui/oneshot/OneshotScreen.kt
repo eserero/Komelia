@@ -31,6 +31,12 @@ import snd.komga.client.series.KomgaSeries
 import snd.komga.client.series.KomgaSeriesId
 import kotlin.jvm.Transient
 
+import snd.komelia.ui.LocalAccentColor
+import snd.komelia.ui.LocalPlatform
+import snd.komelia.ui.LocalUseNewLibraryUI
+import snd.komelia.ui.oneshot.immersive.ImmersiveOneshotContent
+import snd.komelia.ui.platform.PlatformType
+
 class OneshotScreen(
     val seriesId: KomgaSeriesId,
     private val bookSiblingsContext: BookSiblingsContext,
@@ -69,6 +75,56 @@ class OneshotScreen(
         DisposableEffect(Unit) {
             vm.startKomgaEventHandler()
             onDispose { vm.stopKomgaEventHandler() }
+        }
+
+        val platform = LocalPlatform.current
+        val useNewUI = LocalUseNewLibraryUI.current
+        val vmBook = vm.book.collectAsState().value
+        val vmSeries = vm.series.collectAsState().value
+        val vmLibrary = vm.library.collectAsState().value
+        if (platform == PlatformType.MOBILE && useNewUI && vmSeries != null) {
+            ImmersiveOneshotContent(
+                series = vmSeries,
+                book = vmBook,
+                library = vmLibrary,
+                accentColor = LocalAccentColor.current,
+                onLibraryClick = { navigator.push(LibraryScreen(it.id)) },
+                onBookReadClick = { markReadProgress ->
+                    val currentBook = vm.book.value ?: return@ImmersiveOneshotContent
+                    navigator.parent?.push(
+                        readerScreen(
+                            book = currentBook,
+                            markReadProgress = markReadProgress,
+                            bookSiblingsContext = bookSiblingsContext,
+                        )
+                    )
+                },
+                oneshotMenuActions = vm.bookMenuActions,
+                collections = vm.collectionsState.collections,
+                onCollectionClick = { collection -> navigator.push(CollectionScreen(collection.id)) },
+                onSeriesClick = { navigator.push(seriesScreen(it)) },
+                readLists = vm.readListsState.readLists,
+                onReadListClick = { navigator.push(ReadListScreen(it.id)) },
+                onReadlistBookClick = { book, readList ->
+                    navigator push bookScreen(
+                        book = book,
+                        bookSiblingsContext = BookSiblingsContext.ReadList(readList.id)
+                    )
+                },
+                onFilterClick = { filter ->
+                    val libraryId = vm.book.value?.libraryId ?: return@ImmersiveOneshotContent
+                    navigator.popUntilRoot()
+                    navigator.dispose(navigator.lastItem)
+                    navigator.replaceAll(LibraryScreen(libraryId, filter))
+                },
+                onBookDownload = vm::onBookDownload,
+                cardWidth = vm.cardWidth.collectAsState().value,
+                onBackClick = { onBackPress(navigator, vmSeries.libraryId) },
+                initiallyExpanded = vm.isExpanded,
+                onExpandChange = { vm.isExpanded = it }
+            )
+            BackPressHandler { onBackPress(navigator, vmSeries.libraryId) }
+            return
         }
 
         val state = vm.state.collectAsState().value
@@ -132,7 +188,7 @@ class OneshotScreen(
         } else {
             when (val context = bookSiblingsContext) {
                 is BookSiblingsContext.ReadList -> navigator.replace(ReadListScreen(context.id))
-                BookSiblingsContext.Series -> libraryId?.let { navigator.replace(LibraryScreen(it)) }
+                is BookSiblingsContext.Series -> libraryId?.let { navigator.replace(LibraryScreen(it)) }
             }
 
         }

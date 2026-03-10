@@ -30,8 +30,14 @@ import snd.komga.client.series.KomgaSeries
 import snd.komga.client.series.KomgaSeriesId
 import kotlin.jvm.Transient
 
+import snd.komelia.ui.LocalAccentColor
+import snd.komelia.ui.LocalPlatform
+import snd.komelia.ui.LocalUseNewLibraryUI
+import snd.komelia.ui.series.immersive.ImmersiveSeriesContent
+import snd.komelia.ui.platform.PlatformType
+
 fun seriesScreen(series: KomgaSeries): Screen =
-    if (series.oneshot) OneshotScreen(series, BookSiblingsContext.Series)
+    if (series.oneshot) OneshotScreen(series, BookSiblingsContext.Series())
     else SeriesScreen(series)
 
 class SeriesScreen(
@@ -62,7 +68,7 @@ class SeriesScreen(
             vm.initialize()
             val series = vm.series.value
             if (series != null && series.oneshot) {
-                navigator.replace(OneshotScreen(series, BookSiblingsContext.Series))
+                navigator.replace(OneshotScreen(series, BookSiblingsContext.Series()))
                 return@LaunchedEffect
             }
             reloadEvents.collect { vm.reload() }
@@ -71,6 +77,42 @@ class SeriesScreen(
         DisposableEffect(Unit) {
             vm.startKomgaEventHandler()
             onDispose { vm.stopKomgaEventHandler() }
+        }
+
+        val platform = LocalPlatform.current
+        val useNewUI = LocalUseNewLibraryUI.current
+        val series = vm.series.collectAsState().value
+        if (platform == PlatformType.MOBILE && useNewUI && series != null) {
+            ImmersiveSeriesContent(
+                series = series,
+                library = vm.library.collectAsState().value,
+                accentColor = LocalAccentColor.current,
+                onLibraryClick = { navigator.push(LibraryScreen(it.id)) },
+                seriesMenuActions = vm.seriesMenuActions(),
+                onFilterClick = { filter -> navigator.push(LibraryScreen(series.libraryId, filter)) },
+                currentTab = vm.currentTab,
+                onTabChange = vm::onTabChange,
+                booksState = vm.booksState,
+                onBookClick = { navigator push bookScreen(it, BookSiblingsContext.Series(vm.booksState.filterState.state.value)) },
+                onBookReadClick = { book, markProgress ->
+                    navigator.parent?.push(readerScreen(book, markProgress))
+                },
+                collectionsState = vm.collectionsState,
+                onCollectionClick = { navigator.push(CollectionScreen(it.id)) },
+                onSeriesClick = { s ->
+                    navigator.push(
+                        if (s.oneshot) OneshotScreen(s, BookSiblingsContext.Series())
+                        else SeriesScreen(s, vm.currentTab)
+                    )
+                },
+                onBackClick = { onBackPress(navigator, series.libraryId) },
+                onDownload = vm::onDownload,
+                initiallyExpanded = vm.isExpanded,
+                onExpandChange = { vm.isExpanded = it }
+            )
+
+            BackPressHandler { onBackPress(navigator, series.libraryId) }
+            return
         }
 
         ScreenPullToRefreshBox(screenState = vm.state, onRefresh = vm::reload) {
@@ -95,7 +137,7 @@ class SeriesScreen(
                         onTabChange = vm::onTabChange,
 
                         booksState = vm.booksState,
-                        onBookClick = { navigator push bookScreen(it) },
+                        onBookClick = { navigator push bookScreen(it, BookSiblingsContext.Series(vm.booksState.filterState.state.value)) },
                         onBookReadClick = { book, markProgress ->
                             navigator.parent?.push(readerScreen(book, markProgress))
                         },
@@ -104,7 +146,7 @@ class SeriesScreen(
                         onCollectionClick = { collection -> navigator.push(CollectionScreen(collection.id)) },
                         onSeriesClick = { series ->
                             navigator.push(
-                                if (series.oneshot) OneshotScreen(series, BookSiblingsContext.Series)
+                                if (series.oneshot) OneshotScreen(series, BookSiblingsContext.Series())
                                 else SeriesScreen(series, vm.currentTab)
                             )
                         },

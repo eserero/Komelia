@@ -52,7 +52,7 @@ fun readerScreen(
     markReadProgress: Boolean,
     bookSiblingsContext: BookSiblingsContext? = null,
 ): Screen {
-    val context = bookSiblingsContext ?: BookSiblingsContext.Series
+    val context = bookSiblingsContext ?: BookSiblingsContext.Series()
     val mediaProfile = book.media.mediaProfile
     return when {
         mediaProfile == DIVINA || mediaProfile == PDF || book.media.epubDivinaCompatible -> {
@@ -152,7 +152,9 @@ class ImageReaderScreen(
             panelsReaderState = vm.panelsReaderState,
             screenScaleState = vm.screenScaleState,
             onnxRuntimeSettingsState = vm.onnxRuntimeSettingsState,
+            ncnnSettingsState = vm.ncnnSettingsState,
             isColorCorrectionActive = vm.colorCorrectionIsActive.collectAsState(false).value,
+
             onColorCorrectionClick = {
                 vm.readerState.booksState.value?.currentBook?.let { book ->
                     val page = vm.readerState.readProgressPage.value

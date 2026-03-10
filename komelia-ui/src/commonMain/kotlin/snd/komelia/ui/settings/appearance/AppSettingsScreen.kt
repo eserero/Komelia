@@ -28,9 +28,20 @@ class AppSettingsScreen : Screen {
                     cardWidth = vm.cardWidth,
                     onCardWidthChange = vm::onCardWidthChange,
                     currentTheme = vm.currentTheme,
-                    onThemeChange = vm::onAppThemeChange
+                    onThemeChange = vm::onAppThemeChange,
+                    accentColor = vm.accentColor,
+                    onAccentColorChange = vm::onAccentColorChange,
+                    useNewLibraryUI = vm.useNewLibraryUI,
+                    onUseNewLibraryUIChange = vm::onUseNewLibraryUIChange,
+                    cardLayoutBelow = vm.cardLayoutBelow,
+                    onCardLayoutBelowChange = vm::onCardLayoutBelowChange,
+                    immersiveColorEnabled = vm.immersiveColorEnabled,
+                    onImmersiveColorEnabledChange = vm::onImmersiveColorEnabledChange,
+                    immersiveColorAlpha = vm.immersiveColorAlpha,
+                    onImmersiveColorAlphaChange = vm::onImmersiveColorAlphaChange,
                 )
-            }
-        }
-    }
-}
+                                }
+                            }
+                        }
+                    }
+                    

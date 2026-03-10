@@ -5,12 +5,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.platform.LocalFocusManager
 import cafe.adriel.voyager.core.model.rememberScreenModel
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
@@ -41,23 +38,24 @@ class SearchScreen(
         val navigator = LocalNavigator.currentOrThrow
 
         ScreenPullToRefreshBox(screenState = vm.state, onRefresh = vm::reload) {
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                if (LocalPlatform.current == PlatformType.MOBILE)
-                    SearchField(vm)
+            if (LocalPlatform.current == PlatformType.MOBILE) {
+                val state by vm.state.collectAsState()
+                SearchBarWithResults(
+                    query = vm.query,
+                    onQueryChange = { vm.query = it },
+                    isLoading = state == LoadState.Loading,
+                    onBack = { navigator.pop() },
+                    startExpanded = true,
+                    modifier = Modifier.fillMaxSize(),
+                ) {
+                    when (state) {
+                        is LoadState.Error -> ErrorContent(
+                            (state as LoadState.Error).exception.message ?: "Error",
+                            onReload = vm::reload
+                        )
 
-                when (val state = vm.state.collectAsState().value) {
-                    is LoadState.Error -> ErrorContent(
-                        state.exception.message ?: "Error",
-                        onReload = vm::reload
-                    )
-
-                    LoadState.Uninitialized, LoadState.Loading -> LoadingMaxSizeIndicator()
-                    is LoadState.Success -> {
-
-                        SearchContent(
+                        LoadState.Uninitialized, LoadState.Loading -> LoadingMaxSizeIndicator()
+                        is LoadState.Success -> SearchContent(
                             query = vm.query,
                             searchType = vm.currentTab,
                             onSearchTypeChange = vm::onSearchTypeChange,
@@ -74,28 +72,43 @@ class SearchScreen(
                             onBookPageChange = vm::onBookPageChange,
                             onBookClick = { navigator.push(bookScreen(it)) },
                         )
+                    }
+                }
+            } else {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    when (val state = vm.state.collectAsState().value) {
+                        is LoadState.Error -> ErrorContent(
+                            state.exception.message ?: "Error",
+                            onReload = vm::reload
+                        )
 
+                        LoadState.Uninitialized, LoadState.Loading -> LoadingMaxSizeIndicator()
+                        is LoadState.Success -> {
+                            SearchContent(
+                                query = vm.query,
+                                searchType = vm.currentTab,
+                                onSearchTypeChange = vm::onSearchTypeChange,
+
+                                seriesResults = vm.seriesResults,
+                                seriesCurrentPage = vm.seriesCurrentPage,
+                                seriesTotalPages = vm.seriesTotalPages,
+                                onSeriesPageChange = vm::onSeriesPageChange,
+                                onSeriesClick = { navigator.push(seriesScreen(it)) },
+
+                                bookResults = vm.bookResults,
+                                bookCurrentPage = vm.bookCurrentPage,
+                                bookTotalPages = vm.bookTotalPages,
+                                onBookPageChange = vm::onBookPageChange,
+                                onBookClick = { navigator.push(bookScreen(it)) },
+                            )
+                        }
                     }
                 }
             }
             BackPressHandler { navigator.pop() }
-        }
-    }
-
-    @Composable
-    private fun SearchField(vm: SearchViewModel) {
-        val focusRequester = remember { FocusRequester() }
-        val focusManager = LocalFocusManager.current
-
-        SearchTextField(
-            query = vm.query,
-            onQueryChange = vm::query::set,
-            onDone = { focusManager.clearFocus() },
-            onDismiss = { vm.query = "" },
-            modifier = Modifier.focusRequester(focusRequester)
-        )
-        LaunchedEffect(Unit) {
-            focusRequester.requestFocus()
         }
     }
 }

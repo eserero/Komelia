@@ -1,5 +1,6 @@
 package snd.komelia.ui.reader.image.panels
 
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -7,10 +8,15 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -22,20 +28,31 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
+import snd.komelia.image.ReaderImageResult
 import snd.komelia.settings.model.PagedReadingDirection
 import snd.komelia.settings.model.PagedReadingDirection.LEFT_TO_RIGHT
 import snd.komelia.settings.model.PagedReadingDirection.RIGHT_TO_LEFT
+import snd.komelia.settings.model.ReaderTapNavigationMode
 import snd.komelia.ui.reader.image.ScreenScaleState
 import snd.komelia.ui.reader.image.common.PagedReaderHelpDialog
+import snd.komelia.ui.reader.image.common.ReaderAnimation
 import snd.komelia.ui.reader.image.common.ReaderControlsOverlay
 import snd.komelia.ui.reader.image.common.ReaderImageContent
 import snd.komelia.ui.reader.image.common.ScalableContainer
+import snd.komelia.ui.reader.image.paged.PagedReaderState.PageNavigationEvent
 import snd.komelia.ui.reader.image.paged.PagedReaderState.TransitionPage
 import snd.komelia.ui.reader.image.paged.PagedReaderState.TransitionPage.BookEnd
 import snd.komelia.ui.reader.image.paged.PagedReaderState.TransitionPage.BookStart
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.toSize
+import snd.komelia.ui.reader.image.common.AdaptiveBackground
 
 @Composable
 fun BoxScope.PanelsReaderContent(
@@ -45,49 +62,129 @@ fun BoxScope.PanelsReaderContent(
     onShowSettingsMenuChange: (Boolean) -> Unit,
     screenScaleState: ScreenScaleState,
     panelsReaderState: PanelsReaderState,
-    volumeKeysNavigation: Boolean
+    volumeKeysNavigation: Boolean,
+    tapNavigationMode: ReaderTapNavigationMode,
+    onLongPress: (Offset) -> Unit = {},
 ) {
     if (showHelpDialog) {
         PagedReaderHelpDialog(onDismissRequest = { onShowHelpDialogChange(false) })
     }
+
+    val density = LocalDensity.current.density
+    LaunchedEffect(density) { screenScaleState.setDensity(density) }
 
     val readingDirection = panelsReaderState.readingDirection.collectAsState().value
     val layoutDirection = when (readingDirection) {
         LEFT_TO_RIGHT -> LayoutDirection.Ltr
         RIGHT_TO_LEFT -> LayoutDirection.Rtl
     }
-    val page = panelsReaderState.currentPage.collectAsState().value
+    val metadata = panelsReaderState.pageMetadata.collectAsState().value
+    val currentPageIndex = panelsReaderState.currentPageIndex.collectAsState().value
     val currentContainerSize = screenScaleState.areaSize.collectAsState().value
+    val tapToZoom = panelsReaderState.tapToZoom.collectAsState().value
+    val adaptiveBackground = panelsReaderState.adaptiveBackground.collectAsState().value
+
+    val pagerState = rememberPagerState(
+        initialPage = currentPageIndex.page,
+        pageCount = { metadata.size }
+    )
+
+    LaunchedEffect(Unit) {
+        panelsReaderState.pageNavigationEvents.collect { event ->
+            if (pagerState.currentPage != event.pageIndex) {
+                when (event) {
+                    is PageNavigationEvent.Animated -> {
+                        pagerState.animateScrollToPage(
+                            page = event.pageIndex,
+                            animationSpec = ReaderAnimation.navSpringSpec(density)
+                        )
+                    }
+
+                    is PageNavigationEvent.Immediate -> {
+                        pagerState.scrollToPage(event.pageIndex)
+                    }
+                }
+            }
+        }
+    }
+
+    LaunchedEffect(pagerState.currentPage) {
+        if (pagerState.currentPage < metadata.size) {
+            panelsReaderState.onPageChange(pagerState.currentPage)
+        }
+    }
 
     val coroutineScope = rememberCoroutineScope()
-    ReaderControlsOverlay(
-        readingDirection = layoutDirection,
-        onNexPageClick = panelsReaderState::nextPanel,
-        onPrevPageClick = panelsReaderState::previousPanel,
-        contentAreaSize = currentContainerSize,
-        isSettingsMenuOpen = showSettingsMenu,
-        onSettingsMenuToggle = { onShowSettingsMenuChange(!showSettingsMenu) },
-        modifier = Modifier.onKeyEvent { event ->
-            pagedReaderOnKeyEvents(
-                event = event,
-                readingDirection = readingDirection,
-                onReadingDirectionChange = panelsReaderState::onReadingDirectionChange,
-                onMoveToNextPage = { coroutineScope.launch { panelsReaderState.nextPanel() } },
-                onMoveToPrevPage = { coroutineScope.launch { panelsReaderState.previousPanel() } },
-                volumeKeysNavigation = volumeKeysNavigation
-            )
+    val currentPage = panelsReaderState.currentPage.collectAsState().value
+    val edgeSampling = if (adaptiveBackground) currentPage?.edgeSampling else null
+    val transforms = screenScaleState.transformation.collectAsState().value
+    val targetSize = screenScaleState.targetSize.collectAsState().value
+    val imageBounds = remember(transforms, targetSize, currentContainerSize) {
+        if (targetSize == Size.Zero || currentContainerSize == IntSize.Zero) null
+        else {
+            val width = targetSize.width * transforms.scale
+            val height = targetSize.height * transforms.scale
+            val left = (currentContainerSize.width / 2f) - (width / 2f) + transforms.offset.x
+            val top = (currentContainerSize.height / 2f) - (height / 2f) + transforms.offset.y
+            Rect(left, top, left + width, top + height)
         }
+    }
+
+    AdaptiveBackground(
+        edgeSampling = edgeSampling,
+        imageBounds = imageBounds,
     ) {
-        ScalableContainer(scaleState = screenScaleState) {
-            val transitionPage = panelsReaderState.transitionPage.collectAsState().value
-            if (transitionPage != null) {
-                TransitionPage(transitionPage)
-            } else {
-                page?.let {
-                    Box(contentAlignment = Alignment.Center) {
-                        ReaderImageContent(page.imageResult)
+        ReaderControlsOverlay(
+            readingDirection = layoutDirection,
+            onNexPageClick = panelsReaderState::nextPanel,
+            onPrevPageClick = panelsReaderState::previousPanel,
+            contentAreaSize = currentContainerSize,
+            scaleState = screenScaleState,
+            tapToZoom = tapToZoom,
+            tapNavigationMode = tapNavigationMode,
+            isSettingsMenuOpen = showSettingsMenu,
+            onSettingsMenuToggle = { onShowSettingsMenuChange(!showSettingsMenu) },
+            onLongPress = onLongPress,
+            modifier = Modifier.onKeyEvent { event ->
+                pagedReaderOnKeyEvents(
+                    event = event,
+                    readingDirection = readingDirection,
+                    onReadingDirectionChange = panelsReaderState::onReadingDirectionChange,
+                    onMoveToNextPage = { coroutineScope.launch { panelsReaderState.nextPanel() } },
+                    onMoveToPrevPage = { coroutineScope.launch { panelsReaderState.previousPanel() } },
+                    volumeKeysNavigation = volumeKeysNavigation
+                )
+            }
+        ) {
+            ScalableContainer(scaleState = screenScaleState) {
+                val transitionPage = panelsReaderState.transitionPage.collectAsState().value
+                if (transitionPage != null) {
+                    TransitionPage(transitionPage)
+                } else {
+                    if (metadata.isNotEmpty()) {
+                        HorizontalPager(
+                            state = pagerState,
+                            userScrollEnabled = false,
+                            reverseLayout = readingDirection == RIGHT_TO_LEFT,
+                            modifier = Modifier.fillMaxSize(),
+                            key = { if (it < metadata.size) metadata[it].pageNumber else it }
+                        ) { pageIdx ->
+                            if (pageIdx >= metadata.size) return@HorizontalPager
+                            val pageMeta = metadata[pageIdx]
+
+                            val pageState = remember(pageMeta) { mutableStateOf<PanelsReaderState.PanelsPage?>(null) }
+                            LaunchedEffect(pageMeta) {
+                                pageState.value = panelsReaderState.getPage(pageMeta)
+                            }
+
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                ReaderImageContent(pageState.value?.imageResult)
+                            }
+                        }
                     }
-//                    SinglePageLayout(page)
                 }
             }
         }

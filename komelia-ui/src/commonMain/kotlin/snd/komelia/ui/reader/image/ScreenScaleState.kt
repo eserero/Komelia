@@ -1,16 +1,18 @@
 package snd.komelia.ui.reader.image
 
+import snd.komelia.ui.reader.image.common.ReaderAnimation
 import androidx.compose.animation.core.AnimationState
 import androidx.compose.animation.core.DecayAnimationSpec
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.VectorConverter
 import androidx.compose.animation.core.animateDecay
 import androidx.compose.animation.core.animateTo
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.Orientation.Horizontal
 import androidx.compose.foundation.gestures.Orientation.Vertical
 import androidx.compose.foundation.gestures.ScrollableState
-import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.input.pointer.PointerInputChange
@@ -52,6 +54,13 @@ class ScreenScaleState {
 
     val transformation = MutableStateFlow(Transformation(offset = Offset.Zero, scale = 1f))
 
+    val isGestureInProgress = MutableStateFlow(false)
+    val isFlinging = MutableStateFlow(false)
+    var edgeHandoffEnabled = false
+    private var gestureStartedAtLeftEdge = false
+    private var gestureStartedAtRightEdge = false
+    private var cumulativePagerScroll = 0f
+
     @Volatile
     var composeScope: CoroutineScope? = null
 
@@ -59,7 +68,19 @@ class ScreenScaleState {
     private var scrollJob: Job? = null
 
     @Volatile
+    private var zoomJob: Job? = null
+
+    @Volatile
+    private var baseZoom = 1f
+
+    @Volatile
     private var enableOverscrollArea = false
+
+    private var density = 1f
+
+    fun setDensity(density: Float) {
+        this.density = density
+    }
 
     fun scaleFor100PercentZoom() =
         max(
@@ -122,23 +143,23 @@ class ScreenScaleState {
         return -extra - overscroll..extra + overscroll
     }
 
-    fun scrollTo(offset: Offset) {
-        val coroutineScope = composeScope
-        check(coroutineScope != null)
+    fun animateTo(offset: Offset, zoom: Float) {
+        val coroutineScope = composeScope ?: return
         scrollJob?.cancel()
+        zoomJob?.cancel()
         scrollJob = coroutineScope.launch {
-            logger.info { "current offset $currentOffset" }
-            AnimationState(
-                typeConverter = Offset.VectorConverter,
-                initialValue = currentOffset,
-            ).animateTo(
-                targetValue = offset,
-                animationSpec = tween(durationMillis = 1000)
+            val initialZoom = this@ScreenScaleState.zoom.value
+            val initialOffset = currentOffset
+            val targetZoom = zoom.coerceIn(zoomLimits.value)
+
+            AnimationState(initialValue = 0f).animateTo(
+                targetValue = 1f,
+                animationSpec = ReaderAnimation.navSpringSpec(density)
             ) {
-                currentOffset = value
+                this@ScreenScaleState.zoom.value = initialZoom + (targetZoom - initialZoom) * value
+                currentOffset = initialOffset + (offset - initialOffset) * value
                 applyLimits()
             }
-            logger.info { "scrolled to offset $currentOffset" }
         }
     }
 
@@ -147,34 +168,55 @@ class ScreenScaleState {
         val velocity = velocityTracker.calculateVelocity().div(scale)
         velocityTracker.resetTracking()
 
+        isFlinging.value = true
         var lastValue = Offset(0f, 0f)
-        AnimationState(
-            typeConverter = Offset.VectorConverter,
-            initialValue = Offset.Zero,
-            initialVelocity = Offset(velocity.x, velocity.y),
-        ).animateDecay(spec) {
-            val delta = value - lastValue
-            lastValue = value
+        try {
+            AnimationState(
+                typeConverter = Offset.VectorConverter,
+                initialValue = Offset.Zero,
+                initialVelocity = Offset(velocity.x, velocity.y),
+            ).animateDecay(spec) {
+                val delta = value - lastValue
+                lastValue = value
 
-            if (scrollState.value == null) {
-                val canPanHorizontally = when {
-                    delta.x < 0 -> canPanLeft()
-                    delta.x > 0 -> canPanRight()
-                    else -> false
+                if (scrollState.value == null) {
+                    val canPanHorizontally = when {
+                        delta.x < 0 -> canPanLeft()
+                        delta.x > 0 -> canPanRight()
+                        else -> false
+                    }
+                    val canPanVertically = when {
+                        delta.y > 0 -> canPanDown()
+                        delta.y < 0 -> canPanUp()
+                        else -> false
+                    }
+                    if (!canPanHorizontally && !canPanVertically) {
+                        this.cancelAnimation()
+                        return@animateDecay
+                    }
                 }
-                val canPanVertically = when {
-                    delta.y > 0 -> canPanDown()
-                    delta.y < 0 -> canPanUp()
-                    else -> false
-                }
-                if (!canPanHorizontally && !canPanVertically) {
-                    this.cancelAnimation()
-                    return@animateDecay
-                }
+
+                addPan(delta)
             }
-
-            addPan(delta)
+        } finally {
+            isFlinging.value = false
         }
+    }
+
+    fun onGestureStart() {
+        gestureStartedAtLeftEdge = isAtLeftEdge()
+        gestureStartedAtRightEdge = isAtRightEdge()
+        cumulativePagerScroll = 0f
+    }
+
+    private fun isAtLeftEdge(): Boolean {
+        if (zoom.value <= baseZoom + 0.01f) return true
+        return currentOffset.x >= offsetXLimits.value.endInclusive - 0.5f
+    }
+
+    private fun isAtRightEdge(): Boolean {
+        if (zoom.value <= baseZoom + 0.01f) return true
+        return currentOffset.x <= offsetXLimits.value.start + 0.5f
     }
 
     private fun canPanUp(): Boolean {
@@ -200,10 +242,27 @@ class ScreenScaleState {
         applyLimits()
         val delta = (newOffset - currentOffset)
 
-        when (scrollOrientation.value) {
-            Vertical -> applyScroll((delta / -zoomToScale).y)
-            Horizontal -> applyScroll((delta / -zoomToScale).x)
-            null -> {}
+        val pagerValue = (delta.x / -zoomToScale)
+        val isRtl = scrollReversed.value
+        
+        val allowNextPage = if (isRtl) {
+            gestureStartedAtLeftEdge && pagerValue > 0
+        } else {
+            gestureStartedAtRightEdge && pagerValue > 0
+        }
+        
+        val allowPrevPage = if (isRtl) {
+            gestureStartedAtRightEdge && pagerValue < 0
+        } else {
+            gestureStartedAtLeftEdge && pagerValue < 0
+        }
+
+        if (!edgeHandoffEnabled || allowNextPage || allowPrevPage) {
+            when (scrollOrientation.value) {
+                Vertical -> applyScroll((delta / -zoomToScale).y)
+                Horizontal -> applyScroll(pagerValue)
+                null -> {}
+            }
         }
     }
 
@@ -216,7 +275,20 @@ class ScreenScaleState {
         if (value == 0f) return
         val scrollState = this.scrollState.value
         if (scrollState != null) {
-            scrollScope.launch { scrollState.scrollBy(if (scrollReversed.value) -value else value) }
+            val delta = if (scrollReversed.value) -value else value
+            if (edgeHandoffEnabled) {
+                val screenWidth = areaSize.value.width.toFloat()
+                val remaining = if (delta > 0) {
+                    (screenWidth - cumulativePagerScroll).coerceAtLeast(0f)
+                } else {
+                    (-screenWidth - cumulativePagerScroll).coerceAtMost(0f)
+                }
+                val consumed = if (delta > 0) min(delta, remaining) else max(delta, remaining)
+                cumulativePagerScroll += consumed
+                scrollState.dispatchRawDelta(consumed)
+            } else {
+                scrollState.dispatchRawDelta(delta)
+            }
         }
     }
 
@@ -237,8 +309,9 @@ class ScreenScaleState {
         this.scrollReversed.value = reversed
     }
 
-    fun setZoom(zoom: Float, focus: Offset = Offset.Zero) {
+    fun setZoom(zoom: Float, focus: Offset = Offset.Zero, updateBase: Boolean = false) {
         val newZoom = zoom.coerceIn(zoomLimits.value)
+        if (updateBase) baseZoom = newZoom
         val newOffset = Transformation.offsetOf(
             point = transformation.value.pointOf(focus),
             transformedPoint = focus,
@@ -254,6 +327,30 @@ class ScreenScaleState {
         applyLimits()
     }
 
+    fun toggleZoom(focus: Offset) {
+        val coroutineScope = composeScope ?: return
+        zoomJob?.cancel()
+        val currentZoom = zoom.value
+        val targetZoom = if (currentZoom > baseZoom + 0.1f) {
+            baseZoom
+        } else {
+            max(baseZoom * 2.5f, 2.5f)
+        }
+
+        zoomJob = coroutineScope.launch {
+            AnimationState(initialValue = currentZoom).animateTo(
+                targetValue = targetZoom,
+                animationSpec = spring(stiffness = Spring.StiffnessLow)
+            ) {
+                setZoom(value, focus)
+            }
+        }
+    }
+
+    fun resetVelocity() {
+        velocityTracker.resetTracking()
+    }
+
     fun enableOverscrollArea(enable: Boolean) {
         this.enableOverscrollArea = enable
         applyLimits()
@@ -262,6 +359,7 @@ class ScreenScaleState {
     fun apply(other: ScreenScaleState) {
         scrollJob?.cancel()
         currentOffset = other.currentOffset
+        this.baseZoom = other.baseZoom
 
         if (other.targetSize.value != this.targetSize.value || other.zoom.value != this.zoom.value) {
             this.areaSize.value = other.areaSize.value

@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import snd.komelia.AppNotifications
+import snd.komelia.komga.api.KomgaBookApi
 import snd.komelia.komga.api.KomgaCollectionsApi
 import snd.komelia.komga.api.KomgaLibraryApi
 import snd.komelia.komga.api.KomgaReadListApi
@@ -51,15 +52,17 @@ class LibraryViewModel(
     private val collectionApi: KomgaCollectionsApi,
     private val readListsApi: KomgaReadListApi,
     private val taskEmitter: OfflineTaskEmitter,
+    bookApi: KomgaBookApi,
     seriesApi: KomgaSeriesApi,
     referentialApi: KomgaReferentialApi,
 
     private val appNotifications: AppNotifications,
     private val komgaEvents: SharedFlow<KomgaEvent>,
     libraryFlow: Flow<KomgaLibrary?>,
-    settingsRepository: CommonSettingsRepository,
+    private val settingsRepository: CommonSettingsRepository,
 ) : StateScreenModel<LoadState<Unit>>(Uninitialized) {
-    val library = libraryFlow.stateIn(screenModelScope, SharingStarted.Eagerly, null)
+    val library = libraryFlow.onEach { settingsRepository.putLastSelectedLibraryId(it?.id) }
+        .stateIn(screenModelScope, SharingStarted.Eagerly, null)
     val cardWidth = settingsRepository.getCardWidth().map { Dp(it.toFloat()) }
         .stateIn(screenModelScope, SharingStarted.Eagerly, defaultCardWidth.dp)
 
@@ -73,6 +76,7 @@ class LibraryViewModel(
     private val reloadJobsFlow = MutableSharedFlow<Unit>(1, 0, DROP_OLDEST)
 
     val seriesTabState = LibrarySeriesTabState(
+        bookApi = bookApi,
         seriesApi = seriesApi,
         referentialApi = referentialApi,
         notifications = appNotifications,

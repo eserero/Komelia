@@ -15,6 +15,9 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import snd.komelia.AppNotification
 import snd.komelia.AppNotifications
+import snd.komelia.ui.platform.imageExtension
+import snd.komelia.ui.platform.sanitizeFilename
+import snd.komelia.ui.platform.saveImageToDownloads
 import snd.komelia.color.repository.BookColorCorrectionRepository
 import snd.komelia.image.ReaderImage.PageId
 import snd.komelia.image.ReduceKernel
@@ -27,6 +30,7 @@ import snd.komelia.komga.api.KomgaSeriesApi
 import snd.komelia.komga.api.model.KomeliaBook
 import snd.komelia.settings.ImageReaderSettingsRepository
 import snd.komelia.settings.model.ReaderFlashColor
+import snd.komelia.settings.model.ReaderTapNavigationMode
 import snd.komelia.settings.model.ReaderType
 import snd.komelia.ui.BookSiblingsContext
 import snd.komelia.ui.LoadState
@@ -80,6 +84,7 @@ class ReaderState(
     val flashEveryNPages = MutableStateFlow(1)
     val flashWith = MutableStateFlow(ReaderFlashColor.BLACK)
 
+    val tapNavigationMode = MutableStateFlow(ReaderTapNavigationMode.LEFT_RIGHT)
     val volumeKeysNavigation = MutableStateFlow(false)
     val pixelDensity = MutableStateFlow<Density?>(null)
 
@@ -94,6 +99,7 @@ class ReaderState(
         flashDuration.value = readerSettingsRepository.getFlashDuration().first()
         flashEveryNPages.value = readerSettingsRepository.getFlashEveryNPages().first()
         flashWith.value = readerSettingsRepository.getFlashWith().first()
+        tapNavigationMode.value = readerSettingsRepository.getReaderTapNavigationMode().first()
         volumeKeysNavigation.value = readerSettingsRepository.getVolumeKeysNavigation().first()
 
         appNotifications.runCatchingToNotifications {
@@ -159,7 +165,7 @@ class ReaderState(
                 is BookSiblingsContext.ReadList ->
                     readListApi.getBookSiblingNext(bookSiblingsContext.id, currentBookId)
 
-                BookSiblingsContext.Series -> bookApi.getBookSiblingNext(currentBookId)
+                is BookSiblingsContext.Series -> bookApi.getBookSiblingNext(currentBookId)
             }
         } catch (e: ClientRequestException) {
             if (e.response.status != NotFound) throw e
@@ -174,7 +180,7 @@ class ReaderState(
                 is BookSiblingsContext.ReadList ->
                     readListApi.getBookSiblingPrevious(bookSiblingsContext.id, currentBookId)
 
-                BookSiblingsContext.Series -> bookApi.getBookSiblingPrevious(currentBookId)
+                is BookSiblingsContext.Series -> bookApi.getBookSiblingPrevious(currentBookId)
             }
         } catch (e: ClientRequestException) {
             if (e.response.status != NotFound) throw e
@@ -284,6 +290,11 @@ class ReaderState(
         stateScope.launch { readerSettingsRepository.putFlashWith(flashWith) }
     }
 
+    fun onTapNavigationModeChange(mode: ReaderTapNavigationMode) {
+        this.tapNavigationMode.value = mode
+        stateScope.launch { readerSettingsRepository.putReaderTapNavigationMode(mode) }
+    }
+
     fun onUpsamplingModeChange(mode: UpsamplingMode) {
         upsamplingMode.value = mode
         stateScope.launch { readerSettingsRepository.putUpsamplingMode(mode) }
@@ -302,6 +313,21 @@ class ReaderState(
     fun onColorCorrectionDisable() {
         stateScope.launch {
             booksState.value?.currentBook?.let { colorCorrectionRepository.deleteSettings(it.id) }
+        }
+    }
+
+    fun saveCurrentPageToDownloads() {
+        val bookState = booksState.value ?: return
+        val pageNumber = readProgressPage.value
+        val book = bookState.currentBook
+        stateScope.launch {
+            appNotifications.runCatchingToNotifications {
+                val bytes = bookApi.getPage(book.id, pageNumber)
+                val ext = bytes.imageExtension()
+                val filename = "${book.name.sanitizeFilename()}_p${pageNumber.toString().padStart(3, '0')}.$ext"
+                saveImageToDownloads(bytes, filename)
+                appNotifications.add(AppNotification.Success("Page $pageNumber saved to Downloads"))
+            }
         }
     }
 

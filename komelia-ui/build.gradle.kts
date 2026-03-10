@@ -50,6 +50,7 @@ kotlin {
             api(projects.komeliaDomain.core)
             api(projects.komeliaDomain.komgaApi)
             api(projects.komeliaDomain.offline)
+            api(projects.komeliaInfra.database.shared)
             api(projects.komeliaInfra.imageDecoder.shared)
             api(projects.komeliaInfra.onnxruntime.api)
             implementation(projects.komeliaInfra.webview)
@@ -94,6 +95,7 @@ kotlin {
         }
 
         androidMain.dependencies {
+            implementation(libs.androidx.palette)
             implementation(libs.androidx.activity.compose)
             implementation(libs.androidx.datastore)
             implementation(libs.commons.compress)

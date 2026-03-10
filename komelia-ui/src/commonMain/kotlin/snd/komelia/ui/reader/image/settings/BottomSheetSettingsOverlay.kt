@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.add
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
@@ -27,11 +29,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.rounded.Tune
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -52,23 +56,28 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
 import snd.komelia.image.ReduceKernel
+import snd.komelia.image.UpscaleStatus
 import snd.komelia.image.UpsamplingMode
 import snd.komelia.komga.api.model.KomeliaBook
 import snd.komelia.settings.model.ContinuousReadingDirection
 import snd.komelia.settings.model.LayoutScaleType
+import snd.komelia.settings.model.ReaderTapNavigationMode
 import snd.komelia.settings.model.PageDisplayLayout
 import snd.komelia.settings.model.PagedReadingDirection
+import snd.komelia.settings.model.PanelsFullPageDisplayMode
 import snd.komelia.settings.model.ReaderFlashColor
 import snd.komelia.settings.model.ReaderType
 import snd.komelia.settings.model.ReaderType.CONTINUOUS
 import snd.komelia.settings.model.ReaderType.PAGED
 import snd.komelia.settings.model.ReaderType.PANELS
+import snd.komelia.ui.LocalAccentColor
 import snd.komelia.ui.LocalStrings
 import snd.komelia.ui.LocalWindowWidth
 import snd.komelia.ui.common.components.AppSliderDefaults
@@ -78,6 +87,7 @@ import snd.komelia.ui.platform.cursorForHand
 import snd.komelia.ui.reader.image.continuous.ContinuousReaderState
 import snd.komelia.ui.reader.image.paged.PagedReaderState
 import snd.komelia.ui.reader.image.panels.PanelsReaderState
+import snd.komelia.ui.settings.imagereader.ncnn.NcnnSettingsState
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -111,61 +121,86 @@ fun BottomSheetSettingsOverlay(
     flashDuration: Long,
     onFlashDurationChange: (Long) -> Unit,
 
+    tapNavigationMode: ReaderTapNavigationMode,
+    onTapNavigationModeChange: (ReaderTapNavigationMode) -> Unit,
+
     pagedReaderState: PagedReaderState,
     continuousReaderState: ContinuousReaderState,
     panelsReaderState: PanelsReaderState?,
+    ncnnSettingsState: NcnnSettingsState,
     onBackPress: () -> Unit,
 ) {
 
     val windowWidth = LocalWindowWidth.current
+    val accentColor = LocalAccentColor.current
     var showSettingsDialog by remember { mutableStateOf(false) }
-    Row(
-        modifier = Modifier
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .fillMaxWidth()
-            .windowInsetsPadding(
-                WindowInsets.statusBars
-                    .add(WindowInsets.navigationBars.only(WindowInsetsSides.Horizontal))
-            ),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        IconButton(
-            onClick = onBackPress,
-            modifier = Modifier.size(46.dp)
+    val allUpscaleActivities by ncnnSettingsState.globalUpscaleActivities.collectAsState()
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .fillMaxWidth()
+                .windowInsetsPadding(
+                    WindowInsets.statusBars
+                        .add(WindowInsets.navigationBars.only(WindowInsetsSides.Horizontal))
+                )
         ) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, null)
-        }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(
+                    onClick = onBackPress,
+                    modifier = Modifier.size(46.dp)
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, null)
+                }
 
-        book?.let {
-            Column(
-                Modifier.weight(1f)
-                    .padding(horizontal = 10.dp)
-            ) {
-                val titleStyle =
-                    if (windowWidth == COMPACT) MaterialTheme.typography.titleMedium
-                    else MaterialTheme.typography.titleLarge
+                book?.let {
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(
+                            Modifier.weight(1f)
+                                .padding(horizontal = 10.dp)
+                        ) {
+                            val titleStyle =
+                                if (windowWidth == COMPACT) MaterialTheme.typography.titleMedium
+                                else MaterialTheme.typography.titleLarge
 
-                Text(
-                    it.seriesTitle,
-                    maxLines = 1,
-                    style = titleStyle,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    it.metadata.title,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.basicMarquee(iterations = Int.MAX_VALUE)
-                )
+                            Text(
+                                it.seriesTitle,
+                                maxLines = 1,
+                                style = titleStyle,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                it.metadata.title,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.basicMarquee(iterations = Int.MAX_VALUE)
+                            )
+                        }
+                    }
+                }
+            }
+            AnimatedVisibility(visible = allUpscaleActivities.isNotEmpty()) {
+                UpscaleActivityIndicator(allUpscaleActivities)
             }
         }
-        FilledIconButton(
-            onClick = { showSettingsDialog = true },
-//            shape = RoundedCornerShape(13.dp),
-            modifier = Modifier.size(46.dp)
 
+        FloatingActionButton(
+            onClick = { showSettingsDialog = true },
+            containerColor = accentColor ?: MaterialTheme.colorScheme.primaryContainer,
+            contentColor = if (accentColor != null) {
+                if (accentColor.luminance() > 0.5f) Color.Black else Color.White
+            } else MaterialTheme.colorScheme.onPrimaryContainer,
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .windowInsetsPadding(WindowInsets.navigationBars)
+                .padding(bottom = 80.dp, end = 16.dp)
         ) {
-            Icon(Icons.Default.Settings, null)
+            Icon(Icons.Rounded.Tune, null)
         }
     }
 
@@ -177,8 +212,6 @@ fun BottomSheetSettingsOverlay(
             ModalBottomSheet(
                 onDismissRequest = { showSettingsDialog = false },
                 sheetState = sheetState,
-                dragHandle = {},
-                scrimColor = Color.Transparent,
                 containerColor = MaterialTheme.colorScheme.surface,
             ) {
                 var selectedTab by remember { mutableStateOf(0) }
@@ -195,6 +228,13 @@ fun BottomSheetSettingsOverlay(
                     Tab(
                         selected = selectedTab == 1,
                         onClick = { selectedTab = 1 },
+                        modifier = Modifier.heightIn(min = 40.dp).cursorForHand(),
+                    ) {
+                        Text("Navigation")
+                    }
+                    Tab(
+                        selected = selectedTab == 2,
+                        onClick = { selectedTab = 2 },
                         modifier = Modifier.heightIn(min = 40.dp).cursorForHand(),
                     ) {
                         Text("Image settings")
@@ -228,7 +268,12 @@ fun BottomSheetSettingsOverlay(
                             )
                         }
 
-                        1 -> BottomSheetImageSettings(
+                        1 -> NavigationSettings(
+                            currentMode = tapNavigationMode,
+                            onModeChange = onTapNavigationModeChange
+                        )
+
+                        2 -> BottomSheetImageSettings(
                             readerType = readerType,
                             pagedReaderState = pagedReaderState,
                             continuousReaderState = continuousReaderState,
@@ -255,7 +300,8 @@ fun BottomSheetSettingsOverlay(
                             flashWith = flashWith,
                             onFlashWithChange = onFlashWithChange,
                             flashDuration = flashDuration,
-                            onFlashDurationChange = onFlashDurationChange
+                            onFlashDurationChange = onFlashDurationChange,
+                            ncnnSettingsState = ncnnSettingsState,
                         )
                     }
                 }
@@ -308,6 +354,8 @@ private fun PagedModeSettings(
 ) {
     val strings = LocalStrings.current.pagedReader
     val scaleType = pageState.scaleType.collectAsState().value
+    val tapToZoom = pageState.tapToZoom.collectAsState().value
+    val adaptiveBackground = pageState.adaptiveBackground.collectAsState().value
     Column {
 
         Text(strings.scaleType)
@@ -385,6 +433,19 @@ private fun PagedModeSettings(
             )
         }
 
+        SwitchWithLabel(
+            checked = tapToZoom,
+            onCheckedChange = pageState::onTapToZoomChange,
+            label = { Text("Tap to zoom") },
+            contentPadding = PaddingValues(horizontal = 10.dp),
+        )
+
+        SwitchWithLabel(
+            checked = adaptiveBackground,
+            onCheckedChange = pageState::onAdaptiveBackgroundChange,
+            label = { Text(strings.adaptiveBackground) },
+            contentPadding = PaddingValues(horizontal = 10.dp),
+        )
     }
 
 }
@@ -395,6 +456,8 @@ private fun PanelsModeSettings(
     state: PanelsReaderState,
 ) {
     val strings = LocalStrings.current.pagedReader
+    val tapToZoom = state.tapToZoom.collectAsState().value
+    val adaptiveBackground = state.adaptiveBackground.collectAsState().value
     Column {
 
         val readingDirection = state.readingDirection.collectAsState().value
@@ -413,6 +476,32 @@ private fun PanelsModeSettings(
                 label = { Text(strings.forReadingDirection(PagedReadingDirection.LEFT_TO_RIGHT)) }
             )
         }
+
+        val displayMode = state.fullPageDisplayMode.collectAsState().value
+        Text("Show full page")
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            PanelsFullPageDisplayMode.entries.forEach { mode ->
+                InputChip(
+                    selected = displayMode == mode,
+                    onClick = { state.onFullPageDisplayModeChange(mode) },
+                    label = { Text(mode.name) }
+                )
+            }
+        }
+
+        SwitchWithLabel(
+            checked = tapToZoom,
+            onCheckedChange = state::onTapToZoomChange,
+            label = { Text("Tap to zoom") },
+            contentPadding = PaddingValues(horizontal = 10.dp),
+        )
+
+        SwitchWithLabel(
+            checked = adaptiveBackground,
+            onCheckedChange = state::onAdaptiveBackgroundChange,
+            label = { Text(strings.adaptiveBackground) },
+            contentPadding = PaddingValues(horizontal = 10.dp),
+        )
     }
 
 }
@@ -424,6 +513,7 @@ private fun ContinuousModeSettings(
 ) {
     val strings = LocalStrings.current.continuousReader
     val windowWidth = LocalWindowWidth.current
+    val accentColor = LocalAccentColor.current
     Column {
         val readingDirection = state.readingDirection.collectAsState().value
         Text(strings.readingDirection)
@@ -459,7 +549,7 @@ private fun ContinuousModeSettings(
                 onValueChange = state::onSidePaddingChange,
                 steps = 15,
                 valueRange = 0f..0.4f,
-                colors = AppSliderDefaults.colors()
+                colors = AppSliderDefaults.colors(accentColor = accentColor)
             )
         }
 
@@ -475,7 +565,7 @@ private fun ContinuousModeSettings(
                     onValueChange = { state.onPageSpacingChange(it.roundToInt()) },
                     steps = 24,
                     valueRange = 0f..250f,
-                    colors = AppSliderDefaults.colors()
+                    colors = AppSliderDefaults.colors(accentColor = accentColor)
                 )
 
                 else -> Slider(
@@ -483,7 +573,7 @@ private fun ContinuousModeSettings(
                     onValueChange = { state.onPageSpacingChange(it.roundToInt()) },
                     steps = 49,
                     valueRange = 0f..500f,
-                    colors = AppSliderDefaults.colors()
+                    colors = AppSliderDefaults.colors(accentColor = accentColor)
                 )
             }
 
@@ -523,8 +613,8 @@ private fun BottomSheetImageSettings(
     onFlashWithChange: (ReaderFlashColor) -> Unit,
     flashDuration: Long,
     onFlashDurationChange: (Long) -> Unit,
-
-    ) {
+    ncnnSettingsState: NcnnSettingsState,
+) {
     Column {
         SamplingModeSettings(
             availableUpsamplingModes = availableUpsamplingModes,
@@ -552,6 +642,16 @@ private fun BottomSheetImageSettings(
             flashDuration = flashDuration,
             onFlashDurationChange = onFlashDurationChange,
         )
+
+        if (snd.komelia.ui.settings.imagereader.ncnn.isNcnnSupported()) {
+            HorizontalDivider(Modifier.padding(vertical = 10.dp))
+            snd.komelia.ui.settings.imagereader.ncnn.NcnnSettingsContent(
+                settings = ncnnSettingsState.ncnnUpscalerSettings.collectAsState().value,
+                onSettingsChange = ncnnSettingsState::onSettingsChange,
+                onDownloadRequest = ncnnSettingsState::onNcnnDownloadRequest
+            )
+        }
+
         HorizontalDivider(Modifier.padding(vertical = 5.dp))
 
         val strings = LocalStrings.current.reader
@@ -585,6 +685,31 @@ private fun BottomSheetImageSettings(
         }
     }
 
+}
+
+@Composable
+private fun UpscaleActivityIndicator(activities: Map<Int, UpscaleStatus>) {
+    if (activities.isEmpty()) return
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(end = 8.dp)
+    ) {
+        activities.entries.sortedBy { it.key }.forEach { (page, status) ->
+            when (status) {
+                UpscaleStatus.Upscaling -> Row(verticalAlignment = Alignment.CenterVertically) {
+                    CircularProgressIndicator(Modifier.size(14.dp), strokeWidth = 1.5.dp)
+                    Spacer(Modifier.width(2.dp))
+                    Text("p$page", style = MaterialTheme.typography.labelSmall)
+                    Spacer(Modifier.width(6.dp))
+                }
+                UpscaleStatus.Upscaled -> {
+                    Text("p$page ✓", style = MaterialTheme.typography.labelSmall)
+                    Spacer(Modifier.width(6.dp))
+                }
+                UpscaleStatus.Idle -> {}
+            }
+        }
+    }
 }
 
 @OptIn(ExperimentalLayoutApi::class)

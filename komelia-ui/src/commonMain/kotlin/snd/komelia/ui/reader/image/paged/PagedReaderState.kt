@@ -31,8 +31,10 @@ import kotlinx.coroutines.launch
 import snd.komelia.AppNotification
 import snd.komelia.AppNotifications
 import snd.komelia.image.BookImageLoader
+import snd.komelia.image.EdgeSampling
 import snd.komelia.image.ReaderImage.PageId
 import snd.komelia.image.ReaderImageResult
+import snd.komelia.image.getEdgeSampling
 import snd.komelia.komga.api.model.KomeliaBook
 import snd.komelia.settings.ImageReaderSettingsRepository
 import snd.komelia.settings.model.LayoutScaleType
@@ -64,9 +66,11 @@ class PagedReaderState(
     private val appStrings: Flow<AppStrings>,
     private val pageChangeFlow: MutableSharedFlow<Unit>,
     val screenScaleState: ScreenScaleState,
+    private val onBookChange: () -> Unit = {},
 ) {
     private val stateScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val pageLoadScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private var loadSpreadJob: kotlinx.coroutines.Job? = null
 
     private val imageCache = Cache.Builder<PageId, Deferred<Page>>()
         .maximumCacheSize(10)
@@ -91,6 +95,10 @@ class PagedReaderState(
     val layoutOffset = MutableStateFlow(false)
     val scaleType = MutableStateFlow(LayoutScaleType.SCREEN)
     val readingDirection = MutableStateFlow(LEFT_TO_RIGHT)
+    val tapToZoom = MutableStateFlow(true)
+    val adaptiveBackground = MutableStateFlow(false)
+
+    val pageNavigationEvents = MutableSharedFlow<PageNavigationEvent>(extraBufferCapacity = 1)
 
     suspend fun initialize() {
         layout.value = settingsRepository.getPagedReaderDisplayLayout().first()
@@ -100,9 +108,13 @@ class PagedReaderState(
             KomgaReadingDirection.RIGHT_TO_LEFT -> RIGHT_TO_LEFT
             else -> settingsRepository.getPagedReaderReadingDirection().first()
         }
+        tapToZoom.value = settingsRepository.getPagedReaderTapToZoom().first()
+        adaptiveBackground.value = settingsRepository.getPagedReaderAdaptiveBackground().first()
 
         screenScaleState.setScrollState(null)
         screenScaleState.setScrollOrientation(Orientation.Vertical, false)
+        screenScaleState.enableOverscrollArea(false)
+        screenScaleState.edgeHandoffEnabled = true
 
         combine(
             screenScaleState.transformation,
@@ -130,12 +142,21 @@ class PagedReaderState(
             .onEach { newBook -> onNewBookLoaded(newBook) }
             .launchIn(stateScope)
 
+        readerState.booksState
+            .filterNotNull()
+            .drop(1)
+            .onEach { onBookChange() }
+            .launchIn(stateScope)
+
         val strings = appStrings.first().pagedReader
         appNotifications.add(AppNotification.Normal("Paged ${strings.forReadingDirection(readingDirection.value)}"))
     }
 
     fun stop() {
         stateScope.coroutineContext.cancelChildren()
+        pageLoadScope.coroutineContext.cancelChildren()
+        screenScaleState.enableOverscrollArea(false)
+        screenScaleState.edgeHandoffEnabled = false
         imageCache.invalidateAll()
     }
 
@@ -226,7 +247,7 @@ class PagedReaderState(
         )
         currentSpreadIndex.value = newSpreadIndex
 
-        loadPage(newSpreadIndex)
+        jumpToPage(newSpreadIndex)
     }
 
     fun nextPage() {
@@ -297,15 +318,33 @@ class PagedReaderState(
         loadPage(lastPageIndex)
     }
 
+    fun jumpToPage(page: Int) {
+        pageChangeFlow.tryEmit(Unit)
+        val pageNumber = pageSpreads.value[page].last().pageNumber
+        stateScope.launch { readerState.onProgressChange(pageNumber) }
+        currentSpreadIndex.value = page
+        pageNavigationEvents.tryEmit(PageNavigationEvent.Immediate(page))
+
+        loadSpreadJob?.cancel()
+        loadSpreadJob = pageLoadScope.launch { loadSpread(page) }
+    }
+
     private fun loadPage(spreadIndex: Int) {
         if (spreadIndex != currentSpreadIndex.value) {
             val pageNumber = pageSpreads.value[spreadIndex].last().pageNumber
             stateScope.launch { readerState.onProgressChange(pageNumber) }
             currentSpreadIndex.value = spreadIndex
+            pageNavigationEvents.tryEmit(PageNavigationEvent.Animated(spreadIndex))
         }
 
-        pageLoadScope.coroutineContext.cancelChildren()
-        pageLoadScope.launch { loadSpread(spreadIndex) }
+        loadSpreadJob?.cancel()
+        loadSpreadJob = pageLoadScope.launch { loadSpread(spreadIndex) }
+    }
+
+    sealed interface PageNavigationEvent {
+        val pageIndex: Int
+        data class Animated(override val pageIndex: Int) : PageNavigationEvent
+        data class Immediate(override val pageIndex: Int) : PageNavigationEvent
     }
 
     private suspend fun loadSpread(loadSpreadIndex: Int) {
@@ -348,7 +387,18 @@ class PagedReaderState(
             if (cached != null && !cached.isCancelled) cached
             else pageLoadScope.async {
                 val imageResult = imageLoader.loadReaderImage(meta.bookId, meta.pageNumber)
-                Page(meta, imageResult)
+                val containerSize = screenScaleState.areaSize.value
+                val imageSize = if (imageResult is ReaderImageResult.Success) {
+                    imageResult.image.calculateSizeForArea(containerSize, true)
+                } else null
+
+                val edgeSampling = if (adaptiveBackground.value && imageResult is ReaderImageResult.Success) {
+                    val originalImage = imageResult.image.getOriginalImage().getOrNull()
+                    if (originalImage != null) {
+                        originalImage.getEdgeSampling()
+                    } else null
+                } else null
+                Page(meta, imageResult, edgeSampling, imageSize)
             }.also { imageCache.put(pageId, it) }
         }
 
@@ -394,6 +444,31 @@ class PagedReaderState(
     @Suppress("DeferredResultUnused")
     private fun enqueueSpreadLoadJob(pagesMeta: List<PageMetadata>) {
         launchSpreadLoadJob(pagesMeta)
+    }
+
+    suspend fun getPage(page: PageMetadata): Page {
+        val pageId = page.toPageId()
+        val cached = imageCache.get(pageId)
+        return if (cached != null && !cached.isCancelled) {
+            cached.await()
+        } else {
+            val job = pageLoadScope.async {
+                val imageResult = imageLoader.loadReaderImage(page.bookId, page.pageNumber)
+                val containerSize = screenScaleState.areaSize.value
+                val imageSize = if (imageResult is ReaderImageResult.Success) {
+                    imageResult.image.calculateSizeForArea(containerSize, true)
+                } else null
+
+                val edgeSampling = if (adaptiveBackground.value && imageResult is ReaderImageResult.Success) {
+                    val originalImage = imageResult.image.getOriginalImage().getOrNull()
+                    if (originalImage != null) {
+                        originalImage.getEdgeSampling()
+                    } else null
+                } else null
+                Page(page, imageResult, edgeSampling, imageSize)
+            }.also { imageCache.put(pageId, it) }
+            job.await()
+        }
     }
 
     private fun getMaxPageSize(pages: List<PageMetadata>, containerSize: IntSize): IntSize {
@@ -528,7 +603,18 @@ class PagedReaderState(
 
     fun onReadingDirectionChange(readingDirection: PagedReadingDirection) {
         this.readingDirection.value = readingDirection
+        screenScaleState.setScrollOrientation(Orientation.Horizontal, readingDirection == RIGHT_TO_LEFT)
         stateScope.launch { settingsRepository.putPagedReaderReadingDirection(readingDirection) }
+    }
+
+    fun onTapToZoomChange(enabled: Boolean) {
+        this.tapToZoom.value = enabled
+        stateScope.launch { settingsRepository.putPagedReaderTapToZoom(enabled) }
+    }
+
+    fun onAdaptiveBackgroundChange(enabled: Boolean) {
+        this.adaptiveBackground.value = enabled
+        stateScope.launch { settingsRepository.putPagedReaderAdaptiveBackground(enabled) }
     }
 
     private suspend fun calculateScreenScale(
@@ -558,7 +644,7 @@ class PagedReaderState(
         }
 
         when (scaleType) {
-            LayoutScaleType.SCREEN -> scaleState.setZoom(0f)
+            LayoutScaleType.SCREEN -> scaleState.setZoom(0f, updateBase = true)
             LayoutScaleType.FIT_WIDTH -> {
                 if (!stretchToFit && areaSize.width > actualSpreadSize.width) {
                     val newZoom = zoomForOriginalSize(
@@ -566,9 +652,9 @@ class PagedReaderState(
                         fitToScreenSize,
                         scaleState.scaleFor100PercentZoom()
                     )
-                    scaleState.setZoom(newZoom.coerceAtMost(1.0f))
-                } else if (fitToScreenSize.width < areaSize.width) scaleState.setZoom(1f)
-                else scaleState.setZoom(0f)
+                    scaleState.setZoom(newZoom.coerceAtMost(1.0f), updateBase = true)
+                } else if (fitToScreenSize.width < areaSize.width) scaleState.setZoom(1f, updateBase = true)
+                else scaleState.setZoom(0f, updateBase = true)
             }
 
             LayoutScaleType.FIT_HEIGHT -> {
@@ -578,10 +664,10 @@ class PagedReaderState(
                         fitToScreenSize,
                         scaleState.scaleFor100PercentZoom()
                     )
-                    scaleState.setZoom(newZoom.coerceAtMost(1.0f))
+                    scaleState.setZoom(newZoom.coerceAtMost(1.0f), updateBase = true)
 
-                } else if (fitToScreenSize.height < areaSize.height) scaleState.setZoom(1f)
-                else scaleState.setZoom(0f)
+                } else if (fitToScreenSize.height < areaSize.height) scaleState.setZoom(1f, updateBase = true)
+                else scaleState.setZoom(0f, updateBase = true)
             }
 
             LayoutScaleType.ORIGINAL -> {
@@ -591,9 +677,9 @@ class PagedReaderState(
                         fitToScreenSize,
                         scaleState.scaleFor100PercentZoom()
                     )
-                    scaleState.setZoom(newZoom)
+                    scaleState.setZoom(newZoom, updateBase = true)
 
-                } else scaleState.setZoom(0f)
+                } else scaleState.setZoom(0f, updateBase = true)
             }
         }
 
@@ -660,6 +746,8 @@ class PagedReaderState(
     data class Page(
         val metadata: PageMetadata,
         val imageResult: ReaderImageResult?,
+        val edgeSampling: EdgeSampling? = null,
+        val imageSize: IntSize? = null,
     )
 
 

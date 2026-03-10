@@ -10,9 +10,12 @@ import snd.komelia.image.UpscaleMode
 import snd.komelia.settings.ImageReaderSettingsRepository
 import snd.komelia.settings.model.ContinuousReadingDirection
 import snd.komelia.settings.model.LayoutScaleType
+import snd.komelia.settings.model.NcnnUpscalerSettings
 import snd.komelia.settings.model.PageDisplayLayout
 import snd.komelia.settings.model.PagedReadingDirection
+import snd.komelia.settings.model.PanelsFullPageDisplayMode
 import snd.komelia.settings.model.ReaderFlashColor
+import snd.komelia.settings.model.ReaderTapNavigationMode
 import snd.komelia.settings.model.ReaderType
 
 class ReaderSettingsRepositoryWrapper(
@@ -25,6 +28,14 @@ class ReaderSettingsRepositoryWrapper(
 
     override suspend fun putReaderType(type: ReaderType) {
         wrapper.transform { settings -> settings.copy(readerType = type) }
+    }
+
+    override fun getNcnnUpscalerSettings(): Flow<NcnnUpscalerSettings> {
+        return wrapper.mapState { it.ncnnUpscalerSettings }
+    }
+
+    override suspend fun putNcnnUpscalerSettings(settings: NcnnUpscalerSettings) {
+        wrapper.transform { it.copy(ncnnUpscalerSettings = settings) }
     }
 
     override fun getStretchToFit(): Flow<Boolean> {
@@ -193,5 +204,61 @@ class ReaderSettingsRepositoryWrapper(
 
     override suspend fun putUpscalerOnnxModel(name: PlatformFile?) {
         wrapper.transform { it.copy(ortUpscalerUserModelPath = name) }
+    }
+
+    override fun getPanelsFullPageDisplayMode(): Flow<PanelsFullPageDisplayMode> {
+        return wrapper.mapState { it.panelsFullPageDisplayMode }
+    }
+
+    override suspend fun putPanelsFullPageDisplayMode(mode: PanelsFullPageDisplayMode) {
+        wrapper.transform { it.copy(panelsFullPageDisplayMode = mode) }
+    }
+
+    override fun getPagedReaderTapToZoom(): Flow<Boolean> {
+        return wrapper.mapState { it.pagedReaderTapToZoom }
+    }
+
+    override suspend fun putPagedReaderTapToZoom(enabled: Boolean) {
+        wrapper.transform { it.copy(pagedReaderTapToZoom = enabled) }
+    }
+
+    override fun getPanelReaderTapToZoom(): Flow<Boolean> {
+        return wrapper.mapState { it.panelReaderTapToZoom }
+    }
+
+    override suspend fun putPanelReaderTapToZoom(enabled: Boolean) {
+        wrapper.transform { it.copy(panelReaderTapToZoom = enabled) }
+    }
+
+    override fun getPagedReaderAdaptiveBackground(): Flow<Boolean> {
+        return wrapper.mapState { it.pagedReaderAdaptiveBackground }
+    }
+
+    override suspend fun putPagedReaderAdaptiveBackground(enabled: Boolean) {
+        wrapper.transform { it.copy(pagedReaderAdaptiveBackground = enabled) }
+    }
+
+    override fun getPanelReaderAdaptiveBackground(): Flow<Boolean> {
+        return wrapper.mapState { it.panelReaderAdaptiveBackground }
+    }
+
+    override suspend fun putPanelReaderAdaptiveBackground(enabled: Boolean) {
+        wrapper.transform { it.copy(panelReaderAdaptiveBackground = enabled) }
+    }
+
+    override fun getReaderTapNavigationMode(): Flow<ReaderTapNavigationMode> {
+        return wrapper.mapState { it.tapNavigationMode }
+    }
+
+    override suspend fun putReaderTapNavigationMode(mode: ReaderTapNavigationMode) {
+        wrapper.transform { it.copy(tapNavigationMode = mode) }
+    }
+
+    override fun getPanelDetectionUrl(): Flow<String> {
+        return wrapper.mapState { it.panelDetectionUrl }
+    }
+
+    override suspend fun putPanelDetectionUrl(url: String) {
+        wrapper.transform { it.copy(panelDetectionUrl = url) }
     }
 }

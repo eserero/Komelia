@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.io.files.Path
 import okhttp3.Cache
 import okhttp3.OkHttpClient
+import io.github.snd_r.komelia.infra.ncnn.NcnnSharedLibraries
 import snd.komelia.db.AppSettings
 import snd.komelia.db.EpubReaderSettings
 import snd.komelia.db.ExposedTransactionTemplate
@@ -62,6 +63,7 @@ import snd.komelia.db.settings.ExposedSettingsRepository
 import snd.komelia.fonts.fontsDirectory
 import snd.komelia.homefilters.homeScreenDefaultFilters
 import snd.komelia.http.komeliaUserAgent
+import snd.komelia.image.AndroidNcnnUpscaler
 import snd.komelia.image.AndroidPanelDetector
 import snd.komelia.image.AndroidReaderImageFactory
 import snd.komelia.image.KomeliaImageDecoder
@@ -100,6 +102,7 @@ class AndroidAppModule(
     private val context: Context,
     private val mainActivity: StateFlow<Activity?>,
 ) : AppModule() {
+    private var ncnnUpscaler: AndroidNcnnUpscaler? = null
     private val databases = KomeliaDatabase(context.filesDir.absolutePath.toString())
 
     private val okHttpLogger = KotlinLogging.logger("http.logging")
@@ -131,6 +134,8 @@ class AndroidAppModule(
         } catch (e: UnsatisfiedLinkError) {
             logger.error(e) { "Failed to load onnxruntime " }
         }
+
+        NcnnSharedLibraries.load()
 
         fontsDirectory = Path(context.filesDir.resolve("fonts").absolutePath)
     }
@@ -264,7 +269,13 @@ class AndroidAppModule(
         pipeline: ImageProcessingPipeline,
         settings: ImageReaderSettingsRepository,
         onnxRuntimeUpscaler: KomeliaUpscaler?,
+        onnxModelDownloader: OnnxModelDownloader?,
     ): ReaderImageFactory {
+        val ncnn = ncnnUpscaler ?: AndroidNcnnUpscaler(context, settings, onnxModelDownloader).also {
+            it.initialize()
+            ncnnUpscaler = it
+        }
+
         return AndroidReaderImageFactory(
             imageDecoder = imageDecoder,
             downSamplingKernel = settings.getDownsamplingKernel().stateIn(initScope),
@@ -272,8 +283,11 @@ class AndroidAppModule(
             linearLightDownSampling = settings.getLinearLightDownsampling().stateIn(initScope),
             processingPipeline = pipeline,
             stretchImages = settings.getStretchToFit().stateIn(initScope),
+            ncnnUpscaler = ncnn
         )
     }
+
+    override fun createOnBookChange(): () -> Unit = { AndroidNcnnUpscaler.cancelPendingRequests() }
 
     override fun createWindowState() = AndroidWindowState(mainActivity)
 
@@ -285,7 +299,7 @@ class AndroidAppModule(
         AndroidOnnxModelDownloader(
             updateClient = updateClient,
             appNotifications = appNotifications,
-            dataDir = context.filesDir.resolve("onnx").toPath().createDirectories()
+            dataDir = context.filesDir.toPath()
         )
 
     override fun createOnnxRuntime(): OnnxRuntime? {

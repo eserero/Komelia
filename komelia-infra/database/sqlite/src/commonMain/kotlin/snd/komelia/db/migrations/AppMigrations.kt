@@ -19,6 +19,19 @@ class AppMigrations : MigrationResourcesProvider() {
         "V10__komf_settings.sql",
         "V11__home_filters.sql",
         "V12__offline_mode.sql",
+        "V13__ui_colors.sql",
+        "V14__immersive_layout.sql",
+        "V15__new_library_ui.sql",
+        "V16__panel_reader_settings.sql",
+        "V17__reader_tap_settings.sql",
+        "V18__reader_adaptive_background.sql",
+        "V19__card_layout_below.sql",
+        "V20__reader_tap_navigation_mode.sql",
+        "V21__ncnn_upscaler_settings.sql",
+        "V22__ncnn_upscale_on_load.sql",
+        "V23__last_selected_library.sql",
+        "V24__immersive_color_settings.sql",
+        "V25__model_management_settings.sql",
     )
 
     override suspend fun getMigration(name: String): ByteArray? {

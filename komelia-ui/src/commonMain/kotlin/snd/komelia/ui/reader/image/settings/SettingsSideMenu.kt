@@ -53,8 +53,10 @@ import snd.komelia.image.UpsamplingMode
 import snd.komelia.komga.api.model.KomeliaBook
 import snd.komelia.settings.model.ContinuousReadingDirection
 import snd.komelia.settings.model.LayoutScaleType
+import snd.komelia.settings.model.ReaderTapNavigationMode
 import snd.komelia.settings.model.PageDisplayLayout
 import snd.komelia.settings.model.PagedReadingDirection
+import snd.komelia.settings.model.PanelsFullPageDisplayMode
 import snd.komelia.settings.model.ReaderFlashColor
 import snd.komelia.settings.model.ReaderType
 import snd.komelia.settings.model.ReaderType.CONTINUOUS
@@ -110,6 +112,9 @@ fun SettingsSideMenuOverlay(
     onFlashWithChange: (ReaderFlashColor) -> Unit,
     flashDuration: Long,
     onFlashDurationChange: (Long) -> Unit,
+
+    tapNavigationMode: ReaderTapNavigationMode,
+    onTapNavigationModeChange: (ReaderTapNavigationMode) -> Unit,
 
     pagedReaderState: PagedReaderState,
     panelsReaderState: PanelsReaderState?,
@@ -173,15 +178,37 @@ fun SettingsSideMenuOverlay(
                     PAGED -> PagedReaderSettingsContent(pagedReaderState)
                     PANELS -> {
                         if (panelsReaderState != null) {
-                            PanelsReaderSettingsContent(
-                                readingDirection = panelsReaderState.readingDirection.collectAsState().value,
-                                onReadingDirectionChange = panelsReaderState::onReadingDirectionChange
-                            )
+                            PanelsReaderSettingsContent(panelsReaderState)
                         }
                     }
 
                     CONTINUOUS -> ContinuousReaderSettingsContent(continuousReaderState)
                 }
+            }
+
+            HorizontalDivider()
+            var showNavigationSettings by remember { mutableStateOf(false) }
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .clickable { showNavigationSettings = !showNavigationSettings }
+                    .cursorForHand()
+                    .padding(10.dp)
+            ) {
+                val strings = LocalStrings.current.reader
+                Text(strings.tapNavigation)
+                Spacer(Modifier.weight(1f))
+                Icon(
+                    Icons.Filled.ArrowDropDown,
+                    null,
+                    Modifier.rotate(if (showNavigationSettings) 180f else 0f)
+                )
+            }
+            AnimatedVisibility(showNavigationSettings) {
+                NavigationSettings(
+                    currentMode = tapNavigationMode,
+                    onModeChange = onTapNavigationModeChange
+                )
             }
 
             HorizontalDivider()
@@ -424,15 +451,34 @@ private fun ColumnScope.PagedReaderSettingsContent(
                 contentPadding = PaddingValues(horizontal = 10.dp)
             )
         }
+
+        val tapToZoom = pageState.tapToZoom.collectAsState().value
+        val adaptiveBackground = pageState.adaptiveBackground.collectAsState().value
+        SwitchWithLabel(
+            checked = tapToZoom,
+            onCheckedChange = pageState::onTapToZoomChange,
+            label = { Text("Tap to zoom") },
+            contentPadding = PaddingValues(horizontal = 10.dp)
+        )
+        SwitchWithLabel(
+            checked = adaptiveBackground,
+            onCheckedChange = pageState::onAdaptiveBackgroundChange,
+            label = { Text(strings.adaptiveBackground) },
+            contentPadding = PaddingValues(horizontal = 10.dp)
+        )
     }
 }
 
 @Composable
 private fun PanelsReaderSettingsContent(
-    readingDirection: PagedReadingDirection,
-    onReadingDirectionChange: (PagedReadingDirection) -> Unit,
+    state: PanelsReaderState
 ) {
     val strings = LocalStrings.current.pagedReader
+    val readingDirection = state.readingDirection.collectAsState().value
+    val displayMode = state.fullPageDisplayMode.collectAsState().value
+    val tapToZoom = state.tapToZoom.collectAsState().value
+    val adaptiveBackground = state.adaptiveBackground.collectAsState().value
+
     Column {
 
         DropdownChoiceMenu(
@@ -443,10 +489,34 @@ private fun PanelsReaderSettingsContent(
             options = remember {
                 PagedReadingDirection.entries.map { LabeledEntry(it, strings.forReadingDirection(it)) }
             },
-            onOptionChange = { onReadingDirectionChange(it.value) },
+            onOptionChange = { state.onReadingDirectionChange(it.value) },
             inputFieldModifier = Modifier.fillMaxWidth(),
             label = { Text(strings.readingDirection) },
             inputFieldColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+
+        DropdownChoiceMenu(
+            selectedOption = LabeledEntry(displayMode, displayMode.name),
+            options = remember {
+                PanelsFullPageDisplayMode.entries.map { LabeledEntry(it, it.name) }
+            },
+            onOptionChange = { state.onFullPageDisplayModeChange(it.value) },
+            inputFieldModifier = Modifier.fillMaxWidth(),
+            label = { Text("Show full page") },
+            inputFieldColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+
+        SwitchWithLabel(
+            checked = tapToZoom,
+            onCheckedChange = state::onTapToZoomChange,
+            label = { Text("Tap to zoom") },
+            contentPadding = PaddingValues(horizontal = 10.dp)
+        )
+        SwitchWithLabel(
+            checked = adaptiveBackground,
+            onCheckedChange = state::onAdaptiveBackgroundChange,
+            label = { Text(strings.adaptiveBackground) },
+            contentPadding = PaddingValues(horizontal = 10.dp)
         )
     }
 }

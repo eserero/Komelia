@@ -22,12 +22,7 @@ import kotlinx.coroutines.flow.Flow
 import snd.komelia.image.UpscaleMode
 import snd.komelia.onnxruntime.DeviceInfo
 import snd.komelia.onnxruntime.OnnxRuntimeExecutionProvider
-import snd.komelia.onnxruntime.OnnxRuntimeExecutionProvider.CPU
-import snd.komelia.onnxruntime.OnnxRuntimeExecutionProvider.CUDA
-import snd.komelia.onnxruntime.OnnxRuntimeExecutionProvider.DirectML
-import snd.komelia.onnxruntime.OnnxRuntimeExecutionProvider.ROCm
-import snd.komelia.onnxruntime.OnnxRuntimeExecutionProvider.TENSOR_RT
-import snd.komelia.onnxruntime.OnnxRuntimeExecutionProvider.WEBGPU
+import snd.komelia.onnxruntime.OnnxRuntimeExecutionProvider.*
 import snd.komelia.ui.LocalPlatform
 import snd.komelia.ui.platform.PlatformType
 import snd.komelia.ui.platform.cursorForHand
@@ -52,6 +47,8 @@ fun OnnxRuntimeSettingsContent(
     mangaJaNaiIsInstalled: Boolean,
     onMangaJaNaiDownload: () -> Flow<UpdateProgress>,
     panelModelIsDownloaded: Boolean,
+    panelDetectionUrl: String,
+    onPanelDetectionUrlChange: (String) -> Unit,
     onPanelDetectionModelDownloadRequest: () -> Flow<UpdateProgress>
 ) {
     val loadError = remember { onnxRuntimeLoadError() }
@@ -126,8 +123,9 @@ fun OnnxRuntimeSettingsContent(
         Text("Panel Detection", style = MaterialTheme.typography.titleMedium)
         PanelDetectionSettings(
             isDownloaded = panelModelIsDownloaded,
+            currentUrl = panelDetectionUrl,
+            onUrlChange = onPanelDetectionUrlChange,
             onDownloadRequest = onPanelDetectionModelDownloadRequest
         )
     }
 }
-

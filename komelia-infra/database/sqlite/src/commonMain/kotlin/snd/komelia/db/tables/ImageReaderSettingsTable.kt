@@ -29,10 +29,28 @@ object ImageReaderSettingsTable : Table("ImageReaderSettings") {
     val linearLightDownsampling = bool("linear_light_downsampling")
     val upsamplingMode = text("upsampling_mode")
 
+    val ncnnEnabled = bool("ncnn_enabled").default(false)
+    val ncnnEngine = text("ncnn_engine").default("WAIFU2X")
+    val ncnnModel = text("ncnn_model").default("models-cunet/scale2.0x_model")
+    val ncnnGpuId = integer("ncnn_gpu_id").default(0)
+    val ncnnTtaMode = bool("ncnn_tta_mode").default(false)
+    val ncnnNumThreads = integer("ncnn_num_threads").default(4)
+    val ncnnUpscaleOnLoad = bool("ncnn_upscale_on_load").default(false)
+    val ncnnUpscaleThreshold = integer("ncnn_upscale_threshold").default(1200)
+    val ncnnUpscalerUrl = text("ncnn_upscaler_url").default("https://github.com/eserero/Komelia/releases/download/model/NcnnUpscalerModels.zip")
+
     val ortDeviceId = integer("onnx_runtime_device_id")
     val ortUpscalerMode = text("onnx_runtime_mode")
     val ortUpscalerTileSize = integer("onnx_runtime_tile_size")
     val ortUpscalerUserModelPath = text("onnx_runtime_model_path").nullable()
+    val panelDetectionUrl = text("panel_detection_url").default("https://github.com/eserero/Komelia/releases/download/model/rf-detr-med.onnx.zip")
+
+    val panelsFullPageDisplayMode = text("panels_full_page_display_mode").default("NONE")
+    val pagedReaderTapToZoom = bool("paged_reader_tap_to_zoom").default(true)
+    val panelReaderTapToZoom = bool("panel_reader_tap_to_zoom").default(true)
+    val pagedReaderAdaptiveBackground = bool("paged_reader_adaptive_background").default(false)
+    val panelReaderAdaptiveBackground = bool("panel_reader_adaptive_background").default(false)
+    val tapNavigationMode = text("tap_navigation_mode").default("LEFT_RIGHT")
 
     override val primaryKey = PrimaryKey(bookId)
 }

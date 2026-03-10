@@ -42,6 +42,7 @@ import snd.komelia.ui.reader.image.common.ProgressSlider
 import snd.komelia.ui.reader.image.continuous.ContinuousReaderState
 import snd.komelia.ui.reader.image.paged.PagedReaderState
 import snd.komelia.ui.reader.image.panels.PanelsReaderState
+import snd.komelia.ui.settings.imagereader.ncnn.NcnnSettingsState
 import snd.komelia.ui.settings.imagereader.onnxruntime.OnnxRuntimeSettingsState
 
 @Composable
@@ -52,6 +53,7 @@ fun BoxScope.SettingsOverlay(
     continuousReaderState: ContinuousReaderState,
     panelsReaderState: PanelsReaderState?,
     onnxRuntimeSettingsState: OnnxRuntimeSettingsState?,
+    ncnnSettingsState: NcnnSettingsState,
     screenScaleState: ScreenScaleState,
     isColorCorrectionsActive: Boolean,
     onColorCorrectionClick: () -> Unit,
@@ -76,6 +78,7 @@ fun BoxScope.SettingsOverlay(
     val flashDuration = commonReaderState.flashDuration.collectAsState().value
     val flashEveryNPages = commonReaderState.flashEveryNPages.collectAsState().value
     val flashWith = commonReaderState.flashWith.collectAsState().value
+    val tapNavigationMode = commonReaderState.tapNavigationMode.collectAsState().value
 
     if ((windowWidth == COMPACT || windowWidth == MEDIUM) && platform != DESKTOP) {
         BottomSheetSettingsOverlay(
@@ -110,6 +113,10 @@ fun BoxScope.SettingsOverlay(
             flashWith = flashWith,
             onFlashWithChange = commonReaderState::onFlashWithChange,
 
+            tapNavigationMode = tapNavigationMode,
+            onTapNavigationModeChange = commonReaderState::onTapNavigationModeChange,
+
+            ncnnSettingsState = ncnnSettingsState,
             onBackPress = onBackPress,
         )
     } else {
@@ -143,6 +150,9 @@ fun BoxScope.SettingsOverlay(
             onFlashEveryNPagesChange = commonReaderState::onFlashEveryNPagesChange,
             flashWith = flashWith,
             onFlashWithChange = commonReaderState::onFlashWithChange,
+
+            tapNavigationMode = tapNavigationMode,
+            onTapNavigationModeChange = commonReaderState::onTapNavigationModeChange,
 
             pagedReaderState = pagedReaderState,
             continuousReaderState = continuousReaderState,

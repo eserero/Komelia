@@ -7,14 +7,20 @@ import snd.komelia.image.UpsamplingMode
 import snd.komelia.image.UpscaleMode
 import snd.komelia.settings.model.ContinuousReadingDirection
 import snd.komelia.settings.model.LayoutScaleType
+import snd.komelia.settings.model.NcnnUpscalerSettings
 import snd.komelia.settings.model.PageDisplayLayout
 import snd.komelia.settings.model.PagedReadingDirection
+import snd.komelia.settings.model.PanelsFullPageDisplayMode
 import snd.komelia.settings.model.ReaderFlashColor
+import snd.komelia.settings.model.ReaderTapNavigationMode
 import snd.komelia.settings.model.ReaderType
 
 interface ImageReaderSettingsRepository {
     fun getReaderType(): Flow<ReaderType>
     suspend fun putReaderType(type: ReaderType)
+
+    fun getNcnnUpscalerSettings(): Flow<NcnnUpscalerSettings>
+    suspend fun putNcnnUpscalerSettings(settings: NcnnUpscalerSettings)
 
     fun getStretchToFit(): Flow<Boolean>
     suspend fun putStretchToFit(stretch: Boolean)
@@ -78,4 +84,25 @@ interface ImageReaderSettingsRepository {
 
     fun getUpscalerOnnxModel(): Flow<PlatformFile?>
     suspend fun putUpscalerOnnxModel(name: PlatformFile?)
+
+    fun getPanelsFullPageDisplayMode(): Flow<PanelsFullPageDisplayMode>
+    suspend fun putPanelsFullPageDisplayMode(mode: PanelsFullPageDisplayMode)
+
+    fun getPagedReaderTapToZoom(): Flow<Boolean>
+    suspend fun putPagedReaderTapToZoom(enabled: Boolean)
+
+    fun getPanelReaderTapToZoom(): Flow<Boolean>
+    suspend fun putPanelReaderTapToZoom(enabled: Boolean)
+
+    fun getPagedReaderAdaptiveBackground(): Flow<Boolean>
+    suspend fun putPagedReaderAdaptiveBackground(enabled: Boolean)
+
+    fun getPanelReaderAdaptiveBackground(): Flow<Boolean>
+    suspend fun putPanelReaderAdaptiveBackground(enabled: Boolean)
+
+    fun getReaderTapNavigationMode(): Flow<ReaderTapNavigationMode>
+    suspend fun putReaderTapNavigationMode(mode: ReaderTapNavigationMode)
+
+    fun getPanelDetectionUrl(): Flow<String>
+    suspend fun putPanelDetectionUrl(url: String)
 }

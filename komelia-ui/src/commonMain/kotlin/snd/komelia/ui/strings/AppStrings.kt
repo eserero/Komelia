@@ -276,6 +276,16 @@ data class ReaderStrings(
     val memoryUsage: String,
     val pageDisplaySize: String,
     val pageOriginalSize: String,
+
+    val tapNavigation: String,
+    val modeLeftRight: String,
+    val modeLeftRightDesc: String,
+    val modeRightLeft: String,
+    val modeRightLeftDesc: String,
+    val modeHorizontalSplit: String,
+    val modeHorizontalSplitDesc: String,
+    val modeReversedHorizontalSplit: String,
+    val modeReversedHorizontalSplitDesc: String,
 ) {
     fun forReaderType(type: ReaderType): String {
         return when (type) {
@@ -303,6 +313,7 @@ data class PagedReaderStrings(
     val layoutDoublePages: String,
     val layoutDoublePagesNoCover: String,
     val offsetPages: String,
+    val adaptiveBackground: String,
 ) {
     fun forScaleType(type: LayoutScaleType): String {
         return when (type) {
@@ -648,6 +659,16 @@ data class ImageSettingsStrings(
     val downsamplingKernelMKS2013: String,
     val downsamplingKernelMKS2021: String,
     val downsamplingKernelDefault: String,
+
+    val ncnnUpscaleMode: String,
+    val ncnnUpscaleModeNone: String,
+    val ncnnUpscaleModeWaifu2x: String,
+    val ncnnUpscaleModeRealCugan: String,
+    val ncnnUpscaleModeRealSr: String,
+    val ncnnUpscaleModeRealEsrgan: String,
+    val ncnnUpscaleOnLoad: String,
+    val ncnnUpscaleOnLoadThreshold: String,
+    val ncnnUpscaleOnLoadTooltip: String,
 
     val onnxRuntimeExecutionProvider: String,
     val onnxRuntimeUpscaleMode: String,

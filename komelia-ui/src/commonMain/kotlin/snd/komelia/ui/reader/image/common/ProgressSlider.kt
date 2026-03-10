@@ -37,6 +37,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -56,6 +58,7 @@ import coil3.size.Size
 import coil3.size.SizeResolver
 import snd.komelia.image.ReaderImage
 import snd.komelia.image.coil.BookPageThumbnailRequest
+import snd.komelia.ui.LocalAccentColor
 import snd.komelia.ui.common.components.AppSliderDefaults
 import snd.komelia.ui.reader.image.PageMetadata
 import kotlin.math.roundToInt
@@ -98,6 +101,8 @@ fun PageSpreadProgressSlider(
             Modifier
                 .fillMaxWidth()
                 .hoverable(interactionSource)
+                .windowInsetsPadding(WindowInsets.navigationBars)
+                .padding(horizontal = 10.dp)
         )
     ) {
         if (show || isHovered.value) {
@@ -107,16 +112,10 @@ fun PageSpreadProgressSlider(
                         pageSpreads = pageSpreads,
                         currentSpreadIndex = currentSpreadIndex,
                         onPageNumberChange = onPageNumberChange,
-                        layoutDirection = layoutDirection
+                        layoutDirection = layoutDirection,
+                        interactionSource = interactionSource,
                     )
                 }
-
-                Spacer(
-                    Modifier
-                        .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .windowInsetsPadding(WindowInsets.navigationBars)
-                )
             }
         }
     }
@@ -129,6 +128,7 @@ private fun Slider(
     currentSpreadIndex: Int,
     onPageNumberChange: (Int) -> Unit,
     layoutDirection: LayoutDirection,
+    interactionSource: MutableInteractionSource,
 ) {
     var currentPos by remember(currentSpreadIndex) { mutableStateOf(currentSpreadIndex) }
     val currentSpread = remember(pageSpreads, currentPos) { pageSpreads.getOrElse(currentPos) { pageSpreads.last() } }
@@ -143,6 +143,7 @@ private fun Slider(
 
     var showPreview by remember { mutableStateOf(false) }
     val sliderValue by derivedStateOf { currentPos.toFloat() }
+    val accentColor = LocalAccentColor.current
 
     val sliderState = rememberSliderState(
         value = sliderValue,
@@ -159,7 +160,7 @@ private fun Slider(
     )
 
     Layout(content = {
-        if ( showPreview) {
+        if (showPreview) {
             Row {
                 for (pageMetadata in currentSpread) {
                     BookPageThumbnail(
@@ -170,28 +171,38 @@ private fun Slider(
             }
         } else Spacer(Modifier)
 
+        val labelBackground = accentColor?.copy(alpha = 0.8f) ?: MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f)
+        val onLabelColor = if (accentColor != null) {
+            if (accentColor.luminance() > 0.5f) Color.Black else Color.White
+        } else MaterialTheme.colorScheme.onSurfaceVariant
+
         Text(
             label,
             textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.primary,
+            color = onLabelColor,
             modifier = Modifier
                 .background(
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    shape = RoundedCornerShape(4.dp)
+                    color = labelBackground,
+                    shape = RoundedCornerShape(20.dp)
                 )
-                .border(BorderStroke(1.dp, MaterialTheme.colorScheme.surface))
-                .padding(4.dp)
+                .padding(horizontal = 12.dp, vertical = 4.dp)
                 .defaultMinSize(minWidth = 40.dp)
         )
 
         Slider(
             state = sliderState,
-            modifier = Modifier.background(MaterialTheme.colorScheme.surfaceVariant),
-            colors = AppSliderDefaults.colors(),
+            colors = AppSliderDefaults.colors(accentColor = accentColor),
             track = { state ->
                 SliderDefaults.Track(
                     sliderState = state,
-                    colors = AppSliderDefaults.colors(),
+                    colors = AppSliderDefaults.colors(accentColor = accentColor),
+                    modifier = Modifier.height(16.dp)
+                )
+            },
+            thumb = { state ->
+                SliderDefaults.Thumb(
+                    interactionSource = interactionSource,
+                    colors = AppSliderDefaults.colors(accentColor = accentColor),
                 )
             }
         )

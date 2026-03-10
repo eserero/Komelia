@@ -43,6 +43,7 @@ import androidx.compose.ui.input.key.isAltPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection.Ltr
@@ -53,6 +54,7 @@ import snd.komelia.image.ReaderImageResult
 import snd.komelia.settings.model.ContinuousReadingDirection.LEFT_TO_RIGHT
 import snd.komelia.settings.model.ContinuousReadingDirection.RIGHT_TO_LEFT
 import snd.komelia.settings.model.ContinuousReadingDirection.TOP_TO_BOTTOM
+import snd.komelia.settings.model.ReaderTapNavigationMode
 import snd.komelia.ui.reader.image.PageMetadata
 import snd.komelia.ui.reader.image.ScreenScaleState
 import snd.komelia.ui.reader.image.common.ContinuousReaderHelpDialog
@@ -69,7 +71,9 @@ fun BoxScope.ContinuousReaderContent(
     onShowSettingsMenuChange: (Boolean) -> Unit,
     screenScaleState: ScreenScaleState,
     continuousReaderState: ContinuousReaderState,
-    volumeKeysNavigation: Boolean
+    volumeKeysNavigation: Boolean,
+    tapNavigationMode: ReaderTapNavigationMode,
+    onLongPress: (Offset) -> Unit = {},
 ) {
     val coroutineScope = rememberCoroutineScope()
     val readingDirection = continuousReaderState.readingDirection.collectAsState().value
@@ -107,8 +111,12 @@ fun BoxScope.ContinuousReaderContent(
         onNexPageClick = { coroutineScope.launch { continuousReaderState.scrollScreenForward() } },
         onPrevPageClick = { coroutineScope.launch { continuousReaderState.scrollScreenBackward() } },
         contentAreaSize = areaSize,
+        scaleState = screenScaleState,
+        tapToZoom = true,
+        tapNavigationMode = tapNavigationMode,
         isSettingsMenuOpen = showSettingsMenu,
         onSettingsMenuToggle = { onShowSettingsMenuChange(!showSettingsMenu) },
+        onLongPress = onLongPress,
         modifier = Modifier.onKeyEvent { event ->
             var consumed = true
 

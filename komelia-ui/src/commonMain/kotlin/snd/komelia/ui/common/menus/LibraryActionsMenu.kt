@@ -1,11 +1,11 @@
 package snd.komelia.ui.common.menus
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.hoverable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsHoveredAsState
-import androidx.compose.material3.DropdownMenu
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.DeleteForever
+import androidx.compose.material.icons.rounded.DeleteSweep
 import androidx.compose.material3.DropdownMenuItem
+import snd.komelia.ui.common.components.AnimatedDropdownMenu
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,6 +29,12 @@ import snd.komelia.ui.dialogs.ConfirmationDialog
 import snd.komelia.ui.dialogs.komf.reset.KomfResetLibraryMetadataDialog
 import snd.komelia.ui.dialogs.libraryedit.LibraryEditDialogs
 import snd.komga.client.library.KomgaLibrary
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.automirrored.rounded.ManageSearch
+import androidx.compose.material3.MenuDefaults
 
 @Composable
 fun LibraryActionsMenu(
@@ -108,55 +114,52 @@ fun LibraryActionsMenu(
 
     val isAdmin = LocalKomgaState.current.authenticatedUser.collectAsState().value?.roleAdmin() ?: true
     val isOffline = LocalOfflineMode.current.collectAsState().value
-    DropdownMenu(expanded = expanded, onDismissRequest = onDismissRequest) {
+    AnimatedDropdownMenu(expanded = expanded, onDismissRequest = onDismissRequest) {
         if (isAdmin && !isOffline) {
             DropdownMenuItem(
-                text = { Text("Scan library files") },
+                text = { Text("Scan library files", style = MaterialTheme.typography.labelLarge) },
+                leadingIcon = { Icon(Icons.Rounded.Search, null) },
                 onClick = {
                     actions.scan(library)
                     onDismissRequest()
                 }
             )
 
-            val deepScanInteractionSource = remember { MutableInteractionSource() }
-            val deepScanIsHovered = deepScanInteractionSource.collectIsHoveredAsState()
-            val deepScanColor =
-                if (deepScanIsHovered.value) Modifier.background(MaterialTheme.colorScheme.tertiaryContainer)
-                else Modifier
-
             DropdownMenuItem(
-                text = { Text("Scan library files (deep)") },
+                text = { Text("Scan library files (deep)", style = MaterialTheme.typography.labelLarge) },
+                leadingIcon = { Icon(Icons.AutoMirrored.Rounded.ManageSearch, null) },
                 onClick = {
                     actions.deepScan(library)
                     onDismissRequest()
-                },
-                modifier = Modifier
-                    .hoverable(deepScanInteractionSource)
-                    .then(deepScanColor)
+                }
             )
             DropdownMenuItem(
-                text = { Text("Analyze") },
+                text = { Text("Analyze", style = MaterialTheme.typography.labelLarge) },
+                leadingIcon = { Icon(Icons.Rounded.Search, null) },
                 onClick = {
                     showAnalyzeDialog = true
                     onDismissRequest()
                 }
             )
             DropdownMenuItem(
-                text = { Text("Refresh metadata") },
+                text = { Text("Refresh metadata", style = MaterialTheme.typography.labelLarge) },
+                leadingIcon = { Icon(Icons.Rounded.Refresh, null) },
                 onClick = {
                     refreshMetadataDialog = true
                     onDismissRequest()
                 }
             )
             DropdownMenuItem(
-                text = { Text("Empty trash") },
+                text = { Text("Empty trash", style = MaterialTheme.typography.labelLarge) },
+                leadingIcon = { Icon(Icons.Rounded.DeleteSweep, null) },
                 onClick = {
                     emptyTrashDialog = true
                     onDismissRequest()
                 }
             )
             DropdownMenuItem(
-                text = { Text("Edit") },
+                text = { Text("Edit", style = MaterialTheme.typography.labelLarge) },
+                leadingIcon = { Icon(Icons.Rounded.Edit, null) },
                 onClick = {
                     showLibraryEditDialog = true
                     onDismissRequest()
@@ -171,7 +174,8 @@ fun LibraryActionsMenu(
                 vmFactory.getKomfLibraryIdentifyViewModel(library)
             }
             DropdownMenuItem(
-                text = { Text("Auto-Identify (Komf)") },
+                text = { Text("Auto-Identify (Komf)", style = MaterialTheme.typography.labelLarge) },
+                leadingIcon = { Icon(Icons.Rounded.Search, null) },
                 onClick = {
                     autoIdentifyVm.autoIdentify()
                     onDismissRequest()
@@ -179,39 +183,38 @@ fun LibraryActionsMenu(
             )
 
             DropdownMenuItem(
-                text = { Text("Reset Metadata (Komf)") },
+                text = { Text("Reset Metadata (Komf)", style = MaterialTheme.typography.labelLarge) },
+                leadingIcon = { Icon(Icons.Rounded.Refresh, null) },
                 onClick = { showKomfResetDialog = true },
             )
         }
 
-        val deleteScanInteractionSource = remember { MutableInteractionSource() }
-        val deleteScanIsHovered = deleteScanInteractionSource.collectIsHoveredAsState()
-        val deleteScanColor =
-            if (deleteScanIsHovered.value) Modifier.background(MaterialTheme.colorScheme.errorContainer)
-            else Modifier
-
         if (!isOffline && isAdmin) {
             DropdownMenuItem(
-                text = { Text("Delete") },
+                text = { Text("Delete", style = MaterialTheme.typography.labelLarge) },
+                leadingIcon = { Icon(Icons.Rounded.DeleteForever, null) },
                 onClick = {
                     deleteLibraryDialog = true
                     onDismissRequest()
                 },
-                modifier = Modifier
-                    .hoverable(deleteScanInteractionSource)
-                    .then(deleteScanColor)
+                colors = MenuDefaults.itemColors(
+                    textColor = MaterialTheme.colorScheme.error,
+                    leadingIconColor = MaterialTheme.colorScheme.error
+                )
             )
         }
         if (isOffline) {
             DropdownMenuItem(
-                text = { Text("Delete downloaded") },
+                text = { Text("Delete downloaded", style = MaterialTheme.typography.labelLarge) },
+                leadingIcon = { Icon(Icons.Rounded.Delete, null) },
                 onClick = {
                     deleteOfflineLibraryDialog = true
                     onDismissRequest()
                 },
-                modifier = Modifier
-                    .hoverable(deleteScanInteractionSource)
-                    .then(deleteScanColor)
+                colors = MenuDefaults.itemColors(
+                    textColor = MaterialTheme.colorScheme.error,
+                    leadingIconColor = MaterialTheme.colorScheme.error
+                )
             )
 
         }

@@ -13,10 +13,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TriStateCheckbox
 import androidx.compose.runtime.Composable
@@ -30,15 +33,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import snd.komelia.ui.LocalStrings
 import snd.komelia.ui.LocalWindowWidth
+import snd.komelia.ui.common.components.FilterDialogMultiChoiceWithSearch
 import snd.komelia.ui.common.components.FilterDropdownChoice
 import snd.komelia.ui.common.components.FilterDropdownMultiChoice
-import snd.komelia.ui.common.components.FilterDropdownMultiChoiceWithSearch
 import snd.komelia.ui.common.components.LabeledEntry
 import snd.komelia.ui.common.components.LabeledEntry.Companion.stringEntry
 import snd.komelia.ui.common.components.NoPaddingTextField
@@ -61,7 +63,6 @@ import snd.komga.client.series.KomgaSeriesStatus
 @Composable
 fun SeriesFilterContent(
     filterState: SeriesFilterState,
-    onDismiss: () -> Unit,
 ) {
     val strings = LocalStrings.current.seriesFilter
     val widthClass = LocalWindowWidth.current
@@ -100,32 +101,14 @@ fun SeriesFilterContent(
                 text = searchTerm,
                 placeholder = strings.search,
                 onTextChange = { searchTerm = it },
-                modifier = Modifier.weight(1f).height(40.dp).widthIn(min = 340.dp),
+                shape = CircleShape,
+                colors = OutlinedTextFieldDefaults.colors(
+                    unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                ),
+                trailingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                modifier = Modifier.fillMaxWidth().height(45.dp),
             )
-
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(spacing),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                OutlinedButton(
-                    onClick = filterState::reset,
-                    enabled = filterState.isChanged,
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = if (filterState.isChanged) MaterialTheme.colorScheme.tertiaryContainer else Color.Unspecified,
-                    ),
-                    border = if (filterState.isChanged) null else ButtonDefaults.outlinedButtonBorder(true),
-                    modifier = Modifier.height(40.dp).cursorForHand()
-                ) {
-                    Text(strings.resetFilters, style = MaterialTheme.typography.bodyLarge)
-                }
-
-                OutlinedButton(
-                    onClick = onDismiss,
-                    modifier = Modifier.height(40.dp).cursorForHand()
-                ) {
-                    Text(strings.hideFilters, style = MaterialTheme.typography.bodyLarge)
-                }
-            }
         }
 
         FlowRow(
@@ -188,13 +171,14 @@ fun SeriesFilterContent(
             val authorOptions = remember(filterState.authorsOptions) {
                 filterState.authorsOptions.distinctBy { it.name }.map { LabeledEntry(it, it.name) }
             }
-            FilterDropdownMultiChoiceWithSearch(
+            FilterDialogMultiChoiceWithSearch(
                 selectedOptions = authorsSelectedOptions,
                 options = authorOptions,
                 onOptionSelect = { author -> filterState.onAuthorSelect(author.value) },
                 onSearch = filterState::onAuthorsSearch,
                 label = strings.authors,
                 modifier = Modifier.width(width),
+                onClearAll = { filterState.resetAuthors() }
             )
 
             FilterDropdownMultiChoice(

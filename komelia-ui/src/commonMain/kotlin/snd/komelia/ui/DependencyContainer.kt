@@ -52,5 +52,6 @@ data class DependencyContainer(
     val panelDetector: KomeliaPanelDetector?,
 
     val offlineDependencies: OfflineDependencies,
+    val onBookChange: () -> Unit = {},
 )
 

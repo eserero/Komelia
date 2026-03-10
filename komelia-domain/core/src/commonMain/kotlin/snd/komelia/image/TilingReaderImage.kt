@@ -47,9 +47,9 @@ expect class RenderImage
 private val logger = KotlinLogging.logger {}
 
 abstract class TilingReaderImage(
-    private val imageSource: ImageSource,
+    protected val imageSource: ImageSource,
     private val imageDecoder: KomeliaImageDecoder,
-    private val processingPipeline: ImageProcessingPipeline,
+    protected val processingPipeline: ImageProcessingPipeline,
     private val stretchImages: StateFlow<Boolean>,
     protected val upsamplingMode: StateFlow<UpsamplingMode>,
     protected val downSamplingKernel: StateFlow<ReduceKernel>,
@@ -58,6 +58,7 @@ abstract class TilingReaderImage(
 ) : ReaderImage {
     final override val painter = MutableStateFlow<TiledPainter?>(null)
     final override val error = MutableStateFlow<Throwable?>(null)
+    override val upscaleStatus: StateFlow<UpscaleStatus> = MutableStateFlow(UpscaleStatus.Idle)
 
     final override val originalSize = MutableStateFlow<IntSize?>(null)
     final override val displaySize = MutableStateFlow<IntSize?>(null)
@@ -73,13 +74,15 @@ abstract class TilingReaderImage(
     protected val defaultFrameDelay = 100L
 
     @Volatile
-    private var originalImage: KomeliaImage? = null
+    protected var originalImage: KomeliaImage? = null
 
     @Volatile
     protected var lastUpdateRequest: UpdateRequest? = null
 
     @Volatile
     protected var lastUsedScaleFactor: Double? = null
+
+    private var pendingTilesToClose: List<ReaderImageTile> = emptyList()
 
     data class UpdateRequest(
         val visibleDisplaySize: IntRect,
@@ -126,6 +129,8 @@ abstract class TilingReaderImage(
         processingScope.launch { loadImage() }
 
         frameData.onEach { data ->
+            val tilesToClose = pendingTilesToClose
+            pendingTilesToClose = emptyList()
             when {
                 data == null -> this.painter.value = null
                 data.frames.size == 1 -> {
@@ -138,7 +143,7 @@ abstract class TilingReaderImage(
 
                 else -> launchAnimation(data)
             }
-
+            closeTileBitmaps(tilesToClose)
         }.launchIn(processingScope)
     }
 
@@ -188,7 +193,7 @@ abstract class TilingReaderImage(
         }
     }
 
-    private suspend fun loadImage() {
+    protected open suspend fun loadImage() {
         try {
             val originalImage = decodeImage(imageSource)
             this.originalImage = originalImage
@@ -203,7 +208,7 @@ abstract class TilingReaderImage(
         }
     }
 
-    private suspend fun decodeImage(source: ImageSource): KomeliaImage {
+    protected suspend fun decodeImage(source: ImageSource): KomeliaImage {
         val image = when (source) {
             is ImageSource.FilePathSource -> imageDecoder.decodeFromFile(source.path)
             is ImageSource.MemorySource -> imageDecoder.decode(source.data)
@@ -325,12 +330,12 @@ abstract class TilingReaderImage(
                     delay = resizedImage.delays?.getOrNull(i)?.toLong() ?: defaultFrameDelay
                 )
             }
+            pendingTilesToClose = previousTiles
             frameData.value = FrameData(
                 frames = frames,
                 displaySize = displayArea,
                 scaleFactor = scaleFactor
             )
-            closeTileBitmaps(previousTiles)
         }.also { logger.info { "page ${pageId.pageNumber} completed full resize to $dstWidth x $dstHeight in $it" } }
 
     }
@@ -418,12 +423,12 @@ abstract class TilingReaderImage(
         }
 
         if (addedNewTiles) {
+            pendingTilesToClose = unusedTiles
             frameData.value = FrameData(
                 frames = listOf(ImageFrame(newTiles, 0)),
                 displaySize = displayArea,
                 scaleFactor = scaleFactor
             )
-            closeTileBitmaps(unusedTiles)
 
             val end = timeSource.markNow()
             logger.info { "page ${pageId.pageNumber} completed tiled resize in ${end - start};  ${newTiles.size} tiles" }
@@ -433,6 +438,8 @@ abstract class TilingReaderImage(
     }
 
     override fun close() {
+        closeTileBitmaps(pendingTilesToClose)
+        pendingTilesToClose = emptyList()
         originalImage?.close()
         frameData.value?.frames
             ?.flatMap { it.tiles }

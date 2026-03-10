@@ -39,6 +39,13 @@ class ExposedSettingsRepository(database: Database) : ExposedRepository(database
                 it[updateLastCheckedTimestamp] = settings.updateLastCheckedTimestamp?.toString()
                 it[updateLastCheckedReleaseVersion] = settings.updateLastCheckedReleaseVersion?.toString()
                 it[updateDismissedVersion] = settings.updateDismissedVersion?.toString()
+                it[navBarColor] = settings.navBarColor?.toString(16)
+                it[accentColor] = settings.accentColor?.toString(16)
+                it[useNewLibraryUI] = settings.useNewLibraryUI
+                it[cardLayoutBelow] = settings.cardLayoutBelow
+                it[immersiveColorEnabled] = settings.immersiveColorEnabled
+                it[immersiveColorAlpha] = settings.immersiveColorAlpha
+                it[lastSelectedLibraryId] = settings.lastSelectedLibraryId
             }
         }
     }
@@ -60,6 +67,13 @@ class ExposedSettingsRepository(database: Database) : ExposedRepository(database
                 ?.let { AppVersion.fromString(it) },
             updateDismissedVersion = get(AppSettingsTable.updateDismissedVersion)
                 ?.let { AppVersion.fromString(it) },
+            navBarColor = get(AppSettingsTable.navBarColor)?.toLong(16),
+            accentColor = get(AppSettingsTable.accentColor)?.toLong(16),
+            useNewLibraryUI = get(AppSettingsTable.useNewLibraryUI),
+            cardLayoutBelow = get(AppSettingsTable.cardLayoutBelow),
+            immersiveColorEnabled = get(AppSettingsTable.immersiveColorEnabled),
+            immersiveColorAlpha = get(AppSettingsTable.immersiveColorAlpha),
+            lastSelectedLibraryId = get(AppSettingsTable.lastSelectedLibraryId),
         )
     }
 

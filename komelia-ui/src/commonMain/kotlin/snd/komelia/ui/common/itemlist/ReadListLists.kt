@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridState
@@ -18,9 +17,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
+import snd.komelia.ui.LocalUseNewLibraryUI
 import snd.komelia.ui.common.cards.ReadListImageCard
 import snd.komelia.ui.common.components.Pagination
-import snd.komelia.ui.platform.VerticalScrollbar
+import snd.komelia.ui.platform.VerticalScrollbarWithFullSpans
 import snd.komga.client.readlist.KomgaReadList
 import snd.komga.client.readlist.KomgaReadListId
 
@@ -34,17 +34,25 @@ fun ReadListLazyCardGrid(
     onPageChange: (Int) -> Unit,
     minSize: Dp = 200.dp,
     scrollState: LazyGridState = rememberLazyGridState(),
+    beforeContent: (@Composable () -> Unit)? = null,
 ) {
     val coroutineScope = rememberCoroutineScope()
+    val useNewLibraryUI = LocalUseNewLibraryUI.current
+    val cardSpacing = if (useNewLibraryUI) 7.dp else 8.dp
+    val horizontalPadding = 10.dp
     Box {
         LazyVerticalGrid(
             columns = GridCells.Adaptive(minSize),
             state = scrollState,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            contentPadding = PaddingValues(bottom = 30.dp),
-            modifier = Modifier.padding(horizontal = 10.dp)
+            horizontalArrangement = Arrangement.spacedBy(cardSpacing),
+            verticalArrangement = Arrangement.spacedBy(cardSpacing),
+            contentPadding = PaddingValues(start = horizontalPadding, end = horizontalPadding, bottom = 30.dp),
         ) {
+            beforeContent?.let {
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    it()
+                }
+            }
             item(
                 span = { GridItemSpan(maxLineSpan) },
             ) {
@@ -61,7 +69,7 @@ fun ReadListLazyCardGrid(
                     readLists = it,
                     onCollectionClick = { onReadListClick(it.id) },
                     onCollectionDelete = { onReadListDelete(it.id) },
-                    modifier = Modifier.fillMaxSize().padding(5.dp),
+                    modifier = Modifier.fillMaxSize(),
                 )
             }
             item(
@@ -81,6 +89,6 @@ fun ReadListLazyCardGrid(
 
         }
 
-        VerticalScrollbar(scrollState, Modifier.align(Alignment.TopEnd))
+        VerticalScrollbarWithFullSpans(scrollState, Modifier.align(Alignment.TopEnd), 2)
     }
 }

@@ -1,5 +1,8 @@
 package snd.komelia.ui.oneshot
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.model.StateScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
@@ -67,6 +70,7 @@ class OneshotViewModel(
     val series = MutableStateFlow(series)
     val library = MutableStateFlow<KomgaLibrary?>(null)
     val book = MutableStateFlow(book)
+    var isExpanded by mutableStateOf(false)
     val bookMenuActions = BookMenuActions(bookApi, notifications, screenModelScope, taskEmitter)
 
     val cardWidth = settingsRepository.getCardWidth().map { it.dp }
@@ -103,6 +107,8 @@ class OneshotViewModel(
         }.launchIn(screenModelScope)
 
         startKomgaEventListener()
+        collectionsState.initialize()
+        readListsState.initialize()
 
         reloadFlow.onEach {
             reloadEventsEnabled.first { it }

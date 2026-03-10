@@ -1,5 +1,7 @@
 package snd.komelia.ui
 
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
@@ -14,6 +16,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -68,8 +71,38 @@ fun MainView(
     keyEvents: SharedFlow<KeyEvent>
 ) {
     var theme by rememberSaveable { mutableStateOf(Theme.DARK) }
+    var navBarColor by remember { mutableStateOf<Color?>(null) }
+    var accentColor by remember { mutableStateOf<Color?>(null) }
+    var useNewLibraryUI by remember { mutableStateOf(true) }
+    var cardLayoutBelow by remember { mutableStateOf(false) }
+    var immersiveColorEnabled by remember { mutableStateOf(true) }
+    var immersiveColorAlpha by remember { mutableStateOf(0.12f) }
     LaunchedEffect(dependencies) {
         dependencies?.appRepositories?.settingsRepository?.getAppTheme()?.collect { theme = it.toTheme() }
+    }
+    LaunchedEffect(dependencies) {
+        dependencies?.appRepositories?.settingsRepository?.getNavBarColor()
+            ?.collect { navBarColor = it?.let { v -> Color(v.toInt()) } }
+    }
+    LaunchedEffect(dependencies) {
+        dependencies?.appRepositories?.settingsRepository?.getAccentColor()
+            ?.collect { accentColor = it?.let { v -> Color(v.toInt()) } }
+    }
+    LaunchedEffect(dependencies) {
+        dependencies?.appRepositories?.settingsRepository?.getUseNewLibraryUI()
+            ?.collect { useNewLibraryUI = it }
+    }
+    LaunchedEffect(dependencies) {
+        dependencies?.appRepositories?.settingsRepository?.getCardLayoutBelow()
+            ?.collect { cardLayoutBelow = it }
+    }
+    LaunchedEffect(dependencies) {
+        dependencies?.appRepositories?.settingsRepository?.getImmersiveColorEnabled()
+            ?.collect { immersiveColorEnabled = it }
+    }
+    LaunchedEffect(dependencies) {
+        dependencies?.appRepositories?.settingsRepository?.getImmersiveColorAlpha()
+            ?.collect { immersiveColorAlpha = it }
     }
 
     MaterialTheme(colorScheme = theme.colorScheme) {
@@ -114,7 +147,13 @@ fun MainView(
                 LocalReloadEvents provides viewModelFactory.screenReloadEvents,
                 LocalBookDownloadEvents provides dependencies.offlineDependencies.bookDownloadEvents,
                 LocalOfflineMode provides dependencies.isOffline,
-                LocalKomgaState provides dependencies.komgaSharedState
+                LocalKomgaState provides dependencies.komgaSharedState,
+                LocalNavBarColor provides navBarColor,
+                LocalAccentColor provides accentColor,
+                LocalUseNewLibraryUI provides useNewLibraryUI,
+                LocalCardLayoutBelow provides cardLayoutBelow,
+                LocalImmersiveColorEnabled provides immersiveColorEnabled,
+                LocalImmersiveColorAlpha provides immersiveColorAlpha,
             ) {
                 MainContent(platformType, dependencies.komgaSharedState)
 
@@ -130,6 +169,7 @@ fun MainView(
     }
 }
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 private fun MainContent(
     platformType: PlatformType,
@@ -142,45 +182,50 @@ private fun MainContent(
         }
     }
 
-    Navigator(
-        screen = loginScreen,
-        disposeBehavior = NavigatorDisposeBehavior(disposeNestedNavigators = false),
-        onBackPressed = null
-    ) { navigator ->
-        var canProceed by remember { mutableStateOf(komgaSharedState.authenticationState.value == Loaded) }
-        // FIXME this looks like a hack. Find a multiplatform way to handle this outside of composition?
-        // variable to track if Android app was killed in background and later restored
-        var wasInitializedBefore by rememberSaveable { mutableStateOf(false) }
-        navigator.clearEvent()
+    SharedTransitionLayout {
+        CompositionLocalProvider(LocalSharedTransitionScope provides this) {
+            Navigator(
+                screen = loginScreen,
+                disposeBehavior = NavigatorDisposeBehavior(disposeNestedNavigators = false),
+                onBackPressed = null
+            ) { navigator ->
+                var canProceed by remember { mutableStateOf(komgaSharedState.authenticationState.value == Loaded) }
+                // FIXME this looks like a hack. Find a multiplatform way to handle this outside of composition?
+                // variable to track if Android app was killed in background and later restored
+                var wasInitializedBefore by rememberSaveable { mutableStateOf(false) }
+                navigator.clearEvent()
 
-        LaunchedEffect(Unit) {
-            if (canProceed) return@LaunchedEffect
+                LaunchedEffect(Unit) {
+                    if (canProceed) return@LaunchedEffect
 
-            // not really necessary since Voyager navigator doesn't dispose existing MainScreen when it's replaced with LoginScreen
-            // when LoginScreen replaces itself back to MainScreen, it's restored to old state
-            // not sure if it's intended, do proper initialization here to avoid loading LoginScreen
-            if (wasInitializedBefore) {
-                komgaSharedState.tryReloadState()
-            }
+                    // not really necessary since Voyager navigator doesn't dispose existing MainScreen when it's replaced with LoginScreen
+                    // when LoginScreen replaces itself back to MainScreen, it's restored to old state
+                    // not sure if it's intended, do proper initialization here to avoid loading LoginScreen
+                    if (wasInitializedBefore) {
+                        komgaSharedState.tryReloadState()
+                    }
 
-            val currentState = komgaSharedState.authenticationState.value
-            when (currentState) {
-                AuthenticationRequired -> navigator.replaceAll(loginScreen)
-                Loaded -> {}
-            }
-            canProceed = true
+                    val currentState = komgaSharedState.authenticationState.value
+                    when (currentState) {
+                        AuthenticationRequired -> navigator.replaceAll(loginScreen)
+                        Loaded -> {}
+                    }
+                    canProceed = true
 
-            komgaSharedState.authenticationState.collect {
-                wasInitializedBefore = when (it) {
-                    AuthenticationRequired -> false
-                    Loaded -> true
+                    komgaSharedState.authenticationState.collect {
+                        wasInitializedBefore = when (it) {
+                            AuthenticationRequired -> false
+                            Loaded -> true
+                        }
+                    }
+                }
+
+                if (canProceed) {
+                    CurrentScreen()
                 }
             }
         }
-
-        if (canProceed) CurrentScreen()
     }
-
 }
 
 

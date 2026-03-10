@@ -53,6 +53,7 @@ fun SeriesDescriptionRow(
     deleted: Boolean,
     alternateTitles: List<KomgaAlternativeTitle>,
     onFilterClick: (SeriesScreenFilter) -> Unit,
+    showReleaseYear: Boolean = true,
     modifier: Modifier
 ) {
     val strings = LocalStrings.current.seriesView
@@ -62,8 +63,8 @@ fun SeriesDescriptionRow(
         horizontalAlignment = Alignment.Start
     ) {
 
-        if (releaseDate != null)
-            Text("Release Year: ${releaseDate.year}", fontSize = 10.sp)
+        if (showReleaseYear && releaseDate != null)
+            Text("Release Year: ${releaseDate.year}", style = MaterialTheme.typography.labelSmall)
 
         FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             ElevatedButton(
@@ -140,7 +141,7 @@ fun SeriesDescriptionRow(
         if (alternateTitles.isNotEmpty()) {
             SelectionContainer {
                 Column {
-                    Text("Alternative titles", fontWeight = FontWeight.Bold)
+                    Text("Alternative titles", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     alternateTitles.forEach {
                         Row {
                             Text(

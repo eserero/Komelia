@@ -5,6 +5,7 @@ import androidx.compose.foundation.BasicTooltipBox
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.hoverable
@@ -19,12 +20,15 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberBasicTooltipState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.RadioButtonChecked
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
@@ -60,8 +64,15 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalFocusManager
 import kotlinx.coroutines.delay
 import snd.komelia.ui.LocalStrings
+import snd.komelia.ui.dialogs.AppDialog
+import snd.komelia.ui.dialogs.DialogSimpleHeader
 import snd.komelia.ui.platform.cursorForHand
 import snd.komelia.ui.series.SeriesFilterState.TagExclusionMode
 import snd.komelia.ui.series.SeriesFilterState.TagInclusionMode
@@ -76,7 +87,9 @@ fun <T> DropdownChoiceMenu(
     modifier: Modifier = Modifier,
     label: @Composable (() -> Unit)? = null,
     inputFieldColor: Color = MaterialTheme.colorScheme.surfaceVariant,
-    contentPadding: PaddingValues = PaddingValues(10.dp)
+    contentPadding: PaddingValues = PaddingValues(10.dp),
+    selectedOptionContent: @Composable (LabeledEntry<T>) -> Unit = { Text(it.label, maxLines = 1) },
+    optionContent: @Composable (LabeledEntry<T>) -> Unit = { Text(it.label) }
 ) {
     var isExpanded by remember { mutableStateOf(false) }
     ExposedDropdownMenuBox(
@@ -85,7 +98,7 @@ fun <T> DropdownChoiceMenu(
         onExpandedChange = { isExpanded = it },
     ) {
         InputField(
-            value = selectedOption?.label ?: "",
+            content = selectedOption?.let { { selectedOptionContent(it) } } ?: {},
             modifier = Modifier
                 .menuAnchor(PrimaryNotEditable)
                 .clip(RoundedCornerShape(topStart = 5.dp, topEnd = 5.dp))
@@ -106,7 +119,7 @@ fun <T> DropdownChoiceMenu(
 
             options.forEach {
                 DropdownMenuItem(
-                    text = { Text(it.label) },
+                    text = { optionContent(it) },
                     onClick = {
                         onOptionChange(it)
                         isExpanded = false
@@ -137,7 +150,7 @@ fun <T> DropdownMultiChoiceMenu(
         onExpandedChange = { isExpanded = it },
     ) {
         InputField(
-            value = selectedOptions.joinToString { it.label }.ifBlank { placeholder ?: "Any" },
+            content = { Text(selectedOptions.joinToString { it.label }.ifBlank { placeholder ?: "Any" }, maxLines = 1) },
             modifier = Modifier
                 .menuAnchor(PrimaryNotEditable)
                 .clip(RoundedCornerShape(topStart = 5.dp, topEnd = 5.dp))
@@ -170,7 +183,7 @@ fun <T> DropdownMultiChoiceMenu(
 
 @Composable
 private fun InputField(
-    value: String,
+    content: @Composable () -> Unit,
     modifier: Modifier,
     label: @Composable (() -> Unit)? = null,
     trailingIcon: @Composable (() -> Unit),
@@ -179,7 +192,7 @@ private fun InputField(
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     Surface(
-        shadowElevation = 1.dp,
+        shadowElevation = 0.dp,
         color = color,
         modifier = Modifier
             .cursorForHand()
@@ -199,7 +212,7 @@ private fun InputField(
                 CompositionLocalProvider(LocalTextStyle provides MaterialTheme.typography.labelMedium) {
                     label?.let { it() }
                 }
-                Text(value, maxLines = 1)
+                content()
             }
 
             Spacer(Modifier.weight(1f))
@@ -234,7 +247,7 @@ fun <T> DropdownChoiceMenuWithSearch(
         onExpandedChange = { isExpanded = it },
     ) {
         InputField(
-            value = selectedOptions.joinToString { it.label }.ifBlank { placeholder ?: "Any" },
+            content = { Text(selectedOptions.joinToString { it.label }.ifBlank { placeholder ?: "Any" }, maxLines = 1) },
             modifier = Modifier
                 .menuAnchor(PrimaryNotEditable)
                 .then(textFieldModifier),
@@ -309,7 +322,7 @@ fun <T> FilterDropdownChoice(
         contentPadding = PaddingValues(5.dp),
         label = label?.let { { Text(it) } },
         inputFieldColor = MaterialTheme.colorScheme.surfaceVariant,
-        modifier = modifier.clip(RoundedCornerShape(5.dp)),
+        modifier = modifier,
         inputFieldModifier = Modifier.fillMaxWidth()
     )
 }
@@ -331,7 +344,7 @@ fun <T> FilterDropdownMultiChoice(
         label = label?.let { { FilterLabelAndCount(label, selectedOptions.size) } },
         placeholder = placeholder,
         inputFieldColor = MaterialTheme.colorScheme.surfaceVariant,
-        modifier = modifier.clip(RoundedCornerShape(5.dp)),
+        modifier = modifier,
         inputFieldModifier = Modifier.fillMaxWidth()
     )
 }
@@ -360,9 +373,154 @@ fun <T> FilterDropdownMultiChoiceWithSearch(
     )
 }
 
-
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
+fun <T> FilterDialogMultiChoiceWithSearch(
+    selectedOptions: List<LabeledEntry<T>>,
+    options: List<LabeledEntry<T>>,
+    onOptionSelect: (LabeledEntry<T>) -> Unit,
+    onSearch: suspend (String) -> Unit,
+    label: String? = null,
+    placeholder: String? = null,
+    modifier: Modifier = Modifier,
+    onClearAll: (() -> Unit)? = null,
+) {
+    val strings = LocalStrings.current.filters
+    var isDialogOpen by remember { mutableStateOf(false) }
+    var searchText by remember { mutableStateOf("") }
+    val focusRequester = remember { FocusRequester() }
+
+    LaunchedEffect(searchText) {
+        delay(200)
+        onSearch(searchText)
+    }
+
+    // Anchor
+    InputField(
+        content = { Text(selectedOptions.joinToString { it.label }.ifBlank { placeholder ?: "Any" }, maxLines = 1) },
+        modifier = modifier.clickable { isDialogOpen = true },
+        label = label?.let { { FilterLabelAndCount(label, selectedOptions.size) } },
+        trailingIcon = { Icon(Icons.Default.ArrowDropDown, null) },
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        contentPadding = PaddingValues(5.dp)
+    )
+
+    if (isDialogOpen) {
+        Dialog(
+            onDismissRequest = { isDialogOpen = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            val focusManager = LocalFocusManager.current
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth(0.9f)
+                    .padding(vertical = 20.dp)
+                    .pointerInput(Unit) { detectTapGestures(onTap = { focusManager.clearFocus() }) },
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surfaceContainer,
+                tonalElevation = 3.dp,
+                shadowElevation = 3.dp
+            ) {
+                val scrollState = rememberScrollState()
+                Column(
+                    modifier = Modifier
+                        .padding(15.dp)
+                        .verticalScroll(scrollState),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        NoPaddingTextField(
+                            text = searchText,
+                            onTextChange = { searchText = it },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(40.dp)
+                                .focusRequester(focusRequester),
+                            placeholder = strings.filterTagsSearch
+                        )
+                        LaunchedEffect(Unit) { focusRequester.requestFocus() }
+
+                        OutlinedButton(
+                            onClick = {
+                                searchText = ""
+                                onClearAll?.invoke()
+                            },
+                            enabled = selectedOptions.isNotEmpty(),
+                            shape = RoundedCornerShape(5.dp),
+                            modifier = Modifier.cursorForHand()
+                        ) {
+                            Text(strings.filterTagsReset, style = MaterialTheme.typography.bodyLarge)
+                        }
+                    }
+
+                    if (selectedOptions.isNotEmpty()) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(label ?: "")
+                            HorizontalDivider(Modifier.padding(start = 10.dp))
+                        }
+
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(5.dp),
+                            verticalArrangement = Arrangement.spacedBy(5.dp),
+                        ) {
+                            selectedOptions.forEach { option ->
+                                AuthorFilterChip(
+                                    label = option.label,
+                                    isSelected = true,
+                                    onClick = { onOptionSelect(option) }
+                                )
+                            }
+                        }
+                    }
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("Search Results")
+                        HorizontalDivider(Modifier.padding(start = 10.dp))
+                    }
+
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(5.dp),
+                        verticalArrangement = Arrangement.spacedBy(5.dp),
+                    ) {
+                        options.forEach { option ->
+                            val isSelected = selectedOptions.any { it.value == option.value }
+                            if (!isSelected) {
+                                AuthorFilterChip(
+                                    label = option.label,
+                                    isSelected = false,
+                                    onClick = { onOptionSelect(option) }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AuthorFilterChip(
+    label: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    val borderColor = if (isSelected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceVariant
+    val textColor = if (isSelected) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary
+
+    NoPaddingChip(
+        onClick = onClick,
+        color = MaterialTheme.colorScheme.surface,
+        borderColor = borderColor
+    ) {
+        Text(label, style = MaterialTheme.typography.labelLarge.copy(color = textColor))
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)@Composable
 fun TagFiltersDropdownMenu(
     allTags: List<String>,
     includeTags: List<String>,
@@ -433,7 +591,7 @@ fun TagFiltersDropdownMenu(
             onExpandedChange = { isExpanded = it },
         ) {
             InputField(
-                value = inputValue,
+                content = { Text(inputValue, maxLines = 1) },
                 modifier = Modifier
                     .menuAnchor(PrimaryNotEditable)
                     .then(inputFieldModifier),
@@ -667,7 +825,7 @@ private fun <T> DropdownMultiChoiceItem(
 ) {
     val color = if (selected) MaterialTheme.colorScheme.tertiary else Color.Unspecified
     DropdownMenuItem(
-        text = { Text(text = option.label, color = color) },
+        text = { Text(text = option.label, color = color, style = MaterialTheme.typography.bodyLarge) },
         onClick = { onOptionSelect(option) },
         modifier = Modifier.cursorForHand(),
         leadingIcon = {

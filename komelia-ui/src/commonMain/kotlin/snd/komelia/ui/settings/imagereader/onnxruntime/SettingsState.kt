@@ -49,6 +49,8 @@ class OnnxRuntimeSettingsState(
         ?.stateIn(coroutineScope, SharingStarted.Eagerly, false)
         ?: MutableStateFlow(false)
     val panelModelIsDownloaded = panelDetector?.isAvailable ?: MutableStateFlow(false)
+    val panelDetectionUrl = settingsRepository.getPanelDetectionUrl()
+        .stateIn(coroutineScope, SharingStarted.Eagerly, "")
 
 
     suspend fun initialize() {
@@ -69,7 +71,11 @@ class OnnxRuntimeSettingsState(
 
     fun onPanelDetectionModelDownloadRequest(): Flow<UpdateProgress> {
         checkNotNull(onnxModelDownloader) { "onnx model downloader is not initialized" }
-        return onnxModelDownloader.panelDownload()
+        return onnxModelDownloader.panelDownload(panelDetectionUrl.value)
+    }
+
+    fun onPanelDetectionUrlChange(url: String) {
+        coroutineScope.launch { settingsRepository.putPanelDetectionUrl(url) }
     }
 
     fun onTileSizeChange(tileSize: Int) {

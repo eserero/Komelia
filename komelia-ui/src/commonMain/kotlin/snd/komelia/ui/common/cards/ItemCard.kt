@@ -35,31 +35,47 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.ReorderableLazyGridState
+import snd.komelia.ui.LocalCardLayoutBelow
 import snd.komelia.ui.LocalPlatform
 import snd.komelia.ui.common.components.OutlinedText
 import snd.komelia.ui.platform.PlatformType
 import snd.komelia.ui.platform.cursorForHand
 
 const val defaultCardWidth = 240
+const val DEFAULT_CARD_MAX_LINES = 2
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ItemCard(
     modifier: Modifier = Modifier,
-    containerColor: Color = MaterialTheme.colorScheme.surfaceVariant,
+    containerColor: Color? = null,
     onClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
     image: @Composable () -> Unit,
     content: @Composable ColumnScope.() -> Unit = {},
 ) {
+    val cardLayoutBelow = LocalCardLayoutBelow.current
+    val color = containerColor ?: if (cardLayoutBelow) Color.Transparent
+    else MaterialTheme.colorScheme.surfaceVariant
+
+    val shape = if (cardLayoutBelow) RoundedCornerShape(12.dp)
+    else RoundedCornerShape(topStart = 5.dp, topEnd = 5.dp)
+
     Card(
-        shape = RoundedCornerShape(topStart = 5.dp, topEnd = 5.dp),
+        shape = shape,
         modifier = modifier
             .combinedClickable(onClick = onClick ?: {}, onLongClick = onLongClick)
             .then(if (onClick != null || onLongClick != null) Modifier.cursorForHand() else Modifier),
-        colors = CardDefaults.cardColors(containerColor = containerColor),
+        colors = CardDefaults.cardColors(containerColor = color),
     ) {
-        Box(modifier = Modifier.aspectRatio(0.703f)) { image() }
+        val imageShape = if (cardLayoutBelow) RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
+        else RoundedCornerShape(topStart = 5.dp, topEnd = 5.dp)
+
+        Box(
+            modifier = Modifier
+                .aspectRatio(0.703f)
+                .clip(imageShape)
+        ) { image() }
         content()
     }
 }
@@ -104,7 +120,7 @@ fun overlayBorderModifier() =
 fun CardOutlinedText(
     text: String,
     textColor: Color = Color.Unspecified,
-    maxLines: Int = Int.MAX_VALUE,
+    maxLines: Int = DEFAULT_CARD_MAX_LINES,
     style: TextStyle = MaterialTheme.typography.bodyMedium.copy(color = Color.White),
     outlineDrawStyle: Stroke = Stroke(4f),
 ) {

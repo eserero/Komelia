@@ -49,9 +49,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
+import snd.komelia.ui.LocalAccentColor
 import snd.komelia.ui.LocalKomgaState
 import snd.komelia.ui.LocalOfflineMode
 import snd.komelia.ui.common.menus.LibraryActionsMenu
@@ -255,10 +257,17 @@ private fun NavButton(
     actionButton: (@Composable () -> Unit)? = null,
     isSelected: Boolean,
 ) {
+    val accentColor = LocalAccentColor.current
+    val (backgroundColor, contentColor) = when {
+        isSelected && accentColor != null -> accentColor.copy(alpha = 0.15f) to accentColor
+        isSelected -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
+        else -> Color.Transparent to MaterialTheme.colorScheme.onSurface
+    }
+
     TextButton(
         onClick = onClick,
         contentPadding = PaddingValues(0.dp),
-        shape = RoundedCornerShape(10.dp)
+        shape = RoundedCornerShape(10.dp),
     ) {
         Row(
             horizontalArrangement = Arrangement.Start,
@@ -266,16 +275,14 @@ private fun NavButton(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(40.dp)
-                .background(
-                    if (isSelected) MaterialTheme.colorScheme.surfaceVariant
-                    else MaterialTheme.colorScheme.surface
-                )
+                .background(backgroundColor)
         ) {
 
             if (icon != null) {
                 Icon(
                     icon,
                     contentDescription = null,
+                    tint = contentColor,
                     modifier = Modifier.padding(10.dp, 0.dp, 20.dp, 0.dp)
                 )
             } else {
@@ -283,7 +290,7 @@ private fun NavButton(
             }
 
             Column(modifier = Modifier.weight(1.0f)) {
-                Text(label, style = MaterialTheme.typography.labelLarge)
+                Text(label, style = MaterialTheme.typography.labelLarge, color = contentColor)
                 if (errorLabel != null) {
                     Text(
                         text = errorLabel,

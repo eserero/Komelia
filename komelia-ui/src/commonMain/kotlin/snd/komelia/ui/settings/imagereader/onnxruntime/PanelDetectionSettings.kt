@@ -1,31 +1,26 @@
 package snd.komelia.ui.settings.imagereader.onnxruntime
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.flow.Flow
+import snd.komelia.db.ImageReaderSettings
+import snd.komelia.ui.common.components.DropdownChoiceMenu
+import snd.komelia.ui.common.components.LabeledEntry
 import snd.komelia.ui.platform.cursorForHand
 import snd.komelia.updates.UpdateProgress
 
 @Composable
 fun PanelDetectionSettings(
     isDownloaded: Boolean,
+    currentUrl: String,
+    onUrlChange: (String) -> Unit,
     onDownloadRequest: () -> Flow<UpdateProgress>
 ) {
     var showDownloadDialog by remember { mutableStateOf(false) }
@@ -37,7 +32,7 @@ fun PanelDetectionSettings(
         )
     }
 
-    Column {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(
             """
                 If model is available, a new "Panels" reader mode will be added.
@@ -62,6 +57,42 @@ fun PanelDetectionSettings(
                 Icon(Icons.Default.Check, null, tint = Color.Green)
             }
         }
+
+        val options = remember {
+            listOf(
+                LabeledEntry(ImageReaderSettings.PANEL_DETECTION_DEFAULT_GITHUB_URL, "Default (GitHub)"),
+                LabeledEntry(ImageReaderSettings.PANEL_DETECTION_DEFAULT_ORIGINAL_URL, "Default (Original)"),
+                LabeledEntry("Custom", "Custom"),
+            )
+        }
+        var isCustomUrl by remember { mutableStateOf(!options.any { it.value == currentUrl }) }
+        val selectedOption = remember(currentUrl, isCustomUrl) {
+            if (isCustomUrl) options.last()
+            else options.find { it.value == currentUrl } ?: options.last()
+        }
+
+        DropdownChoiceMenu(
+            selectedOption = selectedOption,
+            options = options,
+            onOptionChange = {
+                if (it.value != "Custom") {
+                    isCustomUrl = false
+                    onUrlChange(it.value)
+                } else {
+                    isCustomUrl = true
+                }
+            },
+            label = { Text("Model URL Source") },
+            inputFieldModifier = Modifier.fillMaxWidth()
+        )
+
+        if (isCustomUrl) {
+            OutlinedTextField(
+                value = currentUrl,
+                onValueChange = onUrlChange,
+                label = { Text("Custom URL") },
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
     }
 }
-

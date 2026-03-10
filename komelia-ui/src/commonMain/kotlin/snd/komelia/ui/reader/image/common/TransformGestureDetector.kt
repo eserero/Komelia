@@ -48,7 +48,8 @@ import kotlin.math.atan2
  */
 suspend fun PointerInputScope.detectTransformGestures(
     panZoomLock: Boolean = false,
-    onGesture: (changes: List<PointerInputChange>, centroid: Offset, pan: Offset, zoom: Float, rotation: Float) -> Unit
+    onGesture: (changes: List<PointerInputChange>, centroid: Offset, pan: Offset, zoom: Float, rotation: Float) -> Unit,
+    onEnd: () -> Unit = {}
 ) {
     awaitEachGesture {
         var rotation = 0f
@@ -103,6 +104,7 @@ suspend fun PointerInputScope.detectTransformGestures(
                 }
             }
         } while (!canceled && event.changes.fastAny { it.pressed })
+        onEnd()
     }
 }
 

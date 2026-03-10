@@ -24,8 +24,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.OfflinePin
+import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -47,13 +47,17 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.flow.filter
 import snd.komelia.komga.api.model.KomeliaBook
 import snd.komelia.offline.sync.model.DownloadEvent
 import snd.komelia.ui.LocalBookDownloadEvents
+import snd.komelia.ui.LocalCardLayoutBelow
 import snd.komelia.ui.LocalLibraries
 import snd.komelia.ui.LocalWindowWidth
 import snd.komelia.ui.common.BookReadButton
@@ -81,6 +85,8 @@ fun BookImageCard(
     val libraryIsDeleted = remember {
         libraries.value.firstOrNull { it.id == book.libraryId }?.unavailable ?: false
     }
+    val cardLayoutBelow = LocalCardLayoutBelow.current
+
     ItemCard(
         modifier = modifier,
         onClick = onBookClick,
@@ -97,13 +103,63 @@ fun BookImageCard(
                 BookImageOverlay(
                     book = book,
                     libraryIsDeleted = libraryIsDeleted,
-                    showSeriesTitle = showSeriesTitle,
+                    showTitle = !cardLayoutBelow,
+                    showSeriesTitle = showSeriesTitle && !cardLayoutBelow,
                 ) {
                     BookThumbnail(
                         book.id,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
                     )
+                }
+            }
+        },
+        content = {
+            if (cardLayoutBelow) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    val isUnavailable = book.deleted || libraryIsDeleted
+                    val showSeries = showSeriesTitle && !book.oneshot
+
+                    if (isUnavailable) {
+                        Text(
+                            text = "Unavailable",
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                        Text(
+                            text = book.metadata.title,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    } else if (showSeries) {
+                        Text(
+                            text = book.seriesTitle,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            text = book.metadata.title,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    } else {
+                        Text(
+                            text = book.metadata.title,
+                            maxLines = 2,
+                            minLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
                 }
             }
         }
@@ -116,6 +172,7 @@ fun BookSimpleImageCard(
     onBookClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
+    val cardLayoutBelow = LocalCardLayoutBelow.current
     ItemCard(
         modifier = modifier,
         onClick = onBookClick,
@@ -123,13 +180,27 @@ fun BookSimpleImageCard(
             BookImageOverlay(
                 book = book,
                 libraryIsDeleted = false,
-                showTitle = false
+                showTitle = !cardLayoutBelow
             ) {
                 BookThumbnail(
                     book.id,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
                 )
+            }
+        },
+        content = {
+            if (cardLayoutBelow) {
+                Column(Modifier.padding(8.dp)) {
+                    Text(
+                        text = book.metadata.title,
+                        maxLines = 2,
+                        minLines = 2,
+                        style = MaterialTheme.typography.bodyMedium,
+                        overflow = TextOverflow.Ellipsis,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
             }
         }
     )
@@ -181,14 +252,14 @@ private fun BookImageOverlay(
                 if (showTitle) {
                     CardOutlinedText(
                         text = book.metadata.title,
-                        maxLines = 3
+                        maxLines = DEFAULT_CARD_MAX_LINES
                     )
-                }
-                if (book.deleted || libraryIsDeleted) {
-                    CardOutlinedText(
-                        text = "Unavailable",
-                        textColor = MaterialTheme.colorScheme.error
-                    )
+                    if (book.deleted || libraryIsDeleted) {
+                        CardOutlinedText(
+                            text = "Unavailable",
+                            textColor = MaterialTheme.colorScheme.error
+                        )
+                    }
                 }
             }
 
@@ -459,7 +530,7 @@ private fun BookDetailedListDetails(
                         onClick = { isMenuExpanded = true },
                         colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                     ) {
-                        Icon(Icons.Default.MoreVert, null)
+                        Icon(Icons.Rounded.MoreVert, null)
                     }
                     BookActionsMenu(
                         book = book,
@@ -487,7 +558,7 @@ private fun BookMenuActionsDropdown(
             onClick = { onActionsMenuExpand(true) },
             colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
-            Icon(Icons.Default.MoreVert, null)
+            Icon(Icons.Rounded.MoreVert, null)
         }
 
         BookActionsMenu(
@@ -500,4 +571,3 @@ private fun BookMenuActionsDropdown(
         )
     }
 }
-

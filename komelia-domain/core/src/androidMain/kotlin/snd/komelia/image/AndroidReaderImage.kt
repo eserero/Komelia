@@ -3,6 +3,9 @@ package snd.komelia.image
 import android.graphics.Bitmap
 import android.graphics.Paint
 import android.graphics.Paint.FILTER_BITMAP_FLAG
+import android.os.Handler
+import android.os.Looper
+import io.github.oshai.kotlinlogging.KotlinLogging
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.nativeCanvas
@@ -10,10 +13,21 @@ import androidx.compose.ui.graphics.toAndroidRectF
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.toSize
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import snd.komelia.image.AndroidBitmap.toBitmap
 import snd.komelia.image.ReaderImage.PageId
 import snd.komelia.image.processing.ImageProcessingPipeline
+
+private val logger = KotlinLogging.logger {}
 
 @Suppress("EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING")
 actual typealias RenderImage = Bitmap
@@ -27,6 +41,7 @@ class AndroidReaderImage(
     upsamplingMode: StateFlow<UpsamplingMode>,
     downSamplingKernel: StateFlow<ReduceKernel>,
     linearLightDownSampling: StateFlow<Boolean>,
+    private val ncnnUpscaler: AndroidNcnnUpscaler?,
 ) : TilingReaderImage(
     imageDecoder = imageDecoder,
     imageSource = imageSource,
@@ -37,9 +52,66 @@ class AndroidReaderImage(
     linearLightDownSampling = linearLightDownSampling,
     pageId = pageId,
 ) {
+    private companion object {
+        // Prefetch window: ±3 pages covers current + neighbors in all layout modes (single, double-spread).
+        const val UPSCALE_PREFETCH_RANGE = 3
+    }
+
+    @Volatile
+    private var cachedUpscaledImage: KomeliaImage? = null
+
+    override val upscaleStatus = MutableStateFlow<UpscaleStatus>(UpscaleStatus.Idle)
+
+    init {
+        ncnnUpscaler?.isReady
+            ?.drop(1)
+            ?.filter { it }
+            ?.onEach { retryUpscaleOnLoad() }
+            ?.launchIn(processingScope)
+
+        // Feature 1: React to upscaleOnLoad toggle
+        ncnnUpscaler?.settingsFlow
+            ?.drop(1)
+            ?.map { it?.upscaleOnLoad ?: false }
+            ?.distinctUntilChanged()
+            ?.onEach { upscaleOnLoad ->
+                if (upscaleOnLoad) {
+                    retryUpscaleOnLoad()
+                } else {
+                    val old = cachedUpscaledImage
+                    cachedUpscaledImage = null
+                    upscaleStatus.value = UpscaleStatus.Idle
+                    if (old != null && old !== image.value) old.close()
+                    reloadLastRequest()
+                }
+            }
+            ?.launchIn(processingScope)
+
+        // Feature 4: React to engine/model changes - always clear old upscale result
+        ncnnUpscaler?.settingsFlow
+            ?.drop(1)
+            ?.map { Pair(it?.engine, it?.model) }
+            ?.distinctUntilChanged()
+            ?.onEach { _ ->
+                val upscaleOnLoad = ncnnUpscaler.settingsFlow.value?.upscaleOnLoad ?: false
+                val old = cachedUpscaledImage
+                cachedUpscaledImage = null
+                upscaleStatus.value = UpscaleStatus.Idle
+                if (old != null && old !== image.value) old.close()
+                if (upscaleOnLoad) {
+                    retryUpscaleOnLoad()
+                } else {
+                    reloadLastRequest()
+                }
+            }
+            ?.launchIn(processingScope)
+    }
 
     override fun closeTileBitmaps(tiles: List<ReaderImageTile>) {
-        tiles.forEach { it.renderImage?.recycle() }
+        if (tiles.isEmpty()) return
+        Handler(Looper.getMainLooper()).post {
+            tiles.forEach { it.renderImage?.recycle() }
+        }
     }
 
     override fun createTilePainter(
@@ -55,7 +127,42 @@ class AndroidReaderImage(
         )
     }
 
+    override fun requestUpdate(maxDisplaySize: IntSize, zoomFactor: Float, visibleDisplaySize: IntRect) {
+        AndroidNcnnUpscaler.currentPageNumber.set(pageId.pageNumber)
+        super.requestUpdate(maxDisplaySize, zoomFactor, visibleDisplaySize)
+    }
+
+    override suspend fun loadImage() {
+        super.loadImage()
+        val currentImage = image.value ?: return
+        val willUpscale = ncnnUpscaler?.willUpscale(currentImage) == true
+        if (willUpscale) {
+            upscaleStatus.value = UpscaleStatus.Upscaling
+            AndroidNcnnUpscaler.registerActivity(pageId.pageNumber)
+        }
+        val upscaled = try {
+            ncnnUpscaler?.checkAndUpscale(currentImage, pageId.pageNumber)
+        } catch (e: Throwable) {
+            if (willUpscale) AndroidNcnnUpscaler.unregisterActivity(pageId.pageNumber, UpscaleStatus.Idle)
+            upscaleStatus.value = UpscaleStatus.Idle
+            throw e
+        }
+        currentCoroutineContext().ensureActive()
+        if (upscaled != null && upscaled !== currentImage) {
+            cachedUpscaledImage = upscaled
+            upscaleStatus.value = UpscaleStatus.Upscaled
+            if (willUpscale) AndroidNcnnUpscaler.unregisterActivity(pageId.pageNumber, UpscaleStatus.Upscaled)
+        } else {
+            upscaleStatus.value = UpscaleStatus.Idle
+            if (willUpscale) AndroidNcnnUpscaler.unregisterActivity(pageId.pageNumber, UpscaleStatus.Idle)
+        }
+    }
+
     override suspend fun resizeImage(image: KomeliaImage, scaleWidth: Int, scaleHeight: Int): ReaderImageData {
+        if (ncnnUpscaler != null && (scaleWidth > image.width || scaleHeight > image.pageHeight)) {
+            return upscaleImage(image, scaleWidth, scaleHeight)
+        }
+
         return image.resize(
             scaleWidth = scaleWidth,
             scaleHeight = scaleHeight,
@@ -73,6 +180,10 @@ class AndroidReaderImage(
         var region: KomeliaImage? = null
         var resized: KomeliaImage? = null
         try {
+            if (ncnnUpscaler != null && (scaleWidth > imageRegion.width || scaleHeight > imageRegion.height)) {
+                return upscaleRegion(image, imageRegion, scaleWidth, scaleHeight)
+            }
+
             region = image.extractArea(imageRegion.toImageRect())
             if (scaleWidth > imageRegion.width || scaleHeight > imageRegion.height) {
                 val regionData = region.toReaderImageData()
@@ -86,14 +197,202 @@ class AndroidReaderImage(
             )
             return resized.toReaderImageData()
         } finally {
-            region?.close()
-            resized?.close()
+            if (resized != null) {
+                region?.close()   // region was intermediate — safe to recycle
+                // do NOT close resized — tile owns resized.bitmap
+            } else {
+                // resized == null means either we returned early (upscaleRegion path),
+                // or region was returned directly. In the upscaleRegion path both are null.
+                // In the direct-region path (no ncnnUpscaler, zoom-in case), region is
+                // VipsBackedImage so closing it is safe (toBitmap() produced an independent copy).
+                if (region !is AndroidBitmapBackedImage) {
+                    region?.close()
+                }
+                // if region is AndroidBitmapBackedImage, tile owns region.bitmap — don't close
+            }
         }
+    }
+
+    private suspend fun retryUpscaleOnLoad() {
+        if (cachedUpscaledImage != null) return   // already upscaled, skip
+
+        // Only retry within the prefetch window of the currently-rendered page
+        val currentPage = AndroidNcnnUpscaler.currentPageNumber.get()
+        if (currentPage < 0) return  // no page rendered yet
+        if (kotlin.math.abs(pageId.pageNumber - currentPage) > UPSCALE_PREFETCH_RANGE) return
+
+        val currentImage = image.value ?: return
+        upscaleStatus.value = UpscaleStatus.Upscaling
+        AndroidNcnnUpscaler.registerActivity(pageId.pageNumber)
+        var resultStatus: UpscaleStatus = UpscaleStatus.Idle
+        val upscaled = try {
+            ncnnUpscaler?.checkAndUpscale(currentImage, pageId.pageNumber)
+        } catch (e: Throwable) {
+            AndroidNcnnUpscaler.unregisterActivity(pageId.pageNumber, UpscaleStatus.Idle)
+            upscaleStatus.value = UpscaleStatus.Idle
+            throw e
+        }
+        currentCoroutineContext().ensureActive()
+        if (upscaled != null && upscaled !== currentImage) {
+            cachedUpscaledImage = upscaled
+            upscaleStatus.value = UpscaleStatus.Upscaled
+            resultStatus = UpscaleStatus.Upscaled
+            reloadLastRequest()
+        } else {
+            upscaleStatus.value = UpscaleStatus.Idle
+        }
+        AndroidNcnnUpscaler.unregisterActivity(pageId.pageNumber, resultStatus)
+    }
+
+    private suspend fun upscaleImage(
+        image: KomeliaImage,
+        scaleWidth: Int,
+        scaleHeight: Int,
+    ): ReaderImageData {
+        val cached = cachedUpscaledImage  // capture once to avoid TOCTOU race with close()
+        val upscaled = when {
+            cached === image -> image          // image IS the cached upscaled version — use directly
+            cached != null -> cached           // have a 2x cache for original image
+            else -> {
+                upscaleStatus.value = UpscaleStatus.Upscaling
+                AndroidNcnnUpscaler.registerActivity(pageId.pageNumber)
+                val newUpscaled = try {
+                    ncnnUpscaler?.upscale(image, pageId.pageNumber)
+                } catch (e: Throwable) {
+                    AndroidNcnnUpscaler.unregisterActivity(pageId.pageNumber, UpscaleStatus.Idle)
+                    throw e
+                }
+                if (newUpscaled != null) {
+                    upscaleStatus.value = UpscaleStatus.Upscaled
+                    AndroidNcnnUpscaler.unregisterActivity(pageId.pageNumber, UpscaleStatus.Upscaled)
+                } else {
+                    AndroidNcnnUpscaler.unregisterActivity(pageId.pageNumber, UpscaleStatus.Idle)
+                }
+                cachedUpscaledImage = newUpscaled
+                newUpscaled
+            }
+        }
+
+        if (upscaled != null) {
+            return try {
+                // Resize to target so tile gets a fresh independent bitmap,
+                // not a shared reference to cachedUpscaledImage.bitmap
+                val resized = upscaled.resize(
+                    scaleWidth = scaleWidth,
+                    scaleHeight = scaleHeight,
+                    linear = linearLightDownSampling.value,
+                    kernel = downSamplingKernel.value
+                )
+                // do NOT close resized — tile owns resized.bitmap
+                resized.toReaderImageData()
+            } catch (e: IllegalStateException) {
+                logger.warn(e) { "[NCNN] Cached upscaled bitmap recycled during tile render, falling back" }
+                cachedUpscaledImage = null
+                image.toReaderImageData()
+            }
+        } else {
+            return image.toReaderImageData()
+        }
+    }
+
+    private suspend fun upscaleRegion(
+        image: KomeliaImage,
+        imageRegion: IntRect,
+        scaleWidth: Int,
+        scaleHeight: Int
+    ): ReaderImageData {
+        val cached = cachedUpscaledImage  // capture once to avoid TOCTOU race with close()
+        val upscaled = when {
+            cached === image -> image          // image IS the cached upscaled version — use directly
+            cached != null -> cached           // have a 2x cache for original image
+            else -> {
+                upscaleStatus.value = UpscaleStatus.Upscaling
+                AndroidNcnnUpscaler.registerActivity(pageId.pageNumber)
+                val newUpscaled = try {
+                    ncnnUpscaler?.upscale(image, pageId.pageNumber)
+                } catch (e: Throwable) {
+                    AndroidNcnnUpscaler.unregisterActivity(pageId.pageNumber, UpscaleStatus.Idle)
+                    throw e
+                }
+                if (newUpscaled != null) {
+                    upscaleStatus.value = UpscaleStatus.Upscaled
+                    AndroidNcnnUpscaler.unregisterActivity(pageId.pageNumber, UpscaleStatus.Upscaled)
+                } else {
+                    AndroidNcnnUpscaler.unregisterActivity(pageId.pageNumber, UpscaleStatus.Idle)
+                }
+                cachedUpscaledImage = newUpscaled
+                newUpscaled
+            }
+        }
+
+        var region: KomeliaImage? = null
+        var resized: KomeliaImage? = null
+
+        return try {
+            try {
+                if (upscaled != null) {
+                    // assume upscaling is done by integer fraction (2x)
+                    val scaleRatio = upscaled.width.toDouble() / image.width
+                    val targetRegion = ImageRect(
+                        left = (imageRegion.left * scaleRatio).toInt(),
+                        right = (imageRegion.right * scaleRatio).toInt(),
+                        top = (imageRegion.top * scaleRatio).toInt(),
+                        bottom = (imageRegion.bottom * scaleRatio).toInt()
+                    )
+                    region = upscaled.extractArea(targetRegion)
+
+                    // downscale if region is bigger than requested scale
+                    if (region.width > scaleWidth || region.pageHeight > scaleHeight) {
+                        resized = region.resize(
+                            scaleWidth = scaleWidth,
+                            scaleHeight = scaleHeight,
+                            linear = linearLightDownSampling.value,
+                            kernel = downSamplingKernel.value
+                        )
+                        resized.toReaderImageData()
+                    } else {
+                        region.toReaderImageData()
+                    }
+                } else {
+                    region = image.extractArea(imageRegion.toImageRect())
+                    region.toReaderImageData()
+                }
+            } finally {
+                if (resized != null) {
+                    region?.close()   // region was intermediate — safe to recycle its bitmap now
+                    // do NOT close resized — tile owns resized.bitmap
+                } else if (region !is AndroidBitmapBackedImage) {
+                    // region is VipsBackedImage (upscale fallback path) — toReaderImageData() created
+                    // an independent bitmap copy, so closing region here is safe
+                    region?.close()
+                }
+                // if region is AndroidBitmapBackedImage: tile owns region.bitmap — don't close
+            }
+        } catch (e: IllegalStateException) {
+            logger.warn(e) { "[NCNN] Cached upscaled bitmap recycled during tile render (region), falling back" }
+            cachedUpscaledImage = null
+            val fallbackRegion = image.extractArea(imageRegion.toImageRect())
+            val fallbackResult = fallbackRegion.toReaderImageData()
+            if (fallbackRegion !is AndroidBitmapBackedImage) fallbackRegion.close()
+            fallbackResult
+        }
+    }
+
+    override fun close() {
+        super.close()
+        cachedUpscaledImage?.let {
+            if (it !== image.value) {
+                it.close()
+            }
+        }
+        cachedUpscaledImage = null
+        upscaleStatus.value = UpscaleStatus.Idle
+        AndroidNcnnUpscaler.unregisterActivity(pageId.pageNumber, UpscaleStatus.Idle)
     }
 
     private suspend fun KomeliaImage.toReaderImageData(): ReaderImageData {
         if (this.pagesLoaded == 1) {
-            return ReaderImageData(width, height, listOf(this.toBitmap()), null)
+            return ReaderImageData(width, height, listOf(this.toAndroidBitmap()), null)
         }
 
         val frames = mutableListOf<RenderImage>()
@@ -106,12 +405,19 @@ class AndroidReaderImage(
                     top = pageHeight * i,
                     bottom = pageHeight * (i + 1),
                 )
-            ).toBitmap()
+            ).toAndroidBitmap()
 
             frames.add(bitmap)
             delays?.add(this.pageDelays?.getOrNull(i)?.toLong() ?: defaultFrameDelay)
         }
         return ReaderImageData(width, pageHeight, frames, delays)
+    }
+
+    private fun KomeliaImage.toAndroidBitmap(): Bitmap {
+        return when (this) {
+            is AndroidBitmapBackedImage -> this.bitmap
+            else -> this.toBitmap()
+        }
     }
 
     private fun IntRect.toImageRect() =

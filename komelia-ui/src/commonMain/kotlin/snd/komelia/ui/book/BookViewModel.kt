@@ -24,6 +24,7 @@ import snd.komelia.komga.api.KomgaReadListApi
 import snd.komelia.komga.api.model.KomeliaBook
 import snd.komelia.offline.tasks.OfflineTaskEmitter
 import snd.komelia.settings.CommonSettingsRepository
+import snd.komelia.ui.BookSiblingsContext
 import snd.komelia.ui.LoadState
 import snd.komelia.ui.LoadState.Error
 import snd.komelia.ui.LoadState.Loading
@@ -33,7 +34,10 @@ import snd.komelia.ui.common.cards.defaultCardWidth
 import snd.komelia.ui.common.menus.BookMenuActions
 import snd.komelia.ui.readlist.BookReadListsState
 import snd.komga.client.book.KomgaBookId
+import snd.komga.client.common.KomgaPageRequest
+import snd.komga.client.common.KomgaSort.KomgaBooksSort
 import snd.komga.client.library.KomgaLibrary
+import snd.komga.client.search.allOfBooks
 import snd.komga.client.sse.KomgaEvent
 import snd.komga.client.sse.KomgaEvent.BookAdded
 import snd.komga.client.sse.KomgaEvent.BookChanged
@@ -42,7 +46,8 @@ import snd.komga.client.sse.KomgaEvent.ReadProgressDeleted
 
 class BookViewModel(
     book: KomeliaBook?,
-    private val bookId: KomgaBookId,
+    bookId: KomgaBookId,
+    private val bookSiblingsContext: BookSiblingsContext,
     private val bookApi: KomgaBookApi,
     private val notifications: AppNotifications,
     private val komgaEvents: SharedFlow<KomgaEvent>,
@@ -55,6 +60,8 @@ class BookViewModel(
     var library by mutableStateOf<KomgaLibrary?>(null)
         private set
     val book = MutableStateFlow(book)
+    private val currentBookId = MutableStateFlow(bookId)
+    var isExpanded by mutableStateOf(false)
 
     private val reloadEventsEnabled = MutableStateFlow(true)
     private val reloadJobsFlow = MutableSharedFlow<Unit>(1, 0, DROP_OLDEST)
@@ -70,6 +77,8 @@ class BookViewModel(
     val cardWidth = settingsRepository.getCardWidth().map { it.dp }
         .stateIn(screenModelScope, Eagerly, defaultCardWidth.dp)
 
+    val siblingBooks = MutableStateFlow<List<KomeliaBook>>(emptyList())
+
     val bookMenuActions = BookMenuActions(bookApi, notifications, screenModelScope, taskEmitter)
 
     suspend fun initialize() {
@@ -79,6 +88,7 @@ class BookViewModel(
         else mutableState.value = Success(Unit)
         loadLibrary()
         readListsState.initialize()
+        loadSiblingBooks()
         startKomgaEventListener()
 
         reloadJobsFlow.onEach {
@@ -95,10 +105,32 @@ class BookViewModel(
         }
     }
 
+    fun loadSiblingBooks() {
+        screenModelScope.launch {
+            val seriesId = book.value?.seriesId ?: return@launch
+            notifications.runCatchingToNotifications {
+                val page = bookApi.getBookList(
+                    conditionBuilder = allOfBooks {
+                        seriesId { isEqualTo(seriesId) }
+                        if (bookSiblingsContext is BookSiblingsContext.Series) {
+                            bookSiblingsContext.filter?.addConditionTo(this)
+                        }
+                    },
+                    pageRequest = KomgaPageRequest(
+                        unpaged = true,
+                        sort = (bookSiblingsContext as? BookSiblingsContext.Series)?.filter?.sortOrder?.komgaSort
+                            ?: KomgaBooksSort.byNumberAsc()
+                    )
+                )
+                siblingBooks.value = page.content
+            }
+        }
+    }
+
     private suspend fun loadBook() {
         notifications.runCatchingToNotifications {
             mutableState.value = Loading
-            val loadedBook = bookApi.getOne(bookId)
+            val loadedBook = bookApi.getOne(currentBookId.value)
             book.value = loadedBook
         }
             .onSuccess { mutableState.value = Success(Unit) }
@@ -120,6 +152,12 @@ class BookViewModel(
         readListsState.startKomgaEventHandler()
     }
 
+    fun setCurrentBook(book: KomeliaBook) {
+        this.book.value = book
+        this.currentBookId.value = book.id
+        loadLibrary()
+    }
+
     fun onBookDownload() {
         screenModelScope.launch {
             book.value?.let { taskEmitter.downloadBook(it.id) }
@@ -134,6 +172,7 @@ class BookViewModel(
 
     private fun startKomgaEventListener() {
         komgaEvents.onEach { event ->
+            val bookId = currentBookId.value
             when (event) {
                 is BookChanged, is BookAdded ->
                     if (event.bookId == bookId) reloadJobsFlow.tryEmit(Unit)

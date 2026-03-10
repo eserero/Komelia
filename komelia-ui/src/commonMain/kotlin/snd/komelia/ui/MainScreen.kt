@@ -1,40 +1,55 @@
 package snd.komelia.ui
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.systemBars
-import androidx.compose.foundation.layout.windowInsetsBottomHeight
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.LocalLibrary
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.rounded.Home
+import androidx.compose.material.icons.rounded.LocalLibrary
+import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.DrawerValue.Closed
 import androidx.compose.material3.DrawerValue.Open
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
@@ -50,9 +65,11 @@ import cafe.adriel.voyager.navigator.CurrentScreen
 import cafe.adriel.voyager.navigator.Navigator
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.launch
+import snd.komelia.ui.book.BookScreen
 import snd.komelia.ui.book.bookScreen
 import snd.komelia.ui.home.HomeScreen
 import snd.komelia.ui.library.LibraryScreen
+import snd.komelia.ui.oneshot.OneshotScreen
 import snd.komelia.ui.platform.PlatformType.DESKTOP
 import snd.komelia.ui.platform.PlatformType.MOBILE
 import snd.komelia.ui.platform.PlatformType.WEB_KOMF
@@ -60,12 +77,14 @@ import snd.komelia.ui.platform.WindowSizeClass
 import snd.komelia.ui.platform.WindowSizeClass.FULL
 import snd.komelia.ui.platform.cursorForHand
 import snd.komelia.ui.search.SearchScreen
+import snd.komelia.ui.series.SeriesScreen
 import snd.komelia.ui.series.seriesScreen
 import snd.komelia.ui.settings.MobileSettingsScreen
 import snd.komelia.ui.settings.SettingsScreen
 import snd.komelia.ui.topbar.AppBar
 import snd.komelia.ui.topbar.LibrariesNavBarContent
 import snd.komelia.ui.topbar.NavBarContent
+import snd.komelia.ui.LocalSharedTransitionScope
 
 class MainScreen(
     private val defaultScreen: Screen = HomeScreen()
@@ -82,9 +101,11 @@ class MainScreen(
         ) { navigator ->
 
             val vm = rememberScreenModel { viewModelFactory.getNavigationViewModel() }
-            when (platform) {
-                MOBILE -> MobileLayout(navigator, vm)
-                DESKTOP, WEB_KOMF -> DesktopLayout(navigator, vm)
+            CompositionLocalProvider(LocalMainScreenViewModel provides vm) {
+                when (platform) {
+                    MOBILE -> MobileLayout(navigator, vm)
+                    DESKTOP, WEB_KOMF -> DesktopLayout(navigator, vm)
+                }
             }
             LaunchedEffect(Unit) {
                 vm.initialize(navigator)
@@ -151,54 +172,152 @@ class MainScreen(
         }
     }
 
+    @OptIn(ExperimentalSharedTransitionApi::class)
     @Composable
     private fun MobileLayout(
         navigator: Navigator,
         vm: MainScreenViewModel
     ) {
-        val coroutineScope = rememberCoroutineScope()
-        Scaffold(
-            containerColor = MaterialTheme.colorScheme.surface,
-            bottomBar = {
-                BottomNavigationBar(
-                    navigator = navigator,
-                    toggleLibrariesDrawer = { coroutineScope.launch { vm.toggleNavBar() } },
-                    modifier = Modifier
-                )
-            },
-        ) { paddingValues ->
-            val layoutDirection = LocalLayoutDirection.current
-
-            ModalNavigationDrawer(
-                drawerState = vm.navBarState,
-                drawerContent = { LibrariesNavBar(vm, navigator) },
-                content = {
-                    Box(
-                        Modifier
-                            .fillMaxSize()
-                            .padding(
-                                start = paddingValues.calculateStartPadding(layoutDirection),
-                                end = paddingValues.calculateEndPadding(layoutDirection),
-                                top = paddingValues.calculateTopPadding(),
-                                bottom = paddingValues.calculateBottomPadding(),
-                            )
-                            .consumeWindowInsets(paddingValues)
-                    ) {
-                        CurrentScreen()
+        val useNewLibraryUI = LocalUseNewLibraryUI.current
+        val isImmersiveScreen = navigator.lastItem is SeriesScreen ||
+                navigator.lastItem is BookScreen ||
+                navigator.lastItem is OneshotScreen
+        val rawStatusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+        val rawNavBarHeight = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+        CompositionLocalProvider(
+            LocalRawStatusBarHeight provides rawStatusBarHeight,
+            LocalRawNavBarHeight provides rawNavBarHeight,
+        ) {
+            Scaffold(
+                containerColor = MaterialTheme.colorScheme.surface,
+                bottomBar = {
+                    if (useNewLibraryUI) {
+                        AppNavigationBar(
+                            navigator = navigator,
+                            vm = vm,
+                            containerColor = LocalNavBarColor.current ?: MaterialTheme.colorScheme.surfaceVariant
+                        )
+                    } else {
+                        StandardBottomNavigationBar(
+                            navigator = navigator,
+                            vm = vm,
+                            modifier = Modifier
+                        )
                     }
                 }
+            ) { paddingValues ->
+                val layoutDirection = LocalLayoutDirection.current
+                ModalNavigationDrawer(
+                    drawerState = vm.navBarState,
+                    drawerContent = { LibrariesNavBar(vm, navigator) },
+                    content = {
+                        Box(
+                            Modifier
+                                .fillMaxSize()
+                                .padding(
+                                    start = paddingValues.calculateStartPadding(layoutDirection),
+                                    end = paddingValues.calculateEndPadding(layoutDirection),
+                                    top = paddingValues.calculateTopPadding(),
+                                    bottom = paddingValues.calculateBottomPadding(),
+                                )
+                                .consumeWindowInsets(paddingValues)
+                                .statusBarsPadding()
+                        ) {
+                            SharedTransitionLayout {
+                                CompositionLocalProvider(LocalSharedTransitionScope provides this) {
+                                    AnimatedContent(
+                                        targetState = navigator.lastItem,
+                                        transitionSpec = {
+                                            val isToImmersive = targetState is BookScreen || targetState is SeriesScreen || targetState is OneshotScreen
+                                            val isFromImmersive = initialState is BookScreen || initialState is SeriesScreen || initialState is OneshotScreen
+                                            when {
+                                                isToImmersive   -> EnterTransition.None togetherWith fadeOut(tween(200))
+                                                isFromImmersive -> fadeIn(tween(200)) togetherWith fadeOut(tween(450))
+                                                else            -> fadeIn(tween(400)) togetherWith fadeOut(tween(250))
+                                            }
+                                        },
+                                        label = "nav",
+                                    ) { screen ->
+                                        CompositionLocalProvider(LocalAnimatedVisibilityScope provides this) {
+                                            navigator.saveableState("screen", screen) {
+                                                screen.Content()
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                )
+            }
+        }
+    }
+
+    @Composable
+    private fun AppNavigationBar(
+        navigator: Navigator,
+        vm: MainScreenViewModel,
+        containerColor: Color = LocalNavBarColor.current ?: MaterialTheme.colorScheme.surfaceVariant,
+    ) {
+        val accentColor = LocalAccentColor.current
+        val itemColors = if (accentColor != null) {
+            NavigationBarItemDefaults.colors(
+                selectedIconColor = if (accentColor.luminance() > 0.5f) Color.Black else Color.White,
+                selectedTextColor = MaterialTheme.colorScheme.primary,
+                indicatorColor = accentColor
+            )
+        } else {
+            NavigationBarItemDefaults.colors()
+        }
+        NavigationBar(
+            containerColor = containerColor,
+        ) {
+            NavigationBarItem(
+                alwaysShowLabel = true,
+                selected = navigator.lastItem is LibraryScreen,
+                onClick = vm::navigateToLibrary,
+                icon = { Icon(Icons.Rounded.LocalLibrary, null) },
+                label = { Text("Libraries") },
+                colors = itemColors
+            )
+            NavigationBarItem(
+                alwaysShowLabel = true,
+                selected = navigator.lastItem is HomeScreen,
+                onClick = { if (navigator.lastItem !is HomeScreen) navigator.replaceAll(HomeScreen()) },
+                icon = { Icon(Icons.Rounded.Home, null) },
+                label = { Text("Home") },
+                colors = itemColors
+            )
+            NavigationBarItem(
+                alwaysShowLabel = true,
+                selected = navigator.lastItem is SearchScreen,
+                onClick = { if (navigator.lastItem !is SearchScreen) navigator.push(SearchScreen(null)) },
+                icon = { Icon(Icons.Rounded.Search, null) },
+                label = { Text("Search") },
+                colors = itemColors
+            )
+            NavigationBarItem(
+                alwaysShowLabel = true,
+                selected = navigator.lastItem is MobileSettingsScreen || navigator.lastItem is SettingsScreen,
+                onClick = {
+                    if (navigator.lastItem !is MobileSettingsScreen && navigator.lastItem !is SettingsScreen)
+                        navigator.push(MobileSettingsScreen())
+                },
+                icon = { Icon(Icons.Rounded.Settings, null) },
+                label = { Text("Settings") },
+                colors = itemColors
             )
         }
     }
 
     @Composable
-    private fun BottomNavigationBar(
+    private fun StandardBottomNavigationBar(
         navigator: Navigator,
-        toggleLibrariesDrawer: () -> Unit,
+        vm: MainScreenViewModel,
         modifier: Modifier
     ) {
         Surface(
-            color = MaterialTheme.colorScheme.surface,
+            color = MaterialTheme.colorScheme.surfaceVariant,
         ) {
             Column {
                 HorizontalDivider()
@@ -208,39 +327,39 @@ class MainScreen(
                 ) {
                     CompactNavButton(
                         text = "Libraries",
-                        icon = Icons.Default.LocalLibrary,
-                        onClick = { toggleLibrariesDrawer() },
-                        isSelected = false,
+                        icon = Icons.Rounded.LocalLibrary,
+                        onClick = vm::navigateToLibrary,
+                        isSelected = navigator.lastItem is LibraryScreen,
                         modifier = Modifier.weight(1f)
                     )
 
                     CompactNavButton(
                         text = "Home",
-                        icon = Icons.Default.Home,
-                        onClick = { navigator.replaceAll(HomeScreen()) },
+                        icon = Icons.Rounded.Home,
+                        onClick = { if (navigator.lastItem !is HomeScreen) navigator.replaceAll(HomeScreen()) },
                         isSelected = navigator.lastItem is HomeScreen,
                         modifier = Modifier.weight(1f)
                     )
 
-
                     CompactNavButton(
                         text = "Search",
-                        icon = Icons.Default.Search,
-                        onClick = { navigator.push(SearchScreen(null)) },
+                        icon = Icons.Rounded.Search,
+                        onClick = { if (navigator.lastItem !is SearchScreen) navigator.push(SearchScreen(null)) },
                         isSelected = navigator.lastItem is SearchScreen,
                         modifier = Modifier.weight(1f)
                     )
 
                     CompactNavButton(
                         text = "Settings",
-                        icon = Icons.Default.Settings,
-                        onClick = { navigator.parent!!.push(MobileSettingsScreen()) },
-                        isSelected = navigator.lastItem is SettingsScreen,
+                        icon = Icons.Rounded.Settings,
+                        onClick = {
+                            if (navigator.lastItem !is MobileSettingsScreen && navigator.lastItem !is SettingsScreen)
+                                navigator.push(MobileSettingsScreen())
+                        },
+                        isSelected = navigator.lastItem is SettingsScreen || navigator.lastItem is MobileSettingsScreen,
                         modifier = Modifier.weight(1f)
                     )
-
                 }
-                Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.systemBars))
             }
         }
     }
@@ -253,11 +372,13 @@ class MainScreen(
         isSelected: Boolean,
         modifier: Modifier
     ) {
+        val accentColor = LocalAccentColor.current
         Surface(
             modifier = modifier,
+            color = Color.Transparent,
             contentColor =
-                if (isSelected) MaterialTheme.colorScheme.secondary
-                else contentColorFor(MaterialTheme.colorScheme.surfaceVariant)
+            if (isSelected) accentColor ?: MaterialTheme.colorScheme.secondary
+            else contentColorFor(MaterialTheme.colorScheme.surfaceVariant)
         ) {
             Column(
                 modifier = Modifier
@@ -271,7 +392,6 @@ class MainScreen(
             }
         }
     }
-
 
     @Composable
     private fun NavBar(
@@ -289,12 +409,18 @@ class MainScreen(
                 if (width != FULL) coroutineScope.launch { vm.navBarState.snapTo(Closed) }
             },
             onLibrariesClick = {
-                navigator.replaceAll(LibraryScreen())
+                val current = navigator.lastItem
+                if (current !is LibraryScreen || current.libraryId != null) {
+                    navigator.replaceAll(LibraryScreen())
+                }
                 if (width != FULL) coroutineScope.launch { vm.navBarState.snapTo(Closed) }
             },
 
-            onLibraryClick = {
-                navigator.replaceAll(LibraryScreen(it))
+            onLibraryClick = { libraryId ->
+                val current = navigator.lastItem
+                if (current !is LibraryScreen || current.libraryId != libraryId) {
+                    navigator.replaceAll(LibraryScreen(libraryId))
+                }
                 if (width != FULL) coroutineScope.launch { vm.navBarState.snapTo(Closed) }
             },
             onSettingsClick = { navigator.parent!!.push(SettingsScreen()) },
@@ -313,12 +439,18 @@ class MainScreen(
             libraries = vm.libraries.collectAsState().value,
             libraryActions = vm.getLibraryActions(),
             onLibrariesClick = {
-                navigator.replaceAll(LibraryScreen())
+                val current = navigator.lastItem
+                if (current !is LibraryScreen || current.libraryId != null) {
+                    navigator.replaceAll(LibraryScreen())
+                }
                 coroutineScope.launch { vm.navBarState.snapTo(Closed) }
             },
 
-            onLibraryClick = {
-                navigator.replaceAll(LibraryScreen(it))
+            onLibraryClick = { libraryId ->
+                val current = navigator.lastItem
+                if (current !is LibraryScreen || current.libraryId != libraryId) {
+                    navigator.replaceAll(LibraryScreen(libraryId))
+                }
                 coroutineScope.launch { vm.navBarState.snapTo(Closed) }
             },
         )

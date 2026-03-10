@@ -264,6 +264,7 @@ class DesktopAppModule(
         pipeline: ImageProcessingPipeline,
         settings: ImageReaderSettingsRepository,
         onnxRuntimeUpscaler: KomeliaUpscaler?,
+        onnxModelDownloader: OnnxModelDownloader?,
     ): ReaderImageFactory {
         return DesktopReaderImageFactory(
             imageDecoder = imageDecoder,

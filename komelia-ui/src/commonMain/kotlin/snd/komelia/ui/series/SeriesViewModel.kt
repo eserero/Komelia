@@ -61,6 +61,7 @@ class SeriesViewModel(
     val series = MutableStateFlow(series?.withSortedTags())
     val library = MutableStateFlow<KomgaLibrary?>(null)
     var currentTab by mutableStateOf(defaultTab)
+    var isExpanded by mutableStateOf(false)
     val cardWidth = settingsRepository.getCardWidth().map { it.dp }
         .stateIn(screenModelScope, Eagerly, defaultCardWidth.dp)
 

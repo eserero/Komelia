@@ -122,6 +122,7 @@ class ViewModelFactory(
             libraryApi = komgaApi.libraryApi,
             collectionApi = komgaApi.collectionsApi,
             readListsApi = komgaApi.readListApi,
+            bookApi = komgaApi.bookApi,
             seriesApi = komgaApi.seriesApi,
             referentialApi = komgaApi.referentialApi,
 
@@ -178,6 +179,7 @@ class ViewModelFactory(
             ),
             libraries = dependencies.komgaSharedState.libraries,
             offlineSettingsRepository = dependencies.offlineDependencies.repositories.offlineSettingsRepository,
+            settingsRepository = appRepositories.settingsRepository,
             taskEmitter = dependencies.offlineDependencies.taskEmitter,
         )
     }
@@ -201,10 +203,15 @@ class ViewModelFactory(
         defaultTab = defaultTab ?: SeriesTab.BOOKS,
     )
 
-    fun getBookViewModel(bookId: KomgaBookId, book: KomeliaBook?): BookViewModel {
+    fun getBookViewModel(
+        bookId: KomgaBookId,
+        book: KomeliaBook?,
+        bookSiblingsContext: BookSiblingsContext,
+    ): BookViewModel {
         return BookViewModel(
             book = book,
             bookId = bookId,
+            bookSiblingsContext = bookSiblingsContext,
             bookApi = komgaApi.bookApi,
             notifications = dependencies.appNotifications,
             komgaEvents = dependencies.komgaEvents.events,
@@ -251,12 +258,14 @@ class ViewModelFactory(
             readerImageFactory = dependencies.readerImageFactory,
             currentBookId = imageReaderCurrentBook,
             colorCorrectionRepository = appRepositories.bookColorCorrectionRepository,
-            colorCorrectionIsActive = dependencies.colorCorrectionStep.isActive,
             onnxRuntime = dependencies.onnxRuntime,
             panelDetector = dependencies.panelDetector,
             upscaler = dependencies.upscaler,
+            onnxModelDownloader = dependencies.onnxModelDownloader,
+            colorCorrectionIsActive = dependencies.colorCorrectionStep.isActive,
             bookSiblingsContext = bookSiblingsContext,
             markReadProgress = markReadProgress,
+            onBookChange = dependencies.onBookChange,
         )
     }
 

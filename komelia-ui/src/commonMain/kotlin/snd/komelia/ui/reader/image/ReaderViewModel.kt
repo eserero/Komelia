@@ -35,8 +35,10 @@ import snd.komelia.ui.LoadState
 import snd.komelia.ui.reader.image.continuous.ContinuousReaderState
 import snd.komelia.ui.reader.image.paged.PagedReaderState
 import snd.komelia.ui.reader.image.panels.PanelsReaderState
+import snd.komelia.ui.settings.imagereader.ncnn.NcnnSettingsState
 import snd.komelia.ui.settings.imagereader.onnxruntime.OnnxRuntimeSettingsState
 import snd.komelia.ui.strings.AppStrings
+import snd.komelia.updates.OnnxModelDownloader
 import snd.komga.client.book.KomgaBookId
 
 private val cleanupScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
@@ -59,7 +61,9 @@ class ReaderViewModel(
     private val onnxRuntime: OnnxRuntime?,
     private val panelDetector: KomeliaPanelDetector?,
     private val upscaler: KomeliaUpscaler?,
+    private val onnxModelDownloader: OnnxModelDownloader?,
     val colorCorrectionIsActive: Flow<Boolean>,
+    onBookChange: () -> Unit = {},
 ) : ScreenModel {
     val screenScaleState = ScreenScaleState()
     private val pageChangeFlow = MutableSharedFlow<Unit>(
@@ -70,7 +74,7 @@ class ReaderViewModel(
     val onnxRuntimeSettingsState = upscaler?.let {
         OnnxRuntimeSettingsState(
             onnxRuntimeInstaller = null,
-            onnxModelDownloader = null,
+            onnxModelDownloader = onnxModelDownloader,
             onnxRuntime = onnxRuntime,
             upscaler = upscaler,
             panelDetector = panelDetector,
@@ -78,6 +82,12 @@ class ReaderViewModel(
             coroutineScope = screenModelScope,
         )
     }
+
+    val ncnnSettingsState = NcnnSettingsState(
+        onnxModelDownloader = onnxModelDownloader,
+        settingsRepository = readerSettingsRepository,
+        coroutineScope = screenModelScope,
+    )
 
     val readerState: ReaderState = ReaderState(
         bookApi = bookApi,
@@ -103,6 +113,7 @@ class ReaderViewModel(
         appStrings = appStrings,
         pageChangeFlow = pageChangeFlow,
         screenScaleState = screenScaleState,
+        onBookChange = onBookChange,
     )
     val panelsReaderState = panelDetector?.let { panelDetector ->
         if (!panelDetector.isAvailable.value) null
@@ -136,6 +147,7 @@ class ReaderViewModel(
         if (currentState is LoadState.Success || currentState == LoadState.Loading) return
 
         onnxRuntimeSettingsState?.initialize()
+        ncnnSettingsState.initialize()
         readerState.initialize(bookId)
         screenScaleState.areaSize.takeWhile { it == IntSize.Zero }.collect()
 

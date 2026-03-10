@@ -15,16 +15,11 @@ import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream
 import org.apache.commons.io.IOUtils
 import snd.komelia.AppNotifications
 import snd.komelia.updates.OnnxModelDownloader.CompletionEvent
+import snd.komelia.updates.OnnxModelDownloader.CompletionEvent.NcnnModelDownloaded
 import snd.komelia.updates.OnnxModelDownloader.CompletionEvent.PanelModelDownloaded
+import java.nio.file.Files
 import java.nio.file.Path
-import kotlin.io.path.Path
-import kotlin.io.path.createTempFile
-import kotlin.io.path.deleteIfExists
-import kotlin.io.path.inputStream
-import kotlin.io.path.outputStream
-
-private const val panelDetectionModelLink =
-    "https://github.com/Snd-R/komelia-onnxruntime/releases/download/model/rf-detr-nano.onnx.zip"
+import kotlin.io.path.*
 
 class AndroidOnnxModelDownloader(
     private val updateClient: UpdateClient,
@@ -37,19 +32,39 @@ class AndroidOnnxModelDownloader(
         return emptyFlow()
     }
 
-    override fun panelDownload(): Flow<UpdateProgress> {
+    override fun panelDownload(url: String): Flow<UpdateProgress> {
         return flow {
-
-            emit(UpdateProgress(0, 0, panelDetectionModelLink))
-            val archiveFile = createTempFile("rf-detr-nano.onnx.zip")
+            emit(UpdateProgress(0, 0, url))
+            val archiveFile = createTempFile("rf-detr-med.onnx.zip")
             archiveFile.toFile().deleteOnExit()
 
             appNotifications.runCatchingToNotifications {
-                downloadFile(panelDetectionModelLink, archiveFile)
+                downloadFile(url, archiveFile)
                 emit(UpdateProgress(0, 0))
-                extractZipArchive(archiveFile, dataDir)
+                val targetDir = dataDir.resolve("onnx")
+                if (targetDir.notExists()) targetDir.createDirectories()
+                extractZipArchive(archiveFile, targetDir)
                 archiveFile.deleteIfExists()
                 downloadCompletionEvents.emit(PanelModelDownloaded)
+            }.onFailure { archiveFile.deleteIfExists() }
+        }.flowOn(Dispatchers.IO)
+    }
+
+    override fun ncnnDownload(url: String): Flow<UpdateProgress> {
+        return flow {
+            emit(UpdateProgress(0, 0, url))
+            val archiveFile = createTempFile("NcnnUpscalerModels.zip")
+            archiveFile.toFile().deleteOnExit()
+
+            appNotifications.runCatchingToNotifications {
+                downloadFile(url, archiveFile)
+                emit(UpdateProgress(0, 0))
+                val targetDir = dataDir.resolve("ncnn_models")
+                if (targetDir.exists()) targetDir.toFile().deleteRecursively()
+                targetDir.createDirectories()
+                extractZipArchive(archiveFile, targetDir)
+                archiveFile.deleteIfExists()
+                downloadCompletionEvents.emit(NcnnModelDownloaded)
             }.onFailure { archiveFile.deleteIfExists() }
         }.flowOn(Dispatchers.IO)
     }
@@ -78,9 +93,14 @@ class AndroidOnnxModelDownloader(
         ZipArchiveInputStream(from.inputStream().buffered()).use { archiveStream ->
             var entry: ZipArchiveEntry? = archiveStream.nextEntry
             while (entry != null) {
-                val filename = Path(entry.name).fileName.toString()
-                to.resolve(filename).outputStream()
-                    .use { output -> IOUtils.copy(archiveStream, output) }
+                val targetPath = to.resolve(entry.name)
+                if (entry.isDirectory) {
+                    Files.createDirectories(targetPath)
+                } else {
+                    Files.createDirectories(targetPath.parent)
+                    targetPath.outputStream()
+                        .use { output -> IOUtils.copy(archiveStream, output) }
+                }
                 entry = archiveStream.nextEntry
             }
         }

@@ -217,7 +217,7 @@ class ContinuousReaderState(
             .filter { it != IntSize.Zero }
             .onEach {
                 applyPadding()
-                screenScaleState.setZoom(0f)
+                screenScaleState.setZoom(0f, updateBase = true)
             }
             .launchIn(stateScope)
 
@@ -357,17 +357,19 @@ class ContinuousReaderState(
     }
 
     fun scrollBy(amount: Float) {
-        when (readingDirection.value) {
-            TOP_TO_BOTTOM -> {
-                screenScaleState.addPan(Offset(0f, amount))
-            }
+        stateScope.launch {
+            when (readingDirection.value) {
+                TOP_TO_BOTTOM -> {
+                    screenScaleState.addPan(Offset(0f, amount))
+                }
 
-            LEFT_TO_RIGHT -> {
-                screenScaleState.addPan(Offset(amount, 0f))
-            }
+                LEFT_TO_RIGHT -> {
+                    screenScaleState.addPan(Offset(amount, 0f))
+                }
 
-            RIGHT_TO_LEFT -> {
-                screenScaleState.addPan(Offset(amount, 0f))
+                RIGHT_TO_LEFT -> {
+                    screenScaleState.addPan(Offset(amount, 0f))
+                }
             }
         }
     }
@@ -699,7 +701,7 @@ class ContinuousReaderState(
     fun onSidePaddingChange(fraction: Float) {
         this.sidePaddingFraction.value = fraction
         applyPadding()
-        screenScaleState.setZoom(0f)
+        screenScaleState.setZoom(0f, updateBase = true)
         stateScope.launch { settingsRepository.putContinuousReaderPadding(fraction) }
     }
 

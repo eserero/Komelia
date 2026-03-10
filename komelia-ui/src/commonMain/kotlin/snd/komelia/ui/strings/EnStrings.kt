@@ -161,6 +161,16 @@ val EnStrings = AppStrings(
         memoryUsage = "Memory usage",
         pageDisplaySize = "display size",
         pageOriginalSize = "original size",
+
+        tapNavigation = "Tap Navigation",
+        modeLeftRight = "Default",
+        modeLeftRightDesc = "Left = previous page · Right = next page",
+        modeRightLeft = "Reversed",
+        modeRightLeftDesc = "Left = next page · Right = previous page",
+        modeHorizontalSplit = "Top/Bottom Split",
+        modeHorizontalSplitDesc = "Top half = previous page · Bottom half = next page",
+        modeReversedHorizontalSplit = "Reversed Split",
+        modeReversedHorizontalSplitDesc = "Top half = next page · Bottom half = previous page",
     ),
     pagedReader = PagedReaderStrings(
         scaleType = "Scale type",
@@ -176,6 +186,7 @@ val EnStrings = AppStrings(
         layoutDoublePages = "Double pages",
         layoutDoublePagesNoCover = "Double pages (no cover)",
         offsetPages = "Offset pages",
+        adaptiveBackground = "Adaptive background",
     ),
     continuousReader = ContinuousReaderStrings(
         sidePadding = "Side padding",
@@ -290,11 +301,21 @@ val EnStrings = AppStrings(
         downsamplingKernelMKS2013 = "Magic Kernel Sharp 2013",
         downsamplingKernelMKS2021 = "Magic Kernel Sharp 2021",
         downsamplingKernelDefault = "Default",
-        onnxRuntimeExecutionProvider = "Onnx Runtime execution provider",
 
+        ncnnUpscaleMode = "NCNN upscale mode",
+        ncnnUpscaleModeNone = "Disabled",
+        ncnnUpscaleModeWaifu2x = "Waifu2x (Anime)",
+        ncnnUpscaleModeRealCugan = "RealCUGAN (Conservative)",
+        ncnnUpscaleModeRealSr = "RealSR (General)",
+        ncnnUpscaleModeRealEsrgan = "Real-ESRGAN (Anime High-res)",
+        ncnnUpscaleOnLoad = "Upscale on load",
+        ncnnUpscaleOnLoadThreshold = "Min width threshold (px)",
+        ncnnUpscaleOnLoadTooltip = "Trigger upscaling immediately when a page is opened if its width is smaller than the threshold.",
+
+        onnxRuntimeExecutionProvider = "Onnx Runtime execution provider",
         onnxRuntimeUpscaleMode = "Onnx Runtime upscale mode",
         onnxRuntimeUpscaleModeNone = "Disabled",
         onnxRuntimeUpscaleModeUserModel = "User specified model",
         onnxRuntimeUpscaleModeMangaJaNai = "MangaJaNai preset"
-    ),
-)
+        ),
+        )

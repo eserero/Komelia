@@ -6,9 +6,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -27,6 +29,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
@@ -34,6 +37,7 @@ import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.ReorderableLazyGridState
 import sh.calvin.reorderable.rememberReorderableLazyGridState
 import snd.komelia.ui.LocalPlatform
+import snd.komelia.ui.LocalUseNewLibraryUI
 import snd.komelia.ui.common.cards.DraggableImageCard
 import snd.komelia.ui.common.cards.SeriesImageCard
 import snd.komelia.ui.common.components.Pagination
@@ -75,14 +79,19 @@ fun SeriesLazyCardGrid(
     }
 
 
+    val useNewLibraryUI = LocalUseNewLibraryUI.current
+    val cardSpacing = if (useNewLibraryUI) 7.dp else 15.dp
+    val horizontalPadding = if (useNewLibraryUI) 10.dp else 20.dp
     Box(modifier) {
         LazyVerticalGrid(
             state = gridState,
             columns = GridCells.Adaptive(minSize),
-            horizontalArrangement = Arrangement.spacedBy(15.dp),
-            verticalArrangement = Arrangement.spacedBy(15.dp),
-            contentPadding = PaddingValues(bottom = 50.dp),
-            modifier = Modifier.padding(horizontal = 20.dp)
+            horizontalArrangement = Arrangement.spacedBy(cardSpacing),
+            verticalArrangement = Arrangement.spacedBy(cardSpacing),
+            contentPadding = PaddingValues(
+                start = horizontalPadding, end = horizontalPadding,
+                bottom = 15.dp,
+            ),
         ) {
             item(span = { GridItemSpan(maxLineSpan) }) {
                 beforeContent()

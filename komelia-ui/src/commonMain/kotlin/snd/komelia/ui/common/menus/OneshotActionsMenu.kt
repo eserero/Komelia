@@ -1,12 +1,18 @@
 package snd.komelia.ui.common.menus
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.hoverable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsHoveredAsState
-import androidx.compose.material3.DropdownMenu
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.DeleteForever
+import androidx.compose.material.icons.rounded.Label
+import androidx.compose.material.icons.rounded.LabelOff
+import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.DropdownMenuItem
+import snd.komelia.ui.common.components.AnimatedDropdownMenu
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -120,13 +126,14 @@ fun OneshotActionsMenu(
                 !showAddToReadListDialog
     }
 
-    DropdownMenu(
+    AnimatedDropdownMenu(
         expanded = showDropdown.value,
         onDismissRequest = onDismissRequest
     ) {
         if (isAdmin && !isOffline) {
             DropdownMenuItem(
-                text = { Text("Analyze") },
+                text = { Text("Analyze", style = MaterialTheme.typography.labelLarge) },
+                leadingIcon = { Icon(Icons.Rounded.Search, null) },
                 onClick = {
                     actions.analyze(book)
                     onDismissRequest()
@@ -134,7 +141,8 @@ fun OneshotActionsMenu(
             )
 
             DropdownMenuItem(
-                text = { Text("Refresh metadata") },
+                text = { Text("Refresh metadata", style = MaterialTheme.typography.labelLarge) },
+                leadingIcon = { Icon(Icons.Rounded.Refresh, null) },
                 onClick = {
                     actions.refreshMetadata(book)
                     onDismissRequest()
@@ -142,11 +150,13 @@ fun OneshotActionsMenu(
             )
 
             DropdownMenuItem(
-                text = { Text("Add to read list") },
+                text = { Text("Add to read list", style = MaterialTheme.typography.labelLarge) },
+                leadingIcon = { Icon(Icons.Rounded.Add, null) },
                 onClick = { showAddToReadListDialog = true },
             )
             DropdownMenuItem(
-                text = { Text("Add to collection") },
+                text = { Text("Add to collection", style = MaterialTheme.typography.labelLarge) },
+                leadingIcon = { Icon(Icons.Rounded.Add, null) },
                 onClick = { showAddToCollectionDialog = true },
             )
         }
@@ -156,7 +166,8 @@ fun OneshotActionsMenu(
 
         if (!isRead) {
             DropdownMenuItem(
-                text = { Text("Mark as read") },
+                text = { Text("Mark as read", style = MaterialTheme.typography.labelLarge) },
+                leadingIcon = { Icon(Icons.Rounded.Label, null) },
                 onClick = {
                     actions.markAsRead(book)
                     onDismissRequest()
@@ -166,7 +177,8 @@ fun OneshotActionsMenu(
 
         if (!isUnread) {
             DropdownMenuItem(
-                text = { Text("Mark as unread") },
+                text = { Text("Mark as unread", style = MaterialTheme.typography.labelLarge) },
+                leadingIcon = { Icon(Icons.Rounded.LabelOff, null) },
                 onClick = {
                     actions.markAsUnread(book)
                     onDismissRequest()
@@ -177,40 +189,41 @@ fun OneshotActionsMenu(
         val komfIntegration = LocalKomfIntegration.current.collectAsState(false)
         if (komfIntegration.value) {
             DropdownMenuItem(
-                text = { Text("Identify (Komf)") },
+                text = { Text("Identify (Komf)", style = MaterialTheme.typography.labelLarge) },
+                leadingIcon = { Icon(Icons.Rounded.Search, null) },
                 onClick = { showKomfDialog = true },
             )
 
             DropdownMenuItem(
-                text = { Text("Reset Metadata (Komf)") },
+                text = { Text("Reset Metadata (Komf)", style = MaterialTheme.typography.labelLarge) },
+                leadingIcon = { Icon(Icons.Rounded.Refresh, null) },
                 onClick = { showKomfResetDialog = true },
             )
         }
 
-        val deleteInteractionSource = remember { MutableInteractionSource() }
-        val deleteIsHovered = deleteInteractionSource.collectIsHoveredAsState()
-        val deleteColor =
-            if (deleteIsHovered.value) Modifier.background(MaterialTheme.colorScheme.errorContainer)
-            else Modifier
         if (isAdmin && !isOffline) {
             DropdownMenuItem(
-                text = { Text("Delete") },
+                text = { Text("Delete", style = MaterialTheme.typography.labelLarge) },
+                leadingIcon = { Icon(Icons.Rounded.DeleteForever, null) },
                 onClick = {
                     showDeleteDialog = true
                 },
-                modifier = Modifier
-                    .hoverable(deleteInteractionSource)
-                    .then(deleteColor)
+                colors = MenuDefaults.itemColors(
+                    textColor = MaterialTheme.colorScheme.error,
+                    leadingIconColor = MaterialTheme.colorScheme.error
+                )
             )
         }
 
         if (isOffline) {
             DropdownMenuItem(
-                text = { Text("Delete downloaded") },
+                text = { Text("Delete downloaded", style = MaterialTheme.typography.labelLarge) },
+                leadingIcon = { Icon(Icons.Rounded.Delete, null) },
                 onClick = { showDeleteDownloadedDialog = true },
-                modifier = Modifier
-                    .hoverable(deleteInteractionSource)
-                    .then(deleteColor)
+                colors = MenuDefaults.itemColors(
+                    textColor = MaterialTheme.colorScheme.error,
+                    leadingIconColor = MaterialTheme.colorScheme.error
+                )
             )
 
         }

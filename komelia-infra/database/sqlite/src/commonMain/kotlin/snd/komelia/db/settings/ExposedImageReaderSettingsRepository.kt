@@ -15,9 +15,13 @@ import snd.komelia.image.UpsamplingMode
 import snd.komelia.image.UpscaleMode
 import snd.komelia.settings.model.ContinuousReadingDirection
 import snd.komelia.settings.model.LayoutScaleType
+import snd.komelia.settings.model.NcnnEngine
+import snd.komelia.settings.model.NcnnUpscalerSettings
 import snd.komelia.settings.model.PageDisplayLayout
 import snd.komelia.settings.model.PagedReadingDirection
+import snd.komelia.settings.model.PanelsFullPageDisplayMode
 import snd.komelia.settings.model.ReaderFlashColor
+import snd.komelia.settings.model.ReaderTapNavigationMode
 import snd.komelia.settings.model.ReaderType
 
 class ExposedImageReaderSettingsRepository(database: Database) : ExposedRepository(database) {
@@ -32,6 +36,17 @@ class ExposedImageReaderSettingsRepository(database: Database) : ExposedReposito
                     ImageReaderSettings(
                         readerType = ReaderType.valueOf(it[ImageReaderSettingsTable.readerType]),
                         stretchToFit = it[ImageReaderSettingsTable.stretchToFit],
+                        ncnnUpscalerSettings = NcnnUpscalerSettings(
+                            enabled = it[ImageReaderSettingsTable.ncnnEnabled],
+                            engine = NcnnEngine.valueOf(it[ImageReaderSettingsTable.ncnnEngine]),
+                            model = it[ImageReaderSettingsTable.ncnnModel],
+                            gpuId = it[ImageReaderSettingsTable.ncnnGpuId],
+                            ttaMode = it[ImageReaderSettingsTable.ncnnTtaMode],
+                            numThreads = it[ImageReaderSettingsTable.ncnnNumThreads],
+                            upscaleOnLoad = it[ImageReaderSettingsTable.ncnnUpscaleOnLoad],
+                            upscaleThreshold = it[ImageReaderSettingsTable.ncnnUpscaleThreshold],
+                            ncnnUpscalerUrl = it[ImageReaderSettingsTable.ncnnUpscalerUrl],
+                        ),
                         pagedScaleType = LayoutScaleType.valueOf(it[ImageReaderSettingsTable.pagedScaleType]),
                         pagedReadingDirection = PagedReadingDirection.valueOf(it[ImageReaderSettingsTable.pagedReadingDirection]),
                         pagedPageLayout = PageDisplayLayout.valueOf(it[ImageReaderSettingsTable.pagedPageLayout]),
@@ -53,6 +68,15 @@ class ExposedImageReaderSettingsRepository(database: Database) : ExposedReposito
                             ?.let { PlatformFile(it) },
                         ortUpscalerDeviceId = it[ImageReaderSettingsTable.ortDeviceId],
                         ortUpscalerTileSize = it[ImageReaderSettingsTable.ortUpscalerTileSize],
+                        panelsFullPageDisplayMode = it[ImageReaderSettingsTable.panelsFullPageDisplayMode]
+                            .let { mode -> PanelsFullPageDisplayMode.valueOf(mode) },
+                        pagedReaderTapToZoom = it[ImageReaderSettingsTable.pagedReaderTapToZoom],
+                        panelReaderTapToZoom = it[ImageReaderSettingsTable.panelReaderTapToZoom],
+                        pagedReaderAdaptiveBackground = it[ImageReaderSettingsTable.pagedReaderAdaptiveBackground],
+                        panelReaderAdaptiveBackground = it[ImageReaderSettingsTable.panelReaderAdaptiveBackground],
+                        tapNavigationMode = it[ImageReaderSettingsTable.tapNavigationMode]
+                            .let { mode -> ReaderTapNavigationMode.valueOf(mode) },
+                        panelDetectionUrl = it[ImageReaderSettingsTable.panelDetectionUrl],
                     )
                 }
         }
@@ -64,6 +88,17 @@ class ExposedImageReaderSettingsRepository(database: Database) : ExposedReposito
                 it[bookId] = defaultBookId
                 it[readerType] = settings.readerType.name
                 it[stretchToFit] = settings.stretchToFit
+
+                it[ncnnEnabled] = settings.ncnnUpscalerSettings.enabled
+                it[ncnnEngine] = settings.ncnnUpscalerSettings.engine.name
+                it[ncnnModel] = settings.ncnnUpscalerSettings.model
+                it[ncnnGpuId] = settings.ncnnUpscalerSettings.gpuId
+                it[ncnnTtaMode] = settings.ncnnUpscalerSettings.ttaMode
+                it[ncnnNumThreads] = settings.ncnnUpscalerSettings.numThreads
+                it[ncnnUpscaleOnLoad] = settings.ncnnUpscalerSettings.upscaleOnLoad
+                it[ncnnUpscaleThreshold] = settings.ncnnUpscalerSettings.upscaleThreshold
+                it[ncnnUpscalerUrl] = settings.ncnnUpscalerSettings.ncnnUpscalerUrl
+
                 it[pagedScaleType] = settings.pagedScaleType.name
                 it[pagedReadingDirection] = settings.pagedReadingDirection.name
                 it[pagedPageLayout] = settings.pagedPageLayout.name
@@ -84,6 +119,13 @@ class ExposedImageReaderSettingsRepository(database: Database) : ExposedReposito
                 it[ortUpscalerUserModelPath] = settings.ortUpscalerUserModelPath?.path
                 it[ortDeviceId] = settings.ortUpscalerDeviceId
                 it[ortUpscalerTileSize] = settings.ortUpscalerTileSize
+                it[panelsFullPageDisplayMode] = settings.panelsFullPageDisplayMode.name
+                it[pagedReaderTapToZoom] = settings.pagedReaderTapToZoom
+                it[panelReaderTapToZoom] = settings.panelReaderTapToZoom
+                it[pagedReaderAdaptiveBackground] = settings.pagedReaderAdaptiveBackground
+                it[panelReaderAdaptiveBackground] = settings.panelReaderAdaptiveBackground
+                it[tapNavigationMode] = settings.tapNavigationMode.name
+                it[panelDetectionUrl] = settings.panelDetectionUrl
             }
         }
     }

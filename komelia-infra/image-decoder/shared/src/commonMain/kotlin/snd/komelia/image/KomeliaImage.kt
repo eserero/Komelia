@@ -27,6 +27,7 @@ interface KomeliaImage : AutoCloseable {
     suspend fun mapLookupTable(table: ByteArray): KomeliaImage
 
     suspend fun getBytes(): ByteArray
+    suspend fun averageColor(): Int?
 }
 
 data class ImageDimensions(
@@ -62,3 +63,15 @@ enum class ReduceKernel {
     MKS2021,
     DEFAULT,
 }
+
+data class EdgeSampling(
+    val top: EdgeSample? = null,
+    val bottom: EdgeSample? = null,
+    val left: EdgeSample? = null,
+    val right: EdgeSample? = null,
+)
+
+data class EdgeSample(
+    val averageColor: Int,
+    val colorLine: ByteArray,
+)

@@ -1,18 +1,14 @@
 package snd.komelia.ui.settings.imagereader
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import snd.komelia.ui.LocalPlatform
 import snd.komelia.ui.common.components.SwitchWithLabel
 import snd.komelia.ui.platform.PlatformType
+import snd.komelia.ui.settings.imagereader.ncnn.*
 import snd.komelia.ui.settings.imagereader.onnxruntime.OnnxRuntimeSettingsContent
 import snd.komelia.ui.settings.imagereader.onnxruntime.OnnxRuntimeSettingsState
 import snd.komelia.ui.settings.imagereader.onnxruntime.isOnnxRuntimeSupported
@@ -27,7 +23,11 @@ fun ImageReaderSettingsContent(
 
     onCacheClear: () -> Unit,
     onnxRuntimeSettingsState: OnnxRuntimeSettingsState,
+    ncnnSettingsState: NcnnSettingsState,
 ) {
+    var showLogs by remember { mutableStateOf(false) }
+    var showCrashLogs by remember { mutableStateOf(false) }
+
     Column(
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
@@ -68,10 +68,40 @@ fun ImageReaderSettingsContent(
                 mangaJaNaiIsInstalled = onnxRuntimeSettingsState.mangaJaNaiIsInstalled.collectAsState().value,
                 onMangaJaNaiDownload = onnxRuntimeSettingsState::onMangaJaNaiDownloadRequest,
                 panelModelIsDownloaded = onnxRuntimeSettingsState.panelModelIsDownloaded.collectAsState().value,
+                panelDetectionUrl = onnxRuntimeSettingsState.panelDetectionUrl.collectAsState().value,
+                onPanelDetectionUrlChange = onnxRuntimeSettingsState::onPanelDetectionUrlChange,
                 onPanelDetectionModelDownloadRequest = onnxRuntimeSettingsState::onPanelDetectionModelDownloadRequest
-
             )
+        }
+
+        if (isNcnnSupported()) {
+            HorizontalDivider(Modifier.padding(vertical = 10.dp))
+            NcnnSettingsContent(
+                settings = ncnnSettingsState.ncnnUpscalerSettings.collectAsState().value,
+                onSettingsChange = ncnnSettingsState::onSettingsChange,
+                onDownloadRequest = ncnnSettingsState::onNcnnDownloadRequest
+            )
+        }
+
+        if (isNcnnSupported()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                TextButton(onClick = { showLogs = true }) {
+                    Text("View Logs")
+                }
+                TextButton(onClick = { showCrashLogs = true }) {
+                    Text("Crash Logs")
+                }
+            }
+        }
+
+        if (showLogs) {
+            NcnnLogViewerDialog(onDismiss = { showLogs = false })
+        }
+        if (showCrashLogs) {
+            NcnnCrashLogViewerDialog(onDismiss = { showCrashLogs = false })
         }
     }
 }
-

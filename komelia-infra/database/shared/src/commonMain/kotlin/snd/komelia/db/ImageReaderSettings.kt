@@ -7,9 +7,12 @@ import snd.komelia.image.UpsamplingMode
 import snd.komelia.image.UpscaleMode
 import snd.komelia.settings.model.ContinuousReadingDirection
 import snd.komelia.settings.model.LayoutScaleType
+import snd.komelia.settings.model.NcnnUpscalerSettings
 import snd.komelia.settings.model.PageDisplayLayout
 import snd.komelia.settings.model.PagedReadingDirection
+import snd.komelia.settings.model.PanelsFullPageDisplayMode
 import snd.komelia.settings.model.ReaderFlashColor
+import snd.komelia.settings.model.ReaderTapNavigationMode
 import snd.komelia.settings.model.ReaderType
 import snd.komelia.settings.model.ReaderType.PAGED
 
@@ -17,6 +20,7 @@ import snd.komelia.settings.model.ReaderType.PAGED
 data class ImageReaderSettings(
     val readerType: ReaderType = PAGED,
     val stretchToFit: Boolean = true,
+    val ncnnUpscalerSettings: NcnnUpscalerSettings = NcnnUpscalerSettings(),
     val pagedScaleType: LayoutScaleType = LayoutScaleType.SCREEN,
     val pagedReadingDirection: PagedReadingDirection = PagedReadingDirection.LEFT_TO_RIGHT,
     val pagedPageLayout: PageDisplayLayout = PageDisplayLayout.SINGLE_PAGE,
@@ -39,4 +43,19 @@ data class ImageReaderSettings(
     val ortUpscalerUserModelPath: PlatformFile? = null,
     val ortUpscalerDeviceId: Int = 0,
     val ortUpscalerTileSize: Int = 512,
-)
+
+    val panelsFullPageDisplayMode: PanelsFullPageDisplayMode = PanelsFullPageDisplayMode.NONE,
+    val pagedReaderTapToZoom: Boolean = true,
+    val panelReaderTapToZoom: Boolean = true,
+    val pagedReaderAdaptiveBackground: Boolean = false,
+    val panelReaderAdaptiveBackground: Boolean = false,
+    val tapNavigationMode: ReaderTapNavigationMode = ReaderTapNavigationMode.LEFT_RIGHT,
+    val panelDetectionUrl: String = PANEL_DETECTION_DEFAULT_GITHUB_URL,
+) {
+    companion object {
+        const val PANEL_DETECTION_DEFAULT_ORIGINAL_URL =
+            "https://github.com/Snd-R/komelia-onnxruntime/releases/download/model/rf-detr-med.onnx.zip"
+        const val PANEL_DETECTION_DEFAULT_GITHUB_URL =
+            "https://github.com/eserero/Komelia/releases/download/model/rf-detr-med.onnx.zip"
+    }
+}

@@ -3,18 +3,18 @@ package snd.komelia.ui.search
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SecondaryTabRow
+import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -69,8 +69,8 @@ fun SearchContent(
             SearchToolBar(
                 searchType = searchType,
                 onSearchTypeChange = onSearchTypeChange,
-                hasSeries = seriesResults.isNotEmpty(),
-                hasBooks = bookResults.isNotEmpty(),
+                hasSeries = seriesTotalPages > 0,
+                hasBooks = bookTotalPages > 0,
                 modifier = widthModifier
             )
 
@@ -141,41 +141,30 @@ fun SearchToolBar(
     onSearchTypeChange: (SearchResultsTab) -> Unit,
     hasSeries: Boolean,
     hasBooks: Boolean,
-    modifier: Modifier
+    modifier: Modifier,
 ) {
-    if (!hasSeries && !hasBooks) return
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier
+    val tabs = listOfNotNull(
+        if (hasSeries) SearchResultsTab.SERIES else null,
+        if (hasBooks) SearchResultsTab.BOOKS else null
+    )
+    if (tabs.isEmpty()) return
+
+    SecondaryTabRow(
+        selectedTabIndex = tabs.indexOf(searchType).coerceAtLeast(0),
+        modifier = modifier,
     ) {
-        Spacer(Modifier.width(20.dp))
-
-
-        val chipColors = FilterChipDefaults.filterChipColors(
-
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-            selectedContainerColor = MaterialTheme.colorScheme.primary,
-            selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+        if (hasSeries) Tab(
+            selected = searchType == SearchResultsTab.SERIES,
+            onClick = { onSearchTypeChange(SearchResultsTab.SERIES) },
+            modifier = Modifier.heightIn(min = 40.dp),
+            text = { Text("Series") },
         )
-        if (hasSeries) {
-            FilterChip(
-                onClick = { onSearchTypeChange(SearchResultsTab.SERIES) },
-                selected = searchType == SearchResultsTab.SERIES,
-                label = { Text("Series") },
-                colors = chipColors,
-                border = null,
-            )
-        }
-        if (hasBooks) {
-            FilterChip(
-                onClick = { onSearchTypeChange(SearchResultsTab.BOOKS) },
-                selected = searchType == SearchResultsTab.BOOKS,
-                label = { Text("Books") },
-                colors = chipColors,
-                border = null,
-            )
-        }
+        if (hasBooks) Tab(
+            selected = searchType == SearchResultsTab.BOOKS,
+            onClick = { onSearchTypeChange(SearchResultsTab.BOOKS) },
+            modifier = Modifier.heightIn(min = 40.dp),
+            text = { Text("Books") },
+        )
     }
 }
 
