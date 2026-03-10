@@ -105,6 +105,8 @@ class AndroidReaderImage(
                 }
             }
             ?.launchIn(processingScope)
+
+        startImageLoading()
     }
 
     override fun closeTileBitmaps(tiles: List<ReaderImageTile>) {
@@ -159,7 +161,7 @@ class AndroidReaderImage(
     }
 
     override suspend fun resizeImage(image: KomeliaImage, scaleWidth: Int, scaleHeight: Int): ReaderImageData {
-        if (ncnnUpscaler != null && (scaleWidth > image.width || scaleHeight > image.pageHeight)) {
+        if (ncnnUpscaler != null && ncnnUpscaler.isEnabled && (scaleWidth > image.width || scaleHeight > image.pageHeight)) {
             return upscaleImage(image, scaleWidth, scaleHeight)
         }
 
@@ -180,7 +182,7 @@ class AndroidReaderImage(
         var region: KomeliaImage? = null
         var resized: KomeliaImage? = null
         try {
-            if (ncnnUpscaler != null && (scaleWidth > imageRegion.width || scaleHeight > imageRegion.height)) {
+            if (ncnnUpscaler != null && ncnnUpscaler.isEnabled && (scaleWidth > imageRegion.width || scaleHeight > imageRegion.height)) {
                 return upscaleRegion(image, imageRegion, scaleWidth, scaleHeight)
             }
 

@@ -35,6 +35,7 @@ class AndroidNcnnUpscaler(
     private var gpuInstanceCreated = false
     val isReady = MutableStateFlow(false)
     val settingsFlow = MutableStateFlow<NcnnUpscalerSettings?>(null)
+    val isEnabled: Boolean get() = settingsFlow.value != null
 
     companion object {
         private val jniMutex = Mutex()

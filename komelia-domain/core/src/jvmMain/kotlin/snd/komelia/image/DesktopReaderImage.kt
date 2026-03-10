@@ -53,6 +53,8 @@ class DesktopReaderImage(
                 reloadLastRequest()
             }
         }?.launchIn(processingScope)
+
+        startImageLoading()
     }
 
     override fun closeTileBitmaps(tiles: List<ReaderImageTile>) {

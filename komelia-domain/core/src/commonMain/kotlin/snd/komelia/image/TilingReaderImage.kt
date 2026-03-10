@@ -126,8 +126,6 @@ abstract class TilingReaderImage(
         linearLightDownSampling.drop(1).onEach { reloadLastRequest() }
             .launchIn(processingScope)
 
-        processingScope.launch { loadImage() }
-
         frameData.onEach { data ->
             val tilesToClose = pendingTilesToClose
             pendingTilesToClose = emptyList()
@@ -191,6 +189,10 @@ abstract class TilingReaderImage(
                 async { error.filterNotNull().first() }.onAwait { Result.failure(it) }
             }.also { coroutineContext.cancelChildren() }
         }
+    }
+
+    protected fun startImageLoading() {
+        processingScope.launch { loadImage() }
     }
 
     protected open suspend fun loadImage() {
@@ -353,12 +355,23 @@ abstract class TilingReaderImage(
         val timeSource = TimeSource.Monotonic
         val start = timeSource.markNow()
 
-        val visibilityWindow = Rect(
-            left = displayRegion.left / 1.5f,
-            top = displayRegion.top / 1.5f,
-            right = displayRegion.right * 1.5f,
-            bottom = displayRegion.bottom * 1.5f
-        )
+        val scaleChanged = scaleFactor != lastUsedScaleFactor
+
+        // When zoom level changes (new panel size), tile the full image to guarantee complete
+        // coverage regardless of navigation direction. When zoom is unchanged, use the
+        // 1.5x-expanded viewport to avoid regenerating tiles that can be reused.
+        val effectiveWindow = if (scaleChanged) {
+            val totalDisplayWidth = image.width * displayScaleFactor.toFloat()
+            val totalDisplayHeight = image.height * displayScaleFactor.toFloat()
+            Rect(0f, 0f, totalDisplayWidth, totalDisplayHeight)
+        } else {
+            Rect(
+                left = displayRegion.left / 1.5f,
+                top = displayRegion.top / 1.5f,
+                right = displayRegion.right * 1.5f,
+                bottom = displayRegion.bottom * 1.5f
+            )
+        }
 
         val oldTiles = frameData.value?.frames?.first()?.tiles ?: emptyList()
         val newTiles = mutableListOf<ReaderImageTile>()
@@ -383,40 +396,38 @@ abstract class TilingReaderImage(
                 )
 
                 val existingTile = oldTiles.find { it.displayRegion == tileDisplayRegion }
-                if (!visibilityWindow.overlaps(tileDisplayRegion)) {
+                if (!effectiveWindow.overlaps(tileDisplayRegion)) {
                     xTaken = (xTaken + tileSize).coerceAtMost(image.width)
                     existingTile?.let { unusedTiles.add(it) }
                     continue
                 }
 
-                if (existingTile != null) {
-                    if (scaleFactor == lastUsedScaleFactor && existingTile.renderImage != null) {
-                        newTiles.add(existingTile)
-                        xTaken = (xTaken + tileSize).coerceAtMost(image.width)
-                        continue
-                    } else {
-                        unusedTiles.add(existingTile)
-                    }
+                if (existingTile != null && !scaleChanged && existingTile.renderImage != null) {
+                    newTiles.add(existingTile)
+                    xTaken = (xTaken + tileSize).coerceAtMost(image.width)
+                    continue
                 }
+
+                existingTile?.let { unusedTiles.add(it) }
 
                 val tileWidth = tileRegion.right - tileRegion.left
                 val tileHeight = tileRegion.bottom - tileRegion.top
                 val scaledTile = getImageRegion(
                     image,
                     tileRegion,
-                    ((tileWidth) * scaleFactor).roundToInt(),
-                    ((tileHeight) * scaleFactor).roundToInt()
+                    (tileWidth * scaleFactor).roundToInt(),
+                    (tileHeight * scaleFactor).roundToInt()
                 )
-
-                val tile = ReaderImageTile(
-                    size = IntSize(scaledTile.width, scaledTile.height),
-                    displayRegion = tileDisplayRegion,
-                    isVisible = true,
-                    renderImage = scaledTile.frames.first()
+                newTiles.add(
+                    ReaderImageTile(
+                        size = IntSize(scaledTile.width, scaledTile.height),
+                        displayRegion = tileDisplayRegion,
+                        isVisible = true,
+                        renderImage = scaledTile.frames.first()
+                    )
                 )
-
-                newTiles.add(tile)
                 addedNewTiles = true
+
                 xTaken = (xTaken + tileSize).coerceAtMost(image.width)
             }
             yTaken = (yTaken + tileSize).coerceAtMost(image.height)
