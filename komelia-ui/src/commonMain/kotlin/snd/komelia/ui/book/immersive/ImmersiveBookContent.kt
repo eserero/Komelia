@@ -259,7 +259,6 @@ fun ImmersiveBookContent(
                                 if (expandFraction > 0.01f) {
                                     Box(
                                         modifier = Modifier
-                                            .padding(top = (thumbnailTopGap - 8.dp) * expandFraction)
                                             .graphicsLayer { alpha = (expandFraction * 2f - 1f).coerceIn(0f, 1f) }
                                     ) {
                                         ThumbnailImage(
@@ -330,6 +329,20 @@ fun ImmersiveBookContent(
                                         )
                                     }
                                 }
+
+                                if (publisherLogo != null && expandFraction > 0.01f) {
+                                    val logoHeight = thumbnailHeight * 0.25f
+                                    Image(
+                                        bitmap = publisherLogo,
+                                        contentDescription = null,
+                                        modifier = Modifier
+                                            .height(logoHeight)
+                                            .widthIn(max = 100.dp)
+                                            .align(Alignment.BottomEnd)
+                                            .graphicsLayer { alpha = (expandFraction * 2f - 1f).coerceIn(0f, 1f) },
+                                        contentScale = ContentScale.Fit
+                                    )
+                                }
                             }
                         }
 
@@ -340,28 +353,6 @@ fun ImmersiveBookContent(
                                 BookStatsLine(pageBook, Modifier
                                     .padding(horizontal = 16.dp, vertical = 4.dp)
                                     .graphicsLayer { this.alpha = alpha })
-                        }
-
-                        // Publisher logo — fades in as card expands
-                        if (publisherLogo != null) {
-                            item(span = { GridItemSpan(maxLineSpan) }) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 16.dp, vertical = 2.dp)
-                                        .graphicsLayer { alpha = (expandFraction * 2f - 1f).coerceIn(0f, 1f) }
-                                ) {
-                                    Image(
-                                        bitmap = publisherLogo,
-                                        contentDescription = null,
-                                        modifier = Modifier
-                                            .height(28.dp)
-                                            .widthIn(max = 100.dp)
-                                            .align(Alignment.CenterEnd),
-                                        contentScale = androidx.compose.ui.layout.ContentScale.Fit
-                                    )
-                                }
-                            }
                         }
 
                         // Summary

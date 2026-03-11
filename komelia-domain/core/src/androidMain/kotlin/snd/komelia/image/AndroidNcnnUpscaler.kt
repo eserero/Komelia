@@ -227,11 +227,13 @@ class AndroidNcnnUpscaler(
             }
         )
 
+        var sent = false
         return try {
             requestChannel.send(request)
+            sent = true
             request.result.await()
         } catch (e: Throwable) {
-            preBitmapIn?.recycle()
+            if (!sent) preBitmapIn?.recycle()
             logger.error(e) { "Failed to upscale image" }
             null
         }
