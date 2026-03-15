@@ -78,6 +78,7 @@ fun ScalableContainer(
             .pointerInput(Unit) {
                 detectDragGestures(
                     onDragEnd = {
+                        scaleState.isFlinging.value = true  // prevent premature snap LaunchedEffect
                         flingScope.launch {
                             flingInProgress = true
                             scaleState.performFling(flingSpec)
