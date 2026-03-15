@@ -9,6 +9,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.first
@@ -62,6 +63,8 @@ class ReaderState(
     val pageChangeFlow: SharedFlow<Unit>,
 ) {
     private val previewLoadScope = CoroutineScope(Dispatchers.Default.limitedParallelism(1) + SupervisorJob())
+    private val progressUpdateChannel = Channel<Int>(Channel.CONFLATED)
+
     val state = MutableStateFlow<LoadState<Unit>>(LoadState.Uninitialized)
     val expandImageSettings = MutableStateFlow(false)
 
@@ -72,6 +75,23 @@ class ReaderState(
     val imageStretchToFit = MutableStateFlow(true)
     val cropBorders = MutableStateFlow(false)
     val readProgressPage = MutableStateFlow(1)
+
+    init {
+        stateScope.launch(Dispatchers.Main.immediate) {
+            for (page in progressUpdateChannel) {
+                readProgressPage.value = page
+                if (markReadProgress) {
+                    appNotifications.runCatchingToNotifications {
+                        val currentBook = booksState.value?.currentBook ?: return@runCatchingToNotifications
+                        bookApi.markReadProgress(
+                            currentBook.id,
+                            KomgaBookReadProgressUpdateRequest(page)
+                        )
+                    }
+                }
+            }
+        }
+    }
 
     val upsamplingMode = MutableStateFlow(UpsamplingMode.NEAREST)
     val downsamplingKernel = MutableStateFlow(ReduceKernel.NEAREST)
@@ -235,18 +255,8 @@ class ReaderState(
         return
     }
 
-    suspend fun onProgressChange(page: Int) {
-        readProgressPage.value = page
-
-        if (markReadProgress) {
-            appNotifications.runCatchingToNotifications {
-                val currentBook = requireNotNull(booksState.value?.currentBook)
-                bookApi.markReadProgress(
-                    currentBook.id,
-                    KomgaBookReadProgressUpdateRequest(page)
-                )
-            }
-        }
+    fun onProgressChange(page: Int) {
+        progressUpdateChannel.trySend(page)
     }
 
     fun onReaderTypeChange(type: ReaderType) {

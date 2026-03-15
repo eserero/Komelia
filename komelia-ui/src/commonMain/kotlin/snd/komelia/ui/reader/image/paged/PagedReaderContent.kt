@@ -123,9 +123,11 @@ fun BoxScope.PagedReaderContent(
         }
     }
 
-    LaunchedEffect(pagerState.currentPage) {
-        if (pagerState.currentPage < spreads.size) {
-            pagedReaderState.onPageChange(pagerState.currentPage)
+    LaunchedEffect(pagerState.currentPage, pagerState.isScrollInProgress) {
+        if (!pagerState.isScrollInProgress) {
+            if (pagerState.currentPage < spreads.size) {
+                pagedReaderState.onPageChange(pagerState.currentPage)
+            }
         }
     }
 

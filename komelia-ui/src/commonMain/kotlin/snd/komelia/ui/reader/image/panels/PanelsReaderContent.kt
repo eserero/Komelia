@@ -108,9 +108,11 @@ fun BoxScope.PanelsReaderContent(
         }
     }
 
-    LaunchedEffect(pagerState.currentPage) {
-        if (pagerState.currentPage < metadata.size) {
-            panelsReaderState.onPageChange(pagerState.currentPage)
+    LaunchedEffect(pagerState.currentPage, pagerState.isScrollInProgress) {
+        if (!pagerState.isScrollInProgress) {
+            if (pagerState.currentPage < metadata.size) {
+                panelsReaderState.onPageChange(pagerState.currentPage)
+            }
         }
     }
 
