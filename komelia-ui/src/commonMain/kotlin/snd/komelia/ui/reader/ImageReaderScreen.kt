@@ -46,12 +46,13 @@ import snd.komga.client.book.KomgaBookId
 import snd.komga.client.book.MediaProfile.DIVINA
 import snd.komga.client.book.MediaProfile.EPUB
 import snd.komga.client.book.MediaProfile.PDF
+import kotlin.jvm.Transient
 
 fun readerScreen(
     book: KomeliaBook,
     markReadProgress: Boolean,
     bookSiblingsContext: BookSiblingsContext? = null,
-    onExit: (KomeliaBook) -> Unit = {},
+    onExit: ((KomeliaBook) -> Unit)? = null,
 ): Screen {
     val context = bookSiblingsContext ?: BookSiblingsContext.Series()
     val mediaProfile = book.media.mediaProfile
@@ -80,7 +81,7 @@ class ImageReaderScreen(
     private val bookId: KomgaBookId,
     private val bookSiblingsContext: BookSiblingsContext,
     private val markReadProgress: Boolean = true,
-    private val onExit: (KomeliaBook) -> Unit = {},
+    @Transient private val onExit: ((KomeliaBook) -> Unit)? = null,
 ) : Screen {
 
     @Composable
@@ -194,10 +195,10 @@ class ImageReaderScreen(
 
     private fun onExit(navigator: Navigator, book: KomeliaBook?) {
         if (navigator.canPop) {
-            book?.let { onExit(it) }
+            book?.let { onExit?.invoke(it) }
             navigator.pop()
         } else if (book != null) {
-            onExit(book)
+            onExit?.invoke(book)
             navigator.replace(MainScreen(bookScreen(book)))
         }
     }
