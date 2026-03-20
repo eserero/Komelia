@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.MenuBook
@@ -72,6 +73,7 @@ fun ImmersiveDetailFab(
 
         if (showReadActions) {
             SplitFabMenu(
+                modifier = Modifier.offset(x = 20.dp, y = 20.dp),
                 expanded = expanded,
                 onExpandedChange = { expanded = it },
                 primaryActionText = "Read Now",

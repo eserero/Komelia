@@ -1,7 +1,14 @@
 package snd.komelia.ui.reader.epub
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
@@ -37,8 +44,10 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.fragment.app.FragmentActivity
 import com.storyteller.reader.EpubView
 import snd.komelia.ui.platform.BackPressHandler
+import snd.komelia.ui.reader.epub.audio.AudioFullScreenPlayer
 import snd.komelia.ui.reader.epub.audio.AudioMiniPlayer
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 actual fun Epub3ReaderContent(state: EpubReaderState) {
     val activity = LocalContext.current as FragmentActivity
@@ -49,6 +58,8 @@ actual fun Epub3ReaderContent(state: EpubReaderState) {
     }
     val settings by settingsFlow.collectAsState()
     val themeBgColor = Color(settings.theme.background)
+
+    var showFullPlayer by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize().background(themeBgColor)) {
         AndroidView(
@@ -110,7 +121,7 @@ actual fun Epub3ReaderContent(state: EpubReaderState) {
                 }
             }
 
-            // Bottom navigation card — AnimatedVisibility manages enter/exit animation
+            // Bottom navigation card
             if (positions.isNotEmpty()) {
                 AnimatedVisibility(
                     visible = showControls,
@@ -128,7 +139,8 @@ actual fun Epub3ReaderContent(state: EpubReaderState) {
                 }
             }
 
-            // AudioMiniPlayer renders above controls card/scrim but below settings card
+            // SharedTransitionLayout fills the full screen so shared elements have the full
+            // coordinate space to fly between the mini-player pill and the full-screen sheet.
             controller?.let { ctrl ->
                 val book by epub3State.book.collectAsState()
                 val currentLocator by epub3State.currentLocator.collectAsState()
@@ -143,18 +155,54 @@ actual fun Epub3ReaderContent(state: EpubReaderState) {
                     } ?: ""
                 }
 
-                AudioMiniPlayer(
-                    controller = ctrl,
-                    bookId = epub3State.bookId.value,
-                    bookTitle = book?.metadata?.title ?: "",
-                    chapterTitle = chapterTitle,
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(bottom = audioPlayerBottomPadding)
-                )
+                SharedTransitionLayout(modifier = Modifier.fillMaxSize()) {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        // Mini player at bottom — fades out as shared elements morph upward
+                        AnimatedVisibility(
+                            visible = !showFullPlayer,
+                            enter = fadeIn(tween(300)),
+                            exit = fadeOut(tween(200)),
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .padding(bottom = audioPlayerBottomPadding),
+                        ) {
+                            AudioMiniPlayer(
+                                controller = ctrl,
+                                bookId = epub3State.bookId.value,
+                                bookTitle = book?.metadata?.title ?: "",
+                                chapterTitle = chapterTitle,
+                                onCoverClick = { showFullPlayer = true },
+                                sharedTransitionScope = this@SharedTransitionLayout,
+                                animatedVisibilityScope = this,
+                            )
+                        }
+
+                        // Full-screen player — sharedBounds on its Surface drives the animation
+                        AnimatedVisibility(
+                            visible = showFullPlayer,
+                            enter = EnterTransition.None,
+                            exit = ExitTransition.None,
+                            modifier = Modifier.fillMaxSize(),
+                        ) {
+                            AudioFullScreenPlayer(
+                                controller = ctrl,
+                                bookId = epub3State.bookId.value,
+                                bookTitle = book?.metadata?.title ?: "",
+                                chapterTitle = chapterTitle,
+                                positions = positions,
+                                currentLocator = currentLocator,
+                                onNavigateToPosition = epub3State::navigateToPosition,
+                                onDismiss = { showFullPlayer = false },
+                                sharedTransitionScope = this@SharedTransitionLayout,
+                                animatedVisibilityScope = this,
+                                modifier = Modifier.fillMaxSize().align(Alignment.BottomCenter),
+                            )
+                        }
+                    }
+                }
             }
 
-            // Settings card — slides up over controls card and audio mini player
+            // Settings card
             AnimatedVisibility(
                 visible = showSettings,
                 enter = slideInVertically(initialOffsetY = { it }),
@@ -182,5 +230,8 @@ actual fun Epub3ReaderContent(state: EpubReaderState) {
         }
     }
 
-    BackPressHandler(state::onBackButtonPress)
+    BackPressHandler {
+        if (showFullPlayer) showFullPlayer = false
+        else state.onBackButtonPress()
+    }
 }

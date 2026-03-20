@@ -739,6 +739,10 @@ class AudiobookPlayer(
         player.setPlaybackSpeed(rate.toFloat())
     }
 
+    fun setVolume(v: Float) {
+        controller?.volume = v.coerceIn(0f, 1f)
+    }
+
     fun setAutomaticRewind(enabled: Boolean, afterInterruption: Double, afterBreak: Double) {
         this.automaticRewind = enabled
         this.afterInterruptionRewind = afterInterruption

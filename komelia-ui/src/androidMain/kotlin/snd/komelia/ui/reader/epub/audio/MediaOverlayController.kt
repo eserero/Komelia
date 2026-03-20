@@ -29,6 +29,15 @@ class MediaOverlayController(
     private val _isPlaying = MutableStateFlow(false)
     val isPlaying: StateFlow<Boolean> = _isPlaying
 
+    private val _volume = MutableStateFlow(1f)
+    val volume: StateFlow<Float> = _volume
+
+    fun setVolume(v: Float) {
+        val clamped = v.coerceIn(0f, 1f)
+        _volume.value = clamped
+        player.setVolume(clamped)
+    }
+
     private var epubView: EpubView? = null
 
     // Timestamp of last audio-driven navigation — used to suppress feedback loops in F1.
