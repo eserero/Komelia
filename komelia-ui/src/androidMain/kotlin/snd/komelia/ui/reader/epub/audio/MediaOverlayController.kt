@@ -10,6 +10,7 @@ import com.storyteller.reader.OverlayPar
 import com.storyteller.reader.Track
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import snd.komelia.settings.model.Epub3NativeSettings
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -117,6 +118,15 @@ class MediaOverlayController(
         if (tracks.isNotEmpty()) {
             player.loadTracks(tracks)
         }
+    }
+
+    fun applyAudioSettings(settings: Epub3NativeSettings) {
+        player.setRate(settings.playbackSpeed)
+        player.setAutomaticRewind(
+            enabled = settings.rewindEnabled,
+            afterInterruption = settings.rewindAfterInterruption,
+            afterBreak = settings.rewindAfterBreak,
+        )
     }
 
     fun attachView(view: EpubView) {

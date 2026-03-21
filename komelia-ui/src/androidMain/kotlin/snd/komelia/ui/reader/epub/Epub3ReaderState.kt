@@ -112,6 +112,7 @@ class Epub3ReaderState(
     fun updateSettings(new: Epub3NativeSettings) {
         settings.value = new
         applySettingsToView(new)
+        mediaOverlayController.value?.applyAudioSettings(new)
         coroutineScope.launch { epubSettingsRepository.putEpub3NativeSettings(new) }
     }
 

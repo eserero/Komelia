@@ -37,7 +37,7 @@ private val mainActivity = MutableStateFlow<MainActivity?>(null)
 class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+        super.onCreate(null)
         WebView.setWebContentsDebuggingEnabled(false)
         FileKit.init(this)
         mainActivity.value = this

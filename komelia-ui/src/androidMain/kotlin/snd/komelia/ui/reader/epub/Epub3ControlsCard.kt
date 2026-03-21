@@ -35,15 +35,17 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import org.readium.r2.shared.publication.Link
+import org.readium.r2.shared.util.Url
 import snd.komelia.ui.LocalAccentColor
 import snd.komelia.ui.common.components.AppSlider
 import snd.komelia.ui.common.components.AppSliderDefaults
 import kotlin.math.roundToInt
 
-fun findTocLink(links: List<Link>, hrefStr: String): Link? {
+fun findTocLink(links: List<Link>, href: Url): Link? {
+    val targetHref = href.removeFragment()
     for (link in links) {
-        if (link.href.toString() == hrefStr) return link
-        findTocLink(link.children, hrefStr)?.let { return it }
+        if (link.url()?.removeFragment() == targetHref) return link
+        findTocLink(link.children, href)?.let { return it }
     }
     return null
 }
@@ -137,7 +139,7 @@ fun Epub3ControlsCard(
             val locator = currentLocator
             if (locator != null) {
                 val chapterTitle = locator.title
-                    ?: findTocLink(toc, locator.href.toString())?.title
+                    ?: findTocLink(toc, locator.href)?.title
                     ?: locator.href.toString()
                         .substringAfterLast('/')
                         .substringBeforeLast('.')

@@ -6,7 +6,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -74,7 +75,8 @@ fun Epub3TocDialog(
                     LazyColumn(
                         modifier = Modifier.heightIn(max = maxHeightDp),
                     ) {
-                        items(toc) { link ->
+                        itemsIndexed(toc) { index, link ->
+                            if (index > 0) HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                             TocRow(
                                 link = link,
                                 depth = 0,

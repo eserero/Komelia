@@ -38,4 +38,8 @@ data class Epub3NativeSettings(
     val columnCount: Epub3ColumnCount = Epub3ColumnCount.AUTO,
     val pageMargins: Double = 1.0,
     val publisherStyles: Boolean = false,
+    val playbackSpeed: Double = 1.0,
+    val rewindEnabled: Boolean = true,
+    val rewindAfterInterruption: Double = 3.0,
+    val rewindAfterBreak: Double = 10.0,
 )

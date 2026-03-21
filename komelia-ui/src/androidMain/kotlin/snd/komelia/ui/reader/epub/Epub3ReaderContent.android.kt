@@ -148,7 +148,7 @@ actual fun Epub3ReaderContent(state: EpubReaderState) {
                 val chapterTitle = remember(currentLocator, toc) {
                     currentLocator?.let { loc ->
                         loc.title
-                            ?: findTocLink(toc, loc.href.toString())?.title
+                            ?: findTocLink(toc, loc.href)?.title
                             ?: loc.href.toString()
                                 .substringAfterLast('/').substringBeforeLast('.')
                                 .replace('-', ' ').replace('_', ' ')

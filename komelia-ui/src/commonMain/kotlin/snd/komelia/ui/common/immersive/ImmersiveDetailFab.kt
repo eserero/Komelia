@@ -54,11 +54,7 @@ fun ImmersiveDetailFab(
         ?: if (theme.type == Theme.ThemeType.LIGHT) Color(red = 43, green = 43, blue = 43)
         else navBarColor ?: MaterialTheme.colorScheme.primaryContainer
 
-    val readNowContentColor = if (accentColor != null || (theme.type == Theme.ThemeType.DARK && navBarColor != null)) {
-        if (readNowContainerColor.luminance() > 0.5f) Color.Black else Color.White
-    } else {
-        contentColorFor(readNowContainerColor)
-    }
+    val readNowContentColor = if (readNowContainerColor.luminance() > 0.5f) Color.Black else Color.White
 
     var expanded by remember { mutableStateOf(false) }
 
