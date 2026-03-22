@@ -80,6 +80,7 @@ actual fun Epub3ReaderContent(state: EpubReaderState) {
             val toc by epub3State.tableOfContents.collectAsState()
             val positions by epub3State.positions.collectAsState()
             val controller by epub3State.mediaOverlayController.collectAsState()
+            val currentLocator by epub3State.currentLocator.collectAsState()
 
             val density = LocalDensity.current
             var cardHeightPx by remember { mutableStateOf(0) }
@@ -143,7 +144,6 @@ actual fun Epub3ReaderContent(state: EpubReaderState) {
             // coordinate space to fly between the mini-player pill and the full-screen sheet.
             controller?.let { ctrl ->
                 val book by epub3State.book.collectAsState()
-                val currentLocator by epub3State.currentLocator.collectAsState()
 
                 val chapterTitle = remember(currentLocator, toc) {
                     currentLocator?.let { loc ->
@@ -220,6 +220,7 @@ actual fun Epub3ReaderContent(state: EpubReaderState) {
             if (showToc) {
                 Epub3TocDialog(
                     toc = toc,
+                    currentHref = currentLocator?.href,
                     onNavigate = { link ->
                         epub3State.navigateToLink(link)
                         epub3State.showToc.value = false
