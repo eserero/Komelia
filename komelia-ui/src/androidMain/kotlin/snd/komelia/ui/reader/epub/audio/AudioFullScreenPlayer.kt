@@ -3,10 +3,7 @@ package snd.komelia.ui.reader.epub.audio
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
-import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -39,36 +36,29 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import coil3.compose.rememberAsyncImagePainter
 import org.readium.r2.shared.publication.Locator
 import snd.komelia.image.coil.BookDefaultThumbnailRequest
 import snd.komelia.ui.LocalAccentColor
-import snd.komelia.ui.LocalImmersiveColorAlpha
-import snd.komelia.ui.LocalImmersiveColorEnabled
 import snd.komelia.ui.common.components.AppSlider
 import snd.komelia.ui.common.components.AppSliderDefaults
 import snd.komelia.ui.common.images.ThumbnailImage
-import snd.komelia.ui.common.immersive.extractDominantColor
 import snd.komga.client.book.KomgaBookId
 import kotlin.math.roundToInt
-import kotlinx.coroutines.launch
 
 private val emphasizedEasing = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1.0f)
 private val emphasizedAccelerateEasing = CubicBezierEasing(0.3f, 0.0f, 0.8f, 0.15f)
@@ -80,10 +70,13 @@ fun AudioFullScreenPlayer(
     bookId: KomgaBookId,
     bookTitle: String,
     chapterTitle: String,
+    backgroundColor: Color,
     positions: List<Locator>,
     currentLocator: Locator?,
     onNavigateToPosition: (Int) -> Unit,
     onDismiss: () -> Unit,
+    onDrag: (fraction: Float) -> Unit,
+    onDragEnd: (fraction: Float) -> Unit,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
     modifier: Modifier = Modifier,
@@ -93,21 +86,8 @@ fun AudioFullScreenPlayer(
     val accentColor = LocalAccentColor.current
 
     val coverRequest = remember(bookId) { BookDefaultThumbnailRequest(bookId) }
-    val coverPainter = rememberAsyncImagePainter(model = coverRequest)
-    var dominantColor by remember(bookId) { mutableStateOf<Color?>(null) }
-    LaunchedEffect(bookId) { dominantColor = extractDominantColor(coverPainter) }
 
-    val immersiveEnabled = LocalImmersiveColorEnabled.current
-    val immersiveAlpha = LocalImmersiveColorAlpha.current
-    val surface = MaterialTheme.colorScheme.surface
-    val backgroundColor = remember(dominantColor, immersiveEnabled, immersiveAlpha) {
-        if (immersiveEnabled && dominantColor != null)
-            dominantColor!!.copy(alpha = immersiveAlpha).compositeOver(surface)
-        else surface
-    }
-
-    val dragAnimatable = remember { Animatable(0f) }
-    val coroutineScope = rememberCoroutineScope()
+    var playerHeightPx by remember { mutableIntStateOf(1) }
 
     val currentIndex = remember(currentLocator, positions) {
         positions.indexOfFirst { it.href == currentLocator?.href }.coerceAtLeast(0)
@@ -128,18 +108,7 @@ fun AudioFullScreenPlayer(
                 modifier = Modifier
                     .fillMaxWidth()
                     .wrapContentHeight(Alignment.Bottom)
-                    // layout {} shifts the Surface's actual layout position when dragging.
-                    // Placed BEFORE sharedBounds so it captures the current drag position —
-                    // the container-transform transition starts from where the finger is.
-                    .layout { measurable, constraints ->
-                        val placeable = measurable.measure(constraints)
-                        layout(placeable.width, placeable.height) {
-                            placeable.placeRelative(
-                                0,
-                                dragAnimatable.value.roundToInt().coerceAtLeast(0),
-                            )
-                        }
-                    }
+                    .onGloballyPositioned { playerHeightPx = it.size.height }
                     .sharedBounds(
                         rememberSharedContentState(key = "audio-player-surface-${bookId.value}"),
                         animatedVisibilityScope = animatedVisibilityScope,
@@ -150,42 +119,20 @@ fun AudioFullScreenPlayer(
                         clipInOverlayDuringTransition = OverlayClip(containerShape),
                     )
                     .pointerInput(Unit) {
+                        var dragOffsetY = 0f
                         detectVerticalDragGestures(
                             onDragEnd = {
-                                coroutineScope.launch {
-                                    if (dragAnimatable.value > 120f) {
-                                        // sharedBounds already captured the offset position
-                                        // (via the layout {} above). Trigger onDismiss directly
-                                        // so the transition starts from the drag position.
-                                        onDismiss()
-                                    } else {
-                                        dragAnimatable.animateTo(
-                                            targetValue = 0f,
-                                            animationSpec = spring(
-                                                dampingRatio = Spring.DampingRatioMediumBouncy,
-                                                stiffness = Spring.StiffnessMedium,
-                                            ),
-                                        )
-                                    }
-                                }
+                                val fraction = (dragOffsetY / playerHeightPx).coerceIn(0f, 1f)
+                                onDragEnd(fraction)
+                                dragOffsetY = 0f
                             },
                             onDragCancel = {
-                                coroutineScope.launch {
-                                    dragAnimatable.animateTo(
-                                        targetValue = 0f,
-                                        animationSpec = spring(
-                                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                                            stiffness = Spring.StiffnessMedium,
-                                        ),
-                                    )
-                                }
+                                onDragEnd(0f)
+                                dragOffsetY = 0f
                             },
                             onVerticalDrag = { _, delta ->
-                                coroutineScope.launch {
-                                    dragAnimatable.snapTo(
-                                        (dragAnimatable.value + delta).coerceAtLeast(0f)
-                                    )
-                                }
+                                dragOffsetY = (dragOffsetY + delta).coerceAtLeast(0f)
+                                onDrag((dragOffsetY / playerHeightPx).coerceIn(0f, 1f))
                             },
                         )
                     },
@@ -198,146 +145,139 @@ fun AudioFullScreenPlayer(
                         .padding(bottom = 16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    // Drag handle
-                    Box(
-                        modifier = Modifier.fillMaxWidth(),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        BottomSheetDefaults.DragHandle()
-                    }
-
-                    // Cover image — sharedBounds morphs the small pill thumbnail to large square
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        shadowElevation = 8.dp,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 48.dp)
-                            .aspectRatio(1f)
-                            .sharedBounds(
-                                rememberSharedContentState(key = "audio-cover-${bookId.value}"),
-                                animatedVisibilityScope = animatedVisibilityScope,
-                                enter = fadeIn(tween(400, easing = emphasizedEasing)),
-                                exit = fadeOut(tween(300, easing = emphasizedAccelerateEasing)),
-                                boundsTransform = { _, _ -> tween(500, easing = emphasizedEasing) },
-                            ),
-                    ) {
-                        ThumbnailImage(
-                            data = coverRequest,
-                            cacheKey = bookId.value,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize(),
+                    with(animatedVisibilityScope) {
+                        val fadeModifier = Modifier.animateEnterExit(
+                            enter = fadeIn(tween(300, delayMillis = 150)),
+                            exit = fadeOut(tween(150)),
                         )
-                    }
 
-                    // Book title
-                    Text(
-                        text = bookTitle,
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.titleLarge,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 48.dp)
-                            .padding(top = 16.dp, bottom = 4.dp)
-                            .sharedBounds(
-                                rememberSharedContentState(key = "audio-book-title-${bookId.value}"),
-                                animatedVisibilityScope = animatedVisibilityScope,
-                                enter = fadeIn(tween(400, easing = emphasizedEasing)),
-                                exit = fadeOut(tween(300, easing = emphasizedAccelerateEasing)),
-                                boundsTransform = { _, _ -> tween(500, easing = emphasizedEasing) },
-                            ),
-                    )
+                        // Drag handle
+                        Box(
+                            modifier = fadeModifier.fillMaxWidth(),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            BottomSheetDefaults.DragHandle()
+                        }
 
-                    // Chapter title
-                    Text(
-                        text = chapterTitle,
-                        style = MaterialTheme.typography.bodyMedium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 48.dp)
-                            .sharedBounds(
-                                rememberSharedContentState(key = "audio-chapter-title-${bookId.value}"),
-                                animatedVisibilityScope = animatedVisibilityScope,
-                                enter = fadeIn(tween(400, easing = emphasizedEasing)),
-                                exit = fadeOut(tween(300, easing = emphasizedAccelerateEasing)),
-                                boundsTransform = { _, _ -> tween(500, easing = emphasizedEasing) },
-                            ),
-                    )
-
-                    // Page slider
-                    if (positions.size > 1) {
-                        AppSlider(
-                            value = sliderDraft,
-                            onValueChange = { sliderDraft = it },
-                            onValueChangeFinished = { onNavigateToPosition(sliderDraft.roundToInt()) },
-                            valueRange = 0f..(positions.size - 1).toFloat(),
-                            accentColor = accentColor,
-                            colors = AppSliderDefaults.colors(accentColor = accentColor),
+                        // Cover image — sharedBounds morphs the small pill thumbnail to large square
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            shadowElevation = 8.dp,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 48.dp)
-                                .padding(top = 16.dp),
-                        )
-                    }
-
-                    // Controls
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 8.dp),
-                    ) {
-                        IconButton(onClick = controller::seekToPrevClip) {
-                            Icon(Icons.Filled.SkipPrevious, contentDescription = "Previous segment")
-                        }
-                        FilledIconButton(
-                            onClick = controller::togglePlayPause,
-                            modifier = Modifier.size(72.dp),
+                                .aspectRatio(1f)
+                                .sharedBounds(
+                                    rememberSharedContentState(key = "audio-cover-${bookId.value}"),
+                                    animatedVisibilityScope = animatedVisibilityScope,
+                                    enter = fadeIn(tween(400, easing = emphasizedEasing)),
+                                    exit = fadeOut(tween(300, easing = emphasizedAccelerateEasing)),
+                                    boundsTransform = { _, _ -> tween(500, easing = emphasizedEasing) },
+                                ),
                         ) {
-                            Icon(
-                                imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                                contentDescription = if (isPlaying) "Pause" else "Play",
-                                modifier = Modifier.size(36.dp),
+                            ThumbnailImage(
+                                data = coverRequest,
+                                cacheKey = bookId.value,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize(),
                             )
                         }
-                        IconButton(onClick = controller::seekToNextClip) {
-                            Icon(Icons.Filled.SkipNext, contentDescription = "Next segment")
-                        }
-                    }
 
-                    // Volume
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 48.dp)
-                            .padding(top = 8.dp),
-                    ) {
-                        Icon(
-                            Icons.Filled.VolumeDown,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp),
+                        // Book title
+                        Text(
+                            text = bookTitle,
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleLarge,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = fadeModifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 48.dp)
+                                .padding(top = 16.dp, bottom = 4.dp),
                         )
-                        AppSlider(
-                            value = volume,
-                            onValueChange = controller::setVolume,
-                            valueRange = 0f..1f,
-                            accentColor = accentColor,
-                            colors = AppSliderDefaults.colors(accentColor = accentColor),
-                            modifier = Modifier
-                                .weight(1f)
-                                .padding(horizontal = 8.dp),
+
+                        // Chapter title
+                        Text(
+                            text = chapterTitle,
+                            style = MaterialTheme.typography.bodyMedium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = fadeModifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 48.dp),
                         )
-                        Icon(
-                            Icons.Filled.VolumeUp,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp),
-                        )
+
+                        // Page slider
+                        if (positions.size > 1) {
+                            AppSlider(
+                                value = sliderDraft,
+                                onValueChange = { sliderDraft = it },
+                                onValueChangeFinished = { onNavigateToPosition(sliderDraft.roundToInt()) },
+                                valueRange = 0f..(positions.size - 1).toFloat(),
+                                accentColor = accentColor,
+                                colors = AppSliderDefaults.colors(accentColor = accentColor),
+                                modifier = fadeModifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 48.dp)
+                                    .padding(top = 16.dp),
+                            )
+                        }
+
+                        // Controls
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center,
+                            modifier = fadeModifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp),
+                        ) {
+                            IconButton(onClick = controller::seekToPrevClip) {
+                                Icon(Icons.Filled.SkipPrevious, contentDescription = "Previous segment")
+                            }
+                            FilledIconButton(
+                                onClick = controller::togglePlayPause,
+                                modifier = Modifier.size(72.dp),
+                            ) {
+                                Icon(
+                                    imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                                    contentDescription = if (isPlaying) "Pause" else "Play",
+                                    modifier = Modifier.size(36.dp),
+                                )
+                            }
+                            IconButton(onClick = controller::seekToNextClip) {
+                                Icon(Icons.Filled.SkipNext, contentDescription = "Next segment")
+                            }
+                        }
+
+                        // Volume
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = fadeModifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 48.dp)
+                                .padding(top = 8.dp),
+                        ) {
+                            Icon(
+                                Icons.Filled.VolumeDown,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
+                            )
+                            AppSlider(
+                                value = volume,
+                                onValueChange = controller::setVolume,
+                                valueRange = 0f..1f,
+                                accentColor = accentColor,
+                                colors = AppSliderDefaults.colors(accentColor = accentColor),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(horizontal = 8.dp),
+                            )
+                            Icon(
+                                Icons.Filled.VolumeUp,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
+                            )
+                        }
                     }
                 }
             }

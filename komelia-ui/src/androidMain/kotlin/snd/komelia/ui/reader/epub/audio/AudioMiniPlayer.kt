@@ -30,6 +30,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -48,6 +49,7 @@ fun AudioMiniPlayer(
     bookId: KomgaBookId,
     bookTitle: String,
     chapterTitle: String,
+    backgroundColor: Color,
     onCoverClick: () -> Unit,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
@@ -68,7 +70,8 @@ fun AudioMiniPlayer(
                     clipInOverlayDuringTransition = OverlayClip(pillShape),
                 ),
             shape = pillShape,
-            color = MaterialTheme.colorScheme.primaryContainer,
+            color = backgroundColor,
+            contentColor = MaterialTheme.colorScheme.onSurface,
             tonalElevation = 6.dp,
             shadowElevation = 8.dp,
         ) {
@@ -112,28 +115,12 @@ fun AudioMiniPlayer(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.sharedBounds(
-                            rememberSharedContentState(key = "audio-book-title-${bookId.value}"),
-                            animatedVisibilityScope = animatedVisibilityScope,
-                            enter = fadeIn(tween(400, easing = emphasizedEasing)),
-                            exit = fadeOut(tween(300, easing = emphasizedAccelerateEasing)),
-                            boundsTransform = { _, _ -> tween(500, easing = emphasizedEasing) },
-                        ),
                     )
                     Text(
                         text = chapterTitle,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.sharedBounds(
-                            rememberSharedContentState(key = "audio-chapter-title-${bookId.value}"),
-                            animatedVisibilityScope = animatedVisibilityScope,
-                            enter = fadeIn(tween(400, easing = emphasizedEasing)),
-                            exit = fadeOut(tween(300, easing = emphasizedAccelerateEasing)),
-                            boundsTransform = { _, _ -> tween(500, easing = emphasizedEasing) },
-                        ),
                     )
                 }
 
@@ -142,21 +129,18 @@ fun AudioMiniPlayer(
                     Icon(
                         Icons.Filled.SkipPrevious,
                         contentDescription = "Previous segment",
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
                     )
                 }
                 IconButton(onClick = controller::togglePlayPause) {
                     Icon(
                         imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
                         contentDescription = if (isPlaying) "Pause" else "Play",
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
                     )
                 }
                 IconButton(onClick = controller::seekToNextClip) {
                     Icon(
                         Icons.Filled.SkipNext,
                         contentDescription = "Next segment",
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
                     )
                 }
             }

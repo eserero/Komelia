@@ -59,6 +59,9 @@ interface CommonSettingsRepository {
     fun getImmersiveColorAlpha(): Flow<Float>
     suspend fun putImmersiveColorAlpha(alpha: Float)
 
+    fun getShowImmersiveNavBar(): Flow<Boolean>
+    suspend fun putShowImmersiveNavBar(enabled: Boolean)
+
     fun getLastSelectedLibraryId(): Flow<KomgaLibraryId?>
     suspend fun putLastSelectedLibraryId(libraryId: KomgaLibraryId?)
 

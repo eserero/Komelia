@@ -182,6 +182,7 @@ class MainScreen(
         val isImmersiveScreen = navigator.lastItem is SeriesScreen ||
                 navigator.lastItem is BookScreen ||
                 navigator.lastItem is OneshotScreen
+        val showImmersiveNavBar = LocalShowImmersiveNavBar.current
         val rawStatusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
         val rawNavBarHeight = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
         CompositionLocalProvider(
@@ -191,18 +192,20 @@ class MainScreen(
             Scaffold(
                 containerColor = MaterialTheme.colorScheme.surface,
                 bottomBar = {
-                    if (useNewLibraryUI) {
-                        AppNavigationBar(
-                            navigator = navigator,
-                            vm = vm,
-                            containerColor = LocalNavBarColor.current ?: MaterialTheme.colorScheme.surfaceVariant
-                        )
-                    } else {
-                        StandardBottomNavigationBar(
-                            navigator = navigator,
-                            vm = vm,
-                            modifier = Modifier
-                        )
+                    if (!isImmersiveScreen || showImmersiveNavBar) {
+                        if (useNewLibraryUI) {
+                            AppNavigationBar(
+                                navigator = navigator,
+                                vm = vm,
+                                containerColor = LocalNavBarColor.current ?: MaterialTheme.colorScheme.surfaceVariant
+                            )
+                        } else {
+                            StandardBottomNavigationBar(
+                                navigator = navigator,
+                                vm = vm,
+                                modifier = Modifier
+                            )
+                        }
                     }
                 }
             ) { paddingValues ->

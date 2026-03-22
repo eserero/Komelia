@@ -77,6 +77,7 @@ fun MainView(
     var cardLayoutBelow by remember { mutableStateOf(false) }
     var immersiveColorEnabled by remember { mutableStateOf(true) }
     var immersiveColorAlpha by remember { mutableStateOf(0.12f) }
+    var showImmersiveNavBar by remember { mutableStateOf(false) }
     var hideParenthesesInNames by remember { mutableStateOf(false) }
     var cardLayoutOverlayBackground by remember { mutableStateOf(true) }
     LaunchedEffect(dependencies) {
@@ -105,6 +106,10 @@ fun MainView(
     LaunchedEffect(dependencies) {
         dependencies?.appRepositories?.settingsRepository?.getImmersiveColorAlpha()
             ?.collect { immersiveColorAlpha = it }
+    }
+    LaunchedEffect(dependencies) {
+        dependencies?.appRepositories?.settingsRepository?.getShowImmersiveNavBar()
+            ?.collect { showImmersiveNavBar = it }
     }
     LaunchedEffect(dependencies) {
         dependencies?.appRepositories?.settingsRepository?.getHideParenthesesInNames()
@@ -164,6 +169,7 @@ fun MainView(
                 LocalCardLayoutBelow provides cardLayoutBelow,
                 LocalImmersiveColorEnabled provides immersiveColorEnabled,
                 LocalImmersiveColorAlpha provides immersiveColorAlpha,
+                LocalShowImmersiveNavBar provides showImmersiveNavBar,
                 LocalHideParenthesesInNames provides hideParenthesesInNames,
                 LocalCardLayoutOverlayBackground provides cardLayoutOverlayBackground,
             ) {

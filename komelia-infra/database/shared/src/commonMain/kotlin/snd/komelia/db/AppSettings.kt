@@ -32,4 +32,5 @@ data class AppSettings(
     val hideParenthesesInNames: Boolean = false,
     val keepReaderScreenOn: Boolean = false,
     val cardLayoutOverlayBackground: Boolean = true,
+    val showImmersiveNavBar: Boolean = false,
 )

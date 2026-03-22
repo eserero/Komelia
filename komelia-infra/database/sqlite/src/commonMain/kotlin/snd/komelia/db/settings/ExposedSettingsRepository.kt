@@ -49,6 +49,7 @@ class ExposedSettingsRepository(database: Database) : ExposedRepository(database
                 it[hideParenthesesInNames] = settings.hideParenthesesInNames
                 it[keepReaderScreenOn] = settings.keepReaderScreenOn
                 it[cardLayoutOverlayBackground] = settings.cardLayoutOverlayBackground
+                it[showImmersiveNavBar] = settings.showImmersiveNavBar
             }
         }
     }
@@ -80,7 +81,7 @@ class ExposedSettingsRepository(database: Database) : ExposedRepository(database
             hideParenthesesInNames = get(AppSettingsTable.hideParenthesesInNames),
             keepReaderScreenOn = get(AppSettingsTable.keepReaderScreenOn),
             cardLayoutOverlayBackground = get(AppSettingsTable.cardLayoutOverlayBackground),
-        )
-    }
-
-}
+            showImmersiveNavBar = get(AppSettingsTable.showImmersiveNavBar),
+            )
+            }
+            }
