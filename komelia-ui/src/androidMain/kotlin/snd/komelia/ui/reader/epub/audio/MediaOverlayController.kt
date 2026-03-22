@@ -73,7 +73,17 @@ class MediaOverlayController(
 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 _isPlaying.value = isPlaying
-                if (!isPlaying) {
+                if (isPlaying) {
+                    // onClipChanged doesn't fire for the clip already current when play() is called.
+                    // Apply lastHighlightedClip here so the first segment is highlighted immediately.
+                    val clip = lastHighlightedClip ?: return
+                    val view = epubView ?: return
+                    audioNavigatingAt = System.currentTimeMillis()
+                    view.pendingProps.isPlaying = true
+                    view.pendingProps.locator = clip.locator
+                    view.finalizeProps()
+                    schedulePageTurnIfNeeded(clip)
+                } else {
                     pageTurnJob?.cancel()
                     epubView?.clearHighlightFragment()
                 }
@@ -175,6 +185,7 @@ class MediaOverlayController(
                     "foundResource=${clip?.audioResource} foundStart=${clip?.start}"
                 }
                 if (clip != null) {
+                    lastHighlightedClip = clip          // keep in sync since skipEmit=true won't fire onClipChanged
                     player.seekTo(clip.audioResource, clip.start, skipEmit = true)
                 } else {
                     logger.info { "[komelia-epub] TOGGLE-PLAY: no clip found for pending locator — playing from current audio position" }
