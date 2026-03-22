@@ -257,7 +257,7 @@ actual fun Epub3ReaderContent(state: EpubReaderState) {
                                 },
                                 onDragEnd = { fraction ->
                                     coroutineScope.launch {
-                                        if (fraction > 0.3f) playerTransitionState.animateTo(false)
+                                        if (fraction > 0.15f) playerTransitionState.animateTo(false)
                                         else playerTransitionState.animateTo(true)
                                     }
                                 },

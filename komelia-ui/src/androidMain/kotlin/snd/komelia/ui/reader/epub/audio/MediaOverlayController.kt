@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import org.readium.r2.shared.InternalReadiumApi
+import org.readium.r2.shared.publication.Link
 import org.readium.r2.shared.publication.Locator
 import org.readium.r2.shared.util.Url
 import org.readium.r2.shared.util.fromEpubHref
@@ -137,17 +138,31 @@ class MediaOverlayController(
                 (durationByResource[clip.audioResource] ?: 0.0) + (clip.end - clip.start)
         }
 
+        val toc = publication.tableOfContents
+        val clipsByResource = clips.groupBy { it.audioResource }
+        val bookTitle = publication.metadata.title ?: ""
+
+        val coverUri = publication.resources
+            .firstOrNull { "cover" in it.rels }
+            ?.let { link ->
+                val path = link.url()?.removeFragment()?.path?.trimStart('/') ?: return@let null
+                File(extractedDir, path).takeIf { it.exists() }?.toUri()
+            }
+
         val tracks = durationByResource.keys.mapNotNull { resource ->
             val url = Url.fromEpubHref(resource) ?: return@mapNotNull null
             val link = publication.linkWithHref(url)
             Track(
                 uri = File(extractedDir, resource).toUri(),
                 bookUuid = bookUuid,
-                title = link?.title ?: resource,
+                title = clipsByResource[resource]
+                    ?.firstOrNull()?.locator?.href
+                    ?.let { findChapterTitleFromToc(toc, it) }
+                    ?: bookTitle.ifEmpty { resource },
                 duration = durationByResource[resource] ?: 0.0,
-                bookTitle = publication.metadata.title ?: "",
-                author = publication.metadata.authors.firstOrNull()?.name,
-                coverUri = null,
+                bookTitle = bookTitle,
+                author = bookTitle.ifEmpty { null },
+                coverUri = coverUri,
                 relativeUri = resource,
                 narrator = null,
                 mimeType = link?.mediaType?.toString() ?: "audio/mpeg"
@@ -222,18 +237,13 @@ class MediaOverlayController(
 
     /** F1: Called when the user navigates to a new page. Seeks audio to the first clip of that page. */
     fun handleUserLocatorChange(locator: Locator) {
-        val timeSinceAudio = System.currentTimeMillis() - audioNavigatingAt
         logger.info {
             "[komelia-epub] AUDIO-USER-LOC: locator=${locator.href} " +
             "progression=${locator.locations.progression} " +
-            "isPlaying=${_isPlaying.value} timeSinceAudioNav=${timeSinceAudio}ms " +
+            "isPlaying=${_isPlaying.value} " +
             "pendingUserLocator=${pendingUserLocator?.href}"
         }
-        // If audio set a locator within the last 500ms this was audio-driven — avoid feedback loop
-        if (timeSinceAudio < 500L) {
-            logger.info { "[komelia-epub] AUDIO-USER-LOC: SUPPRESSED (audio-driven, ${timeSinceAudio}ms ago)" }
-            return
-        }
+        // Removed: 500ms audio-driven suppression guard (no feedback loop path exists)
         if (!_isPlaying.value) {
             // Paused: remember where to start, don't highlight
             pendingUserLocator = locator
@@ -323,13 +333,24 @@ class MediaOverlayController(
         val result = if (fragment != null) {
             runCatching { BookService.getClip(bookUuid, locator) }.getOrNull()
         } else {
-            BookService.getFragments(bookUuid, locator).firstOrNull()
+            val prog = locator.locations.progression ?: 0.0
+            BookService.getFragments(bookUuid, locator)
+                .minByOrNull { kotlin.math.abs((it.locator.locations.progression ?: 0.0) - prog) }
         }
         logger.info {
             "[komelia-epub] FIND-CLIP: href=${locator.href} fragment=$fragment " +
             "→ ${if (result != null) "found ${result.locator.href}#${result.locator.locations.fragments.firstOrNull()}" else "null"}"
         }
         return result
+    }
+
+    private fun findChapterTitleFromToc(toc: List<Link>, href: Url): String? {
+        val target = href.removeFragment()
+        for (link in toc) {
+            if (link.url()?.removeFragment() == target) return link.title
+            findChapterTitleFromToc(link.children, href)?.let { return it }
+        }
+        return null
     }
 
     fun release() {

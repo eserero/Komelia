@@ -41,7 +41,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -59,11 +58,10 @@ import snd.komelia.image.coil.BookDefaultThumbnailRequest
 import snd.komelia.ui.LocalAccentColor
 import snd.komelia.ui.common.components.AppSlider
 import snd.komelia.ui.common.components.AppSliderDefaults
+import snd.komelia.ui.common.components.accentFilterChipColors
 import snd.komelia.ui.common.images.ThumbnailImage
-import snd.komelia.ui.reader.epub.Epub3LocationLabel
-import snd.komelia.ui.reader.epub.locatorToPositionIndex
+import snd.komelia.ui.reader.epub.Epub3PageNavigatorRow
 import snd.komga.client.book.KomgaBookId
-import kotlin.math.roundToInt
 
 private val emphasizedEasing = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1.0f)
 private val emphasizedAccelerateEasing = CubicBezierEasing(0.3f, 0.0f, 0.8f, 0.15f)
@@ -76,16 +74,7 @@ private fun formatHMS(seconds: Double): String {
     return if (h > 0) "%d:%02d:%02d".format(h, m, s) else "%d:%02d".format(m, s)
 }
 
-private fun formatTimeLeft(seconds: Double): String {
-    val total = seconds.toLong().coerceAtLeast(0)
-    val h = total / 3600
-    val m = (total % 3600) / 60
-    return when {
-        h > 0 && m > 0 -> "$h hours $m minutes left"
-        h > 0           -> "$h hours left"
-        else            -> "$m minutes left"
-    }
-}
+private fun formatTimeLeft(seconds: Double): String = "−" + formatHMS(seconds)
 
 @OptIn(ExperimentalSharedTransitionApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -117,11 +106,6 @@ fun AudioFullScreenPlayer(
     val coverRequest = remember(bookId) { BookDefaultThumbnailRequest(bookId) }
 
     var playerHeightPx by remember { mutableIntStateOf(1) }
-
-    val currentIndex = remember(currentLocator, positions) {
-        locatorToPositionIndex(positions, currentLocator)
-    }
-    var sliderDraft by remember(currentIndex) { mutableStateOf(currentIndex.toFloat()) }
 
     val containerShape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
 
@@ -243,53 +227,42 @@ fun AudioFullScreenPlayer(
 
                         // Page slider
                         if (positions.size > 1) {
-                            AppSlider(
-                                value = sliderDraft,
-                                onValueChange = { sliderDraft = it },
-                                onValueChangeFinished = { onNavigateToPosition(sliderDraft.roundToInt()) },
-                                valueRange = 0f..(positions.size - 1).toFloat(),
-                                accentColor = accentColor,
-                                colors = AppSliderDefaults.colors(accentColor = accentColor),
+                            Epub3PageNavigatorRow(
+                                positions = positions,
+                                currentLocator = currentLocator,
+                                onNavigateToPosition = onNavigateToPosition,
                                 modifier = fadeModifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 48.dp)
+                                    .padding(horizontal = 32.dp)
                                     .padding(top = 16.dp),
                             )
 
-                            // Elapsed / total time row
+                            // Three-column time row: elapsed | time-remaining | total
+                            val remaining = (totalDurationSeconds - elapsedSeconds).coerceAtLeast(0.0)
                             Row(
                                 modifier = fadeModifier
                                     .fillMaxWidth()
                                     .padding(horizontal = 48.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Text(
                                     text = formatHMS(elapsedSeconds),
                                     style = MaterialTheme.typography.bodySmall,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                Text(
+                                    text = formatTimeLeft(remaining),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.weight(1f),
                                 )
                                 Text(
                                     text = formatHMS(totalDurationSeconds),
                                     style = MaterialTheme.typography.bodySmall,
+                                    textAlign = TextAlign.End,
+                                    modifier = Modifier.weight(1f),
                                 )
                             }
-
-                            // Page label
-                            Epub3LocationLabel(
-                                positions = positions,
-                                currentLocator = currentLocator,
-                                overrideIndex = sliderDraft.roundToInt(),
-                                textAlign = TextAlign.Center,
-                                modifier = fadeModifier.fillMaxWidth().padding(top = 2.dp),
-                            )
-
-                            // Time remaining
-                            val remaining = (totalDurationSeconds - elapsedSeconds).coerceAtLeast(0.0)
-                            Text(
-                                text = formatTimeLeft(remaining),
-                                style = MaterialTheme.typography.bodySmall,
-                                textAlign = TextAlign.Center,
-                                modifier = fadeModifier.padding(top = 2.dp),
-                            )
                         }
 
                         // Controls
@@ -348,22 +321,36 @@ fun AudioFullScreenPlayer(
                             )
                         }
 
-                        // Speed chips
+                        // Speed chips — 2 rows with label and accent color
                         val speeds = listOf(1.0, 1.25, 1.5, 1.75, 2.0)
                         Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                            verticalAlignment = Alignment.CenterVertically,
                             modifier = fadeModifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 48.dp)
                                 .padding(top = 8.dp),
                         ) {
-                            speeds.forEach { speed ->
-                                val selected = kotlin.math.abs(playbackSpeed - speed) < 0.01
-                                FilterChip(
-                                    selected = selected,
-                                    onClick = { onSpeedChange(speed) },
-                                    label = { Text("${speed}×") },
-                                )
+                            Text(
+                                text = "Speed",
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.padding(end = 8.dp),
+                            )
+                            Column(modifier = Modifier.weight(1f)) {
+                                speeds.chunked(3).forEach { rowSpeeds ->
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    ) {
+                                        rowSpeeds.forEach { speed ->
+                                            val selected = kotlin.math.abs(playbackSpeed - speed) < 0.01
+                                            FilterChip(
+                                                selected = selected,
+                                                onClick = { onSpeedChange(speed) },
+                                                label = { Text("${speed}×") },
+                                                colors = accentFilterChipColors(),
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                     }

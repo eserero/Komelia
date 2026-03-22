@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -21,11 +23,16 @@ import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
@@ -74,16 +81,8 @@ fun Epub3ControlsCard(
     val positions by state.positions.collectAsState()
     val currentLocator by state.currentLocator.collectAsState()
     val toc by state.tableOfContents.collectAsState()
-    val totalPages = positions.size
 
-    val currentPageIndex = remember(currentLocator, positions) {
-        locatorToPositionIndex(positions, currentLocator)
-    }
-
-    var sliderDraft by remember(currentPageIndex) { mutableStateOf(currentPageIndex.toFloat()) }
     var dragOffsetY by remember { mutableStateOf(0f) }
-
-    val accentColor = LocalAccentColor.current
 
     Surface(
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
@@ -120,29 +119,15 @@ fun Epub3ControlsCard(
                 BottomSheetDefaults.DragHandle()
             }
 
-            // Page slider
-            if (totalPages > 1) {
-                AppSlider(
-                    value = sliderDraft,
-                    onValueChange = { sliderDraft = it },
-                    onValueChangeFinished = { state.navigateToPosition(sliderDraft.roundToInt()) },
-                    valueRange = 0f..(totalPages - 1).toFloat(),
-                    steps = 0,
-                    accentColor = accentColor,
-                    colors = AppSliderDefaults.colors(accentColor = accentColor),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                )
-            }
-
-            // Page label
-            Epub3LocationLabel(
+            // Page label + slider flanked by − / + navigation buttons
+            Epub3PageNavigatorRow(
                 positions = positions,
                 currentLocator = currentLocator,
-                overrideIndex = sliderDraft.roundToInt(),
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(top = 4.dp),
+                onNavigateToPosition = state::navigateToPosition,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp)
+                    .padding(top = 4.dp),
             )
 
             // Chapter chip — show whenever we have a locator; fall back to filename when no title.
@@ -182,6 +167,71 @@ fun Epub3ControlsCard(
                 IconButton(onClick = onSettingsClick) {
                     Icon(Icons.Default.Tune, contentDescription = "Reader settings")
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun Epub3PageNavigatorRow(
+    positions: List<Locator>,
+    currentLocator: Locator?,
+    onNavigateToPosition: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    if (positions.size <= 1) return
+
+    val accentColor = LocalAccentColor.current
+    val currentIndex = remember(currentLocator, positions) {
+        locatorToPositionIndex(positions, currentLocator)
+    }
+    val interactionScope = rememberCoroutineScope()
+    var interactionEndJob by remember { mutableStateOf<Job?>(null) }
+    var isInteracting by remember { mutableStateOf(false) }
+    var sliderDraft by remember { mutableStateOf(currentIndex.toFloat()) }
+
+    LaunchedEffect(currentIndex) {
+        if (!isInteracting) sliderDraft = currentIndex.toFloat()
+    }
+
+    fun navigate(newIndex: Int) {
+        sliderDraft = newIndex.toFloat()
+        onNavigateToPosition(newIndex)
+        isInteracting = true
+        interactionEndJob?.cancel()
+        interactionEndJob = interactionScope.launch { delay(700); isInteracting = false }
+    }
+
+    Column(modifier = modifier) {
+        Epub3LocationLabel(
+            positions = positions,
+            currentLocator = currentLocator,
+            overrideIndex = sliderDraft.roundToInt(),
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(
+                onClick = { navigate((sliderDraft.roundToInt() - 1).coerceAtLeast(0)) },
+                enabled = sliderDraft.roundToInt() > 0,
+            ) {
+                Icon(Icons.Filled.Remove, contentDescription = "Previous page")
+            }
+            AppSlider(
+                value = sliderDraft,
+                onValueChange = { isInteracting = true; sliderDraft = it },
+                onValueChangeFinished = { navigate(sliderDraft.roundToInt()) },
+                valueRange = 0f..(positions.size - 1).toFloat(),
+                steps = 0,
+                accentColor = accentColor,
+                colors = AppSliderDefaults.colors(accentColor = accentColor),
+                modifier = Modifier.weight(1f),
+            )
+            IconButton(
+                onClick = { navigate((sliderDraft.roundToInt() + 1).coerceAtMost(positions.size - 1)) },
+                enabled = sliderDraft.roundToInt() < positions.size - 1,
+            ) {
+                Icon(Icons.Filled.Add, contentDescription = "Next page")
             }
         }
     }
