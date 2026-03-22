@@ -83,6 +83,7 @@ data class FinalizedProps(
  */
 interface EpubViewListener {
     fun onLocatorChange(locator: Locator) {}
+    fun onRawLocatorChange(locator: Locator) {}
     fun onMiddleTouch() {}
     fun onSelection(locator: Locator, x: Int, y: Int) {}
     fun onSelectionCleared() {}
@@ -620,6 +621,7 @@ class EpubView(
     }
 
     private suspend fun onLocatorChanged(locator: Locator) {
+        listener?.onRawLocatorChange(locator)
         findOnPage(locator)
 
         if (locator.href != props!!.locator?.href || changingResource) {

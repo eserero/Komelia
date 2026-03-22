@@ -30,10 +30,12 @@ import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -49,6 +51,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import org.readium.r2.shared.publication.Locator
@@ -57,11 +60,32 @@ import snd.komelia.ui.LocalAccentColor
 import snd.komelia.ui.common.components.AppSlider
 import snd.komelia.ui.common.components.AppSliderDefaults
 import snd.komelia.ui.common.images.ThumbnailImage
+import snd.komelia.ui.reader.epub.Epub3LocationLabel
+import snd.komelia.ui.reader.epub.locatorToPositionIndex
 import snd.komga.client.book.KomgaBookId
 import kotlin.math.roundToInt
 
 private val emphasizedEasing = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1.0f)
 private val emphasizedAccelerateEasing = CubicBezierEasing(0.3f, 0.0f, 0.8f, 0.15f)
+
+private fun formatHMS(seconds: Double): String {
+    val total = seconds.toLong().coerceAtLeast(0)
+    val h = total / 3600
+    val m = (total % 3600) / 60
+    val s = total % 60
+    return if (h > 0) "%d:%02d:%02d".format(h, m, s) else "%d:%02d".format(m, s)
+}
+
+private fun formatTimeLeft(seconds: Double): String {
+    val total = seconds.toLong().coerceAtLeast(0)
+    val h = total / 3600
+    val m = (total % 3600) / 60
+    return when {
+        h > 0 && m > 0 -> "$h hours $m minutes left"
+        h > 0           -> "$h hours left"
+        else            -> "$m minutes left"
+    }
+}
 
 @OptIn(ExperimentalSharedTransitionApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -77,12 +101,17 @@ fun AudioFullScreenPlayer(
     onDismiss: () -> Unit,
     onDrag: (fraction: Float) -> Unit,
     onDragEnd: (fraction: Float) -> Unit,
+    onChapterClick: () -> Unit,
+    playbackSpeed: Double,
+    onSpeedChange: (Double) -> Unit,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
     modifier: Modifier = Modifier,
 ) {
     val isPlaying by controller.isPlaying.collectAsState()
     val volume by controller.volume.collectAsState()
+    val elapsedSeconds by controller.elapsedSeconds.collectAsState()
+    val totalDurationSeconds by controller.totalDurationSeconds.collectAsState()
     val accentColor = LocalAccentColor.current
 
     val coverRequest = remember(bookId) { BookDefaultThumbnailRequest(bookId) }
@@ -90,7 +119,7 @@ fun AudioFullScreenPlayer(
     var playerHeightPx by remember { mutableIntStateOf(1) }
 
     val currentIndex = remember(currentLocator, positions) {
-        positions.indexOfFirst { it.href == currentLocator?.href }.coerceAtLeast(0)
+        locatorToPositionIndex(positions, currentLocator)
     }
     var sliderDraft by remember(currentIndex) { mutableStateOf(currentIndex.toFloat()) }
 
@@ -190,18 +219,23 @@ fun AudioFullScreenPlayer(
                             style = MaterialTheme.typography.titleLarge,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
+                            textAlign = TextAlign.Center,
                             modifier = fadeModifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 48.dp)
                                 .padding(top = 16.dp, bottom = 4.dp),
                         )
 
-                        // Chapter title
-                        Text(
-                            text = chapterTitle,
-                            style = MaterialTheme.typography.bodyMedium,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
+                        // Chapter title — tap to open TOC
+                        SuggestionChip(
+                            onClick = onChapterClick,
+                            label = {
+                                Text(
+                                    text = chapterTitle,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            },
                             modifier = fadeModifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 48.dp),
@@ -220,6 +254,41 @@ fun AudioFullScreenPlayer(
                                     .fillMaxWidth()
                                     .padding(horizontal = 48.dp)
                                     .padding(top = 16.dp),
+                            )
+
+                            // Elapsed / total time row
+                            Row(
+                                modifier = fadeModifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 48.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                            ) {
+                                Text(
+                                    text = formatHMS(elapsedSeconds),
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
+                                Text(
+                                    text = formatHMS(totalDurationSeconds),
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
+                            }
+
+                            // Page label
+                            Epub3LocationLabel(
+                                positions = positions,
+                                currentLocator = currentLocator,
+                                overrideIndex = sliderDraft.roundToInt(),
+                                textAlign = TextAlign.Center,
+                                modifier = fadeModifier.fillMaxWidth().padding(top = 2.dp),
+                            )
+
+                            // Time remaining
+                            val remaining = (totalDurationSeconds - elapsedSeconds).coerceAtLeast(0.0)
+                            Text(
+                                text = formatTimeLeft(remaining),
+                                style = MaterialTheme.typography.bodySmall,
+                                textAlign = TextAlign.Center,
+                                modifier = fadeModifier.padding(top = 2.dp),
                             )
                         }
 
@@ -277,6 +346,25 @@ fun AudioFullScreenPlayer(
                                 contentDescription = null,
                                 modifier = Modifier.size(20.dp),
                             )
+                        }
+
+                        // Speed chips
+                        val speeds = listOf(1.0, 1.25, 1.5, 1.75, 2.0)
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                            modifier = fadeModifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 48.dp)
+                                .padding(top = 8.dp),
+                        ) {
+                            speeds.forEach { speed ->
+                                val selected = kotlin.math.abs(playbackSpeed - speed) < 0.01
+                                FilterChip(
+                                    selected = selected,
+                                    onClick = { onSpeedChange(speed) },
+                                    label = { Text("${speed}×") },
+                                )
+                            }
                         }
                     }
                 }

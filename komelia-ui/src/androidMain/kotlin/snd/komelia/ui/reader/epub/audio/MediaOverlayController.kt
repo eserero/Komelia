@@ -36,6 +36,16 @@ class MediaOverlayController(
     private val _volume = MutableStateFlow(1f)
     val volume: StateFlow<Float> = _volume
 
+    private val _elapsedSeconds = MutableStateFlow(0.0)
+    val elapsedSeconds: StateFlow<Double> = _elapsedSeconds
+
+    private val _totalDurationSeconds = MutableStateFlow(0.0)
+    val totalDurationSeconds: StateFlow<Double> = _totalDurationSeconds
+
+    private var loadedTracks: List<Track> = emptyList()
+    private var currentTrackIndex = 0
+    private var elapsedTimeJob: Job? = null
+
     fun setVolume(v: Float) {
         val clamped = v.coerceIn(0f, 1f)
         _volume.value = clamped
@@ -83,9 +93,17 @@ class MediaOverlayController(
                     view.pendingProps.locator = clip.locator
                     view.finalizeProps()
                     schedulePageTurnIfNeeded(clip)
+                    elapsedTimeJob = coroutineScope.launch {
+                        while (true) {
+                            val prev = loadedTracks.take(currentTrackIndex).sumOf { it.duration }
+                            _elapsedSeconds.value = prev + player.getPosition()
+                            delay(500)
+                        }
+                    }
                 } else {
                     pageTurnJob?.cancel()
                     epubView?.clearHighlightFragment()
+                    elapsedTimeJob?.cancel()
                 }
             }
 
@@ -101,7 +119,9 @@ class MediaOverlayController(
                 view.finalizeProps()
             }
 
-            override fun onTrackChanged(track: Track, position: Double, index: Int) {}
+            override fun onTrackChanged(track: Track, position: Double, index: Int) {
+                currentTrackIndex = index
+            }
         }
     )
 
@@ -135,6 +155,8 @@ class MediaOverlayController(
         }
 
         if (tracks.isNotEmpty()) {
+            loadedTracks = tracks
+            _totalDurationSeconds.value = tracks.sumOf { it.duration }
             player.loadTracks(tracks)
         }
     }

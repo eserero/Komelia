@@ -223,6 +223,10 @@ class Epub3ReaderState(
     fun onEpubViewCreated(view: EpubView) {
         logger.info { "[komelia-epub] INIT: savedLocator=${savedLocator?.href} currentLocator=${currentLocator.value?.href}" }
         view.listener = object : EpubViewListener {
+            override fun onRawLocatorChange(locator: Locator) {
+                currentLocator.value = locator
+            }
+
             override fun onLocatorChange(locator: Locator) {
                 logger.info {
                     "[komelia-epub] LOCATOR-CB: incoming=${locator.href} title=${locator.title} " +

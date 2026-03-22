@@ -35,11 +35,22 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import org.readium.r2.shared.publication.Link
+import org.readium.r2.shared.publication.Locator
 import org.readium.r2.shared.util.Url
 import snd.komelia.ui.LocalAccentColor
 import snd.komelia.ui.common.components.AppSlider
 import snd.komelia.ui.common.components.AppSliderDefaults
 import kotlin.math.roundToInt
+
+fun locatorToPositionIndex(positions: List<Locator>, locator: Locator?): Int {
+    if (locator == null || positions.isEmpty()) return 0
+    val sameHref = positions.filter { it.href == locator.href }
+    if (sameHref.isEmpty()) return 0
+    val prog = locator.locations.progression ?: 0.0
+    val best = sameHref.minByOrNull { kotlin.math.abs((it.locations.progression ?: 0.0) - prog) }
+        ?: sameHref.first()
+    return positions.indexOf(best).coerceAtLeast(0)
+}
 
 fun findTocLink(links: List<Link>, href: Url): Link? {
     val targetHref = href.removeFragment()
@@ -66,9 +77,7 @@ fun Epub3ControlsCard(
     val totalPages = positions.size
 
     val currentPageIndex = remember(currentLocator, positions) {
-        currentLocator?.locations?.position
-            ?.let { pos -> positions.indexOfFirst { it.locations.position == pos }.takeIf { it >= 0 } }
-            ?: 0
+        locatorToPositionIndex(positions, currentLocator)
     }
 
     var sliderDraft by remember(currentPageIndex) { mutableStateOf(currentPageIndex.toFloat()) }
@@ -128,9 +137,10 @@ fun Epub3ControlsCard(
             }
 
             // Page label
-            Text(
-                text = "Page ${sliderDraft.roundToInt() + 1} of $totalPages",
-                style = MaterialTheme.typography.bodySmall,
+            Epub3LocationLabel(
+                positions = positions,
+                currentLocator = currentLocator,
+                overrideIndex = sliderDraft.roundToInt(),
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(top = 4.dp),
             )
@@ -175,4 +185,24 @@ fun Epub3ControlsCard(
             }
         }
     }
+}
+
+@Composable
+fun Epub3LocationLabel(
+    positions: List<Locator>,
+    currentLocator: Locator?,
+    modifier: Modifier = Modifier,
+    textAlign: TextAlign = TextAlign.Unspecified,
+    overrideIndex: Int? = null,
+) {
+    val index = overrideIndex ?: remember(currentLocator, positions) {
+        locatorToPositionIndex(positions, currentLocator)
+    }
+    Text(
+        text = "Loc. ${index + 1} of ${positions.size}",
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+        textAlign = textAlign,
+        modifier = modifier,
+    )
 }
