@@ -83,6 +83,8 @@ fun AppearanceSettingsContent(
     onImmersiveColorEnabledChange: (Boolean) -> Unit,
     immersiveColorAlpha: Float,
     onImmersiveColorAlphaChange: (Float) -> Unit,
+    showImmersiveNavBar: Boolean,
+    onShowImmersiveNavBarChange: (Boolean) -> Unit,
     hideParenthesesInNames: Boolean,
     onHideParenthesesInNamesChange: (Boolean) -> Unit,
     cardLayoutOverlayBackground: Boolean,
@@ -154,6 +156,15 @@ fun AppearanceSettingsContent(
                     modifier = Modifier.cursorForHand().padding(end = 20.dp),
                 )
             }
+
+            SwitchWithLabel(
+                checked = showImmersiveNavBar,
+                onCheckedChange = onShowImmersiveNavBarChange,
+                label = { Text("Show navigation bar in immersive screens") },
+                supportingText = { Text("Display the bottom navigation bar on series, book, and oneshot screens") },
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+            )
         }
 
         HorizontalDivider()

@@ -67,14 +67,12 @@ fun SeriesDescriptionRow(
             Text("Release Year: ${releaseDate.year}", style = MaterialTheme.typography.labelSmall)
 
         FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            ElevatedButton(
+            SuggestionChip(
                 onClick = { onLibraryClick(library) },
+                label = { Text(library.name) },
+                icon = { Icon(Icons.AutoMirrored.Outlined.MenuBook, null) },
                 modifier = Modifier.pointerHoverIcon(PointerIcon.Hand)
-            ) {
-                Icon(Icons.AutoMirrored.Outlined.MenuBook, null)
-                Spacer(Modifier.width(3.dp))
-                Text(text = library.name, textDecoration = TextDecoration.Underline)
-            }
+            )
 
             if (status != null) {
                 SuggestionChip(

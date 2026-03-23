@@ -1,0 +1,310 @@
+package snd.komelia.ui.reader.epub
+
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.core.SeekableTransitionState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.rememberTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.compositeOver
+import coil3.compose.rememberAsyncImagePainter
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
+import snd.komelia.image.coil.BookDefaultThumbnailRequest
+import snd.komelia.settings.model.Epub3NativeSettings
+import snd.komelia.ui.LocalImmersiveColorAlpha
+import snd.komelia.ui.LocalImmersiveColorEnabled
+import snd.komelia.ui.common.immersive.extractDominantColor
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.fragment.app.FragmentActivity
+import com.storyteller.reader.EpubView
+import snd.komelia.ui.platform.BackPressHandler
+import snd.komelia.ui.reader.epub.audio.AudioFullScreenPlayer
+import snd.komelia.ui.reader.epub.audio.AudioMiniPlayer
+
+@OptIn(ExperimentalSharedTransitionApi::class)
+@Composable
+actual fun Epub3ReaderContent(state: EpubReaderState) {
+    val activity = LocalContext.current as FragmentActivity
+    val epub3State = state as? Epub3ReaderState
+
+    val settingsFlow = remember(epub3State) {
+        epub3State?.settings ?: MutableStateFlow(Epub3NativeSettings())
+    }
+    val settings by settingsFlow.collectAsState()
+    val themeBgColor = Color(settings.theme.background)
+
+    val coroutineScope = rememberCoroutineScope()
+    val playerTransitionState = remember { SeekableTransitionState(false) }
+    val playerTransition = rememberTransition(playerTransitionState, label = "audio-player")
+
+    Box(modifier = Modifier.fillMaxSize().background(themeBgColor)) {
+        AndroidView(
+            factory = { ctx ->
+                EpubView(context = ctx, activity = activity).also { view ->
+                    epub3State?.onEpubViewCreated(view)
+                }
+            },
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = 56.dp, bottom = 66.dp)
+        )
+
+        if (epub3State != null) {
+            val showControls by epub3State.showControls.collectAsState()
+            val showSettings by epub3State.showSettings.collectAsState()
+            val showToc by epub3State.showToc.collectAsState()
+            val toc by epub3State.tableOfContents.collectAsState()
+            val positions by epub3State.positions.collectAsState()
+            val controller by epub3State.mediaOverlayController.collectAsState()
+            val currentLocator by epub3State.currentLocator.collectAsState()
+
+            val chapterTitle = remember(currentLocator, toc) {
+                currentLocator?.let { loc ->
+                    loc.title
+                        ?: findTocLink(toc, loc.href)?.title
+                        ?: loc.href.toString()
+                            .substringAfterLast('/').substringBeforeLast('.')
+                            .replace('-', ' ').replace('_', ' ')
+                } ?: ""
+            }
+
+            val density = LocalDensity.current
+            var cardHeightPx by remember { mutableStateOf(0) }
+            val audioPlayerBottomPadding by animateDpAsState(
+                targetValue = if (showControls && positions.isNotEmpty()) {
+                    with(density) { cardHeightPx.toDp() } + 10.dp
+                } else {
+                    10.dp
+                },
+                label = "AudioPlayerBottomPadding"
+            )
+
+            // Persistent info bar in the 56dp gap above the EpubView
+            if (positions.isNotEmpty()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                        .padding(horizontal = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Bottom,
+                ) {
+                    Text(
+                        text = chapterTitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(end = 8.dp, bottom = 4.dp),
+                    )
+                    Epub3LocationLabel(
+                        positions = positions,
+                        currentLocator = currentLocator,
+                        modifier = Modifier.padding(bottom = 4.dp),
+                    )
+                }
+            }
+
+            if (showControls) {
+                // Scrim — tap outside dismisses
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.4f))
+                        .clickable { epub3State.toggleControls() }
+                )
+                // Top bar
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.TopStart)
+                        .background(MaterialTheme.colorScheme.surface)
+                        .statusBarsPadding()
+                ) {
+                    IconButton(onClick = { epub3State.closeWebview() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Leave")
+                    }
+                    val book by epub3State.book.collectAsState()
+                    Text(
+                        text = book?.metadata?.title ?: "",
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+
+            // Bottom navigation card
+            if (positions.isNotEmpty()) {
+                AnimatedVisibility(
+                    visible = showControls,
+                    enter = slideInVertically(initialOffsetY = { it }),
+                    exit = slideOutVertically(targetOffsetY = { it }),
+                    modifier = Modifier.align(Alignment.BottomCenter)
+                ) {
+                    Epub3ControlsCard(
+                        state = epub3State,
+                        onDismiss = { epub3State.toggleControls() },
+                        onCardHeightChanged = { cardHeightPx = it },
+                        onSettingsClick = { epub3State.toggleSettings() },
+                        onChapterClick = { epub3State.toggleToc() },
+                    )
+                }
+            }
+
+            // SharedTransitionLayout fills the full screen so shared elements have the full
+            // coordinate space to fly between the mini-player pill and the full-screen sheet.
+            controller?.let { ctrl ->
+                val book by epub3State.book.collectAsState()
+
+                val bookId by epub3State.bookId.collectAsState()
+                val coverRequest = remember(bookId) { BookDefaultThumbnailRequest(bookId) }
+                val coverPainter = rememberAsyncImagePainter(model = coverRequest)
+                var dominantColor by remember(bookId) { mutableStateOf<Color?>(null) }
+                LaunchedEffect(bookId) { dominantColor = extractDominantColor(coverPainter) }
+
+                val immersiveEnabled = LocalImmersiveColorEnabled.current
+                val immersiveAlpha = LocalImmersiveColorAlpha.current
+                val surface = MaterialTheme.colorScheme.surface
+                val playerBackgroundColor = remember(dominantColor, immersiveEnabled, immersiveAlpha) {
+                    if (immersiveEnabled && dominantColor != null)
+                        dominantColor!!.copy(alpha = immersiveAlpha).compositeOver(surface)
+                    else surface
+                }
+
+                SharedTransitionLayout(modifier = Modifier.fillMaxSize()) {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        // Mini player at bottom — fades out as shared elements morph upward
+                        playerTransition.AnimatedVisibility(
+                            visible = { !it },
+                            enter = fadeIn(tween(300)),
+                            exit = fadeOut(tween(200)),
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .padding(bottom = audioPlayerBottomPadding),
+                        ) {
+                            AudioMiniPlayer(
+                                controller = ctrl,
+                                bookId = epub3State.bookId.value,
+                                bookTitle = book?.metadata?.title ?: "",
+                                chapterTitle = chapterTitle,
+                                backgroundColor = playerBackgroundColor,
+                                onCoverClick = { coroutineScope.launch { playerTransitionState.animateTo(true) } },
+                                sharedTransitionScope = this@SharedTransitionLayout,
+                                animatedVisibilityScope = this,
+                            )
+                        }
+
+                        // Full-screen player — sharedBounds on its Surface drives the animation
+                        playerTransition.AnimatedVisibility(
+                            visible = { it },
+                            enter = EnterTransition.None,
+                            exit = fadeOut(tween(500)),
+                            modifier = Modifier.fillMaxSize(),
+                        ) {
+                            AudioFullScreenPlayer(
+                                controller = ctrl,
+                                bookId = epub3State.bookId.value,
+                                bookTitle = book?.metadata?.title ?: "",
+                                chapterTitle = chapterTitle,
+                                backgroundColor = playerBackgroundColor,
+                                positions = positions,
+                                currentLocator = currentLocator,
+                                onNavigateToPosition = epub3State::navigateToPosition,
+                                onDismiss = { coroutineScope.launch { playerTransitionState.animateTo(false) } },
+                                onDrag = { fraction ->
+                                    coroutineScope.launch { playerTransitionState.seekTo(fraction, targetState = false) }
+                                },
+                                onDragEnd = { fraction ->
+                                    coroutineScope.launch {
+                                        if (fraction > 0.15f) playerTransitionState.animateTo(false)
+                                        else playerTransitionState.animateTo(true)
+                                    }
+                                },
+                                onChapterClick = { epub3State.toggleToc() },
+                                playbackSpeed = settings.playbackSpeed,
+                                onSpeedChange = { epub3State.updateSettings(settings.copy(playbackSpeed = it)) },
+                                sharedTransitionScope = this@SharedTransitionLayout,
+                                animatedVisibilityScope = this,
+                                modifier = Modifier.fillMaxSize().align(Alignment.BottomCenter),
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Settings card
+            AnimatedVisibility(
+                visible = showSettings,
+                enter = slideInVertically(initialOffsetY = { it }),
+                exit = slideOutVertically(targetOffsetY = { it }),
+                modifier = Modifier.align(Alignment.BottomCenter)
+            ) {
+                Epub3SettingsCard(
+                    settings = settings,
+                    onSettingsChange = epub3State::updateSettings,
+                    onDismiss = { epub3State.toggleSettings() },
+                )
+            }
+
+            // TOC dialog
+            if (showToc) {
+                Epub3TocDialog(
+                    toc = toc,
+                    currentHref = currentLocator?.href,
+                    onNavigate = { link ->
+                        epub3State.navigateToLink(link)
+                        epub3State.showToc.value = false
+                    },
+                    onDismiss = { epub3State.showToc.value = false },
+                )
+            }
+        }
+    }
+
+    BackPressHandler {
+        if (playerTransitionState.currentState || playerTransitionState.targetState) {
+            coroutineScope.launch { playerTransitionState.animateTo(false) }
+        } else state.onBackButtonPress()
+    }
+}

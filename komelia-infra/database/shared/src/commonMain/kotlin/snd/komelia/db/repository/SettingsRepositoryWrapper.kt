@@ -148,6 +148,12 @@ class SettingsRepositoryWrapper(
     override suspend fun putImmersiveColorAlpha(alpha: Float) =
         wrapper.transform { it.copy(immersiveColorAlpha = alpha) }
 
+    override fun getShowImmersiveNavBar(): Flow<Boolean> =
+        wrapper.state.map { it.showImmersiveNavBar }.distinctUntilChanged()
+
+    override suspend fun putShowImmersiveNavBar(enabled: Boolean) =
+        wrapper.transform { it.copy(showImmersiveNavBar = enabled) }
+
     override fun getLastSelectedLibraryId(): Flow<KomgaLibraryId?> {
         return wrapper.state.map { it.lastSelectedLibraryId?.let { id -> KomgaLibraryId(id) } }.distinctUntilChanged()
     }

@@ -1,5 +1,8 @@
 package snd.komelia.api
 
+import io.ktor.client.statement.*
+import io.ktor.utils.io.*
+import io.ktor.utils.io.core.*
 import snd.komelia.komga.api.KomgaBookApi
 import snd.komelia.komga.api.model.KomeliaBook
 import snd.komelia.offline.book.repository.OfflineBookRepository
@@ -20,6 +23,8 @@ import snd.komga.client.common.Page
 import snd.komga.client.library.KomgaLibraryId
 import snd.komga.client.readlist.KomgaReadList
 import snd.komga.client.search.BookConditionBuilder
+
+private const val EPUB_BUFFER_SIZE: Int = 64 * 1024
 
 class RemoteBookApi(
     private val bookClient: KomgaBookClient,
@@ -192,6 +197,24 @@ class RemoteBookApi(
         resourceName: String
     ): ByteArray {
         return bookClient.getBookEpubResource(bookId, resourceName)
+    }
+
+    override suspend fun getBookRawFile(bookId: KomgaBookId): ByteArray {
+        var bytes: ByteArray = byteArrayOf()
+        bookClient.getBookFile(bookId) { response ->
+            bytes = response.readBytes()
+        }
+        return bytes
+    }
+
+    override suspend fun downloadBookRawFile(bookId: KomgaBookId, onChunk: suspend (ByteArray) -> Unit) {
+        bookClient.getBookFile(bookId) { response ->
+            val channel = response.bodyAsChannel()
+            while (!channel.isClosedForRead) {
+                val packet = channel.readRemaining(EPUB_BUFFER_SIZE.toLong())
+                onChunk(packet.readBytes())
+            }
+        }
     }
 
     private suspend fun getKomeliaBook(book: KomgaBook): KomeliaBook {

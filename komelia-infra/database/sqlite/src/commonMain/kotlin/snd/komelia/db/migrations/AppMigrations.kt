@@ -35,6 +35,8 @@ class AppMigrations : MigrationResourcesProvider() {
         "V26__hide_parentheses_in_names.sql",
         "V27__keep_reader_screen_on.sql",
         "V28__card_layout_overlay_background.sql",
+        "V29__epub3_native_settings.sql",
+        "V30__show_immersive_nav_bar.sql",
     )
 
     override suspend fun getMigration(name: String): ByteArray? {

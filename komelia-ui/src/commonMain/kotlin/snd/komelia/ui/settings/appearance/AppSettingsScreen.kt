@@ -39,6 +39,8 @@ class AppSettingsScreen : Screen {
                     onImmersiveColorEnabledChange = vm::onImmersiveColorEnabledChange,
                     immersiveColorAlpha = vm.immersiveColorAlpha,
                     onImmersiveColorAlphaChange = vm::onImmersiveColorAlphaChange,
+                    showImmersiveNavBar = vm.showImmersiveNavBar,
+                    onShowImmersiveNavBarChange = vm::onShowImmersiveNavBarChange,
                     hideParenthesesInNames = vm.hideParenthesesInNames,
                     onHideParenthesesInNamesChange = vm::onHideParenthesesInNamesChange,
                     cardLayoutOverlayBackground = vm.cardLayoutOverlayBackground,

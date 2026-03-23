@@ -1,5 +1,7 @@
 package snd.komelia.offline.api
 
+import io.github.vinceglb.filekit.readBytes
+import snd.komelia.offline.localFilePath
 import kotlinx.coroutines.flow.StateFlow
 import snd.komelia.komga.api.KomgaBookApi
 import snd.komelia.komga.api.model.KomeliaBook
@@ -317,6 +319,17 @@ class OfflineBookApi(
             MediaProfile.EPUB -> fileContentExtractors.getFileContent(book, media, resourceName)
             else -> throw IllegalStateException("Unsupported media profile ${media.mediaProfile}")
         }
+    }
+
+    override suspend fun getBookRawFile(bookId: KomgaBookId): ByteArray {
+        val book = bookRepository.get(bookId)
+        return book.fileDownloadPath.readBytes()
+    }
+
+    override suspend fun getBookLocalFilePath(bookId: KomgaBookId): String? {
+        return runCatching {
+            bookRepository.get(bookId).fileDownloadPath.localFilePath()
+        }.getOrNull()
     }
 
     private fun OfflineThumbnailBook.toKomgaBookThumbnail() = KomgaBookThumbnail(

@@ -1,5 +1,6 @@
 package snd.komelia.ui.common.components
 
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.InputChipDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
@@ -19,5 +20,20 @@ fun accentInputChipColors() = run {
         )
     } else {
         InputChipDefaults.inputChipColors()
+    }
+}
+
+@Composable
+fun accentFilterChipColors() = run {
+    val accentColor = LocalAccentColor.current
+    if (accentColor != null) {
+        val onAccent = if (accentColor.luminance() > 0.5f) Color.Black else Color.White
+        FilterChipDefaults.filterChipColors(
+            selectedContainerColor = accentColor,
+            selectedLabelColor = onAccent,
+            selectedLeadingIconColor = onAccent,
+        )
+    } else {
+        FilterChipDefaults.filterChipColors()
     }
 }

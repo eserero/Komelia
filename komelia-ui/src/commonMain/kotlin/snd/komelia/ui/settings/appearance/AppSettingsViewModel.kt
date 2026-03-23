@@ -27,6 +27,7 @@ class AppSettingsViewModel(
     var cardLayoutBelow by mutableStateOf(false)
     var immersiveColorEnabled by mutableStateOf(true)
     var immersiveColorAlpha by mutableStateOf(0.12f)
+    var showImmersiveNavBar by mutableStateOf(false)
     var hideParenthesesInNames by mutableStateOf(false)
     var cardLayoutOverlayBackground by mutableStateOf(true)
 
@@ -40,6 +41,7 @@ class AppSettingsViewModel(
         cardLayoutBelow = settingsRepository.getCardLayoutBelow().first()
         immersiveColorEnabled = settingsRepository.getImmersiveColorEnabled().first()
         immersiveColorAlpha = settingsRepository.getImmersiveColorAlpha().first()
+        showImmersiveNavBar = settingsRepository.getShowImmersiveNavBar().first()
         hideParenthesesInNames = settingsRepository.getHideParenthesesInNames().first()
         cardLayoutOverlayBackground = settingsRepository.getCardLayoutOverlayBackground().first()
 
@@ -80,6 +82,11 @@ class AppSettingsViewModel(
     fun onImmersiveColorAlphaChange(alpha: Float) {
         this.immersiveColorAlpha = alpha
         screenModelScope.launch { settingsRepository.putImmersiveColorAlpha(alpha) }
+    }
+
+    fun onShowImmersiveNavBarChange(enabled: Boolean) {
+        this.showImmersiveNavBar = enabled
+        screenModelScope.launch { settingsRepository.putShowImmersiveNavBar(enabled) }
     }
 
     fun onHideParenthesesInNamesChange(hide: Boolean) {

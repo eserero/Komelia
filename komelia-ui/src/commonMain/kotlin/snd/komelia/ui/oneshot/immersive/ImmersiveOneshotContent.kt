@@ -80,7 +80,7 @@ import snd.komelia.ui.dialogs.ConfirmationDialog
 import snd.komelia.ui.dialogs.permissions.DownloadNotificationRequestDialog
 import snd.komelia.ui.library.SeriesScreenFilter
 import snd.komelia.ui.readlist.BookReadListsContent
-import snd.komelia.ui.series.view.SeriesChipTags
+import snd.komelia.ui.book.BookInfoColumn
 import snd.komelia.ui.series.view.SeriesDescriptionRow
 import snd.komelia.ui.series.view.SeriesSummary
 import snd.komelia.utils.removeParentheses
@@ -476,8 +476,16 @@ private fun OneshotCardContent(
             OneshotImmersiveTab.TAGS -> {
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     Box(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                        SeriesChipTags(
-                            series = series,
+                        BookInfoColumn(
+                            publisher = series.metadata.publisher,
+                            genres = series.metadata.genres,
+                            authors = book.metadata.authors,
+                            tags = book.metadata.tags,
+                            links = book.metadata.links,
+                            sizeInMiB = book.size,
+                            mediaType = book.media.mediaType,
+                            isbn = book.metadata.isbn,
+                            fileUrl = book.url,
                             onFilterClick = onFilterClick,
                         )
                     }

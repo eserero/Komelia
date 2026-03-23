@@ -180,14 +180,12 @@ fun BookInfoRow(
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             if (onSeriesButtonClick != null) {
-                ElevatedButton(
+                SuggestionChip(
                     onClick = onSeriesButtonClick,
+                    label = { Text(seriesTitle) },
+                    icon = { Icon(Icons.AutoMirrored.Outlined.LibraryBooks, null) },
                     modifier = Modifier.pointerHoverIcon(PointerIcon.Hand)
-                ) {
-                    Icon(Icons.AutoMirrored.Outlined.LibraryBooks, null)
-                    Spacer(Modifier.width(3.dp))
-                    Text(text = seriesTitle, textDecoration = TextDecoration.Underline)
-                }
+                )
             }
             if (book.deleted) {
                 SuggestionChip(
