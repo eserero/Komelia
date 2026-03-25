@@ -317,6 +317,7 @@ class PlaybackService : MediaLibraryService() {
         if (scheduledMessages.containsKey(mediaId)) return   // already scheduled
 
         val trackClips = mediaIdToClips[mediaId] ?: return
+        android.util.Log.i("epub3-diag", "scheduleMessages: index=$index track=${mediaId.substringAfterLast('/')} clips=${trackClips.size}")
         val messages = mutableListOf<PlayerMessage>()
 
         trackClips.forEach { clip ->
@@ -557,7 +558,12 @@ class AudiobookPlayer(
                 }
                 relativeUriToIndex = relativeUriToIndexMutable
 
+                val rt = Runtime.getRuntime()
+                val preUsed = (rt.totalMemory() - rt.freeMemory()) / 1_048_576
+                android.util.Log.i("epub3-diag", "PRE-PREPARE heap=${preUsed}MB tracks=${tracks.size} clips-by-track=${relativeUriToClips.entries.joinToString { "${it.key.substringAfterLast('/')}:${it.value.size}" }}")
                 controller.prepare()
+                val postUsed = (rt.totalMemory() - rt.freeMemory()) / 1_048_576
+                android.util.Log.i("epub3-diag", "POST-PREPARE heap=${postUsed}MB delta=${postUsed - preUsed}MB")
             },
             MoreExecutors.directExecutor()
         )

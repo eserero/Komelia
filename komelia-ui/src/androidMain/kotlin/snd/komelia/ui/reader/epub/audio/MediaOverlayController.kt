@@ -130,6 +130,7 @@ class MediaOverlayController(
     suspend fun initialize(clips: List<OverlayPar>) {
         if (clips.isEmpty()) return
 
+        logger.debug { "[epub3-audio] initialize: start, clips=${clips.size}" }
         val publication = BookService.getPublication(bookUuid) ?: return
 
         val durationByResource = mutableMapOf<String, Double>()
@@ -137,6 +138,7 @@ class MediaOverlayController(
             durationByResource[clip.audioResource] =
                 (durationByResource[clip.audioResource] ?: 0.0) + (clip.end - clip.start)
         }
+        logger.debug { "[epub3-audio] initialize: durationByResource built (${durationByResource.size} resources)" }
 
         val toc = publication.tableOfContents
         val clipsByResource = clips.groupBy { it.audioResource }
@@ -168,11 +170,14 @@ class MediaOverlayController(
                 mimeType = link?.mediaType?.toString() ?: "audio/mpeg"
             )
         }
+        logger.debug { "[epub3-audio] initialize: tracks built (${tracks.size} tracks)" }
 
         if (tracks.isNotEmpty()) {
             loadedTracks = tracks
             _totalDurationSeconds.value = tracks.sumOf { it.duration }
+            logger.debug { "[epub3-audio] initialize: calling loadTracks" }
             player.loadTracks(tracks)
+            logger.debug { "[epub3-audio] initialize: loadTracks returned" }
         }
     }
 

@@ -88,7 +88,7 @@ class EpubScreen(
             when (state) {
                 LoadState.Loading, LoadState.Uninitialized -> LoadingMaxSizeIndicator()
                 is LoadState.Error -> ErrorContent(
-                    message = state.exception.message ?: state.exception.stackTraceToString(),
+                    message = "${state.exception::class.simpleName}: ${state.exception.message ?: state.exception.stackTraceToString()}",
                     onExit = {
                         val screen = book?.let { bookScreen(book = it, bookSiblingsContext = bookSiblingsContext) }
                             ?: BookScreen(bookId = bookId, bookSiblingsContext = bookSiblingsContext)

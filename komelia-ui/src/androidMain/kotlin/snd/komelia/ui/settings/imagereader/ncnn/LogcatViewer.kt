@@ -85,7 +85,7 @@ private suspend fun fetchLogs(): String = withContext(Dispatchers.IO) {
         val process = Runtime.getRuntime().exec("logcat -d -v time *:D")
         val reader = BufferedReader(InputStreamReader(process.inputStream))
         val log = StringBuilder()
-        val filter = listOf("ncnn", "komelia", "Upscaler", "Vulkan", "Fatal", "DEBUG")
+        val filter = listOf("ncnn", "komelia", "Upscaler", "Vulkan", "Fatal", "DEBUG", "epub3-diag")
         
         reader.useLines { lines ->
             lines.filter { line ->

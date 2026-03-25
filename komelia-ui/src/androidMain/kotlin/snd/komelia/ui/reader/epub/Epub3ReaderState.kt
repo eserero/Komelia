@@ -8,12 +8,12 @@ import com.storyteller.reader.EpubViewListener
 import com.storyteller.reader.OverlayPar
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
-import org.json.JSONArray
-import org.json.JSONObject
+import kotlinx.coroutines.withContext
 import org.readium.r2.navigator.preferences.ColumnCount
 import org.readium.r2.navigator.preferences.FontFamily
 import org.readium.r2.navigator.preferences.TextAlign
@@ -47,14 +47,6 @@ import java.net.URL
 import kotlin.time.Clock
 
 private val logger = KotlinLogging.logger {}
-
-private fun JSONObject.toMap(): Map<String, Any> =
-    keys().asSequence().associateWith { key ->
-        when (val v = get(key)) {
-            is JSONObject -> v.toMap()
-            else -> v
-        }
-    }
 
 class Epub3ReaderState(
     bookId: KomgaBookId,
@@ -157,39 +149,31 @@ class Epub3ReaderState(
         if (platformType == PlatformType.MOBILE) windowState.setFullscreen(true)
         if (state.value !is LoadState.Uninitialized) return
 
+        logger.debug { "[epub3-init] starting for bookId=${bookId.value.value}" }
         state.value = LoadState.Loading
         notifications.runCatchingToNotifications {
-            if (book.value == null) book.value = bookApi.getOne(bookId.value)
+            if (book.value == null) {
+                logger.debug { "[epub3-init] fetching book metadata" }
+                book.value = bookApi.getOne(bookId.value)
+            }
 
+            logger.debug { "[epub3-init] preparing epub directory" }
             val extractedDir = prepareEpubDirectory()
-            val clipsFile = File(extractedDir, "overlay_clips.json")
+            logger.debug { "[epub3-init] epub directory ready: $extractedDir" }
 
-            val persistedClips: List<OverlayPar>? = if (clipsFile.exists()) {
-                try {
-                    val json = JSONArray(clipsFile.readText())
-                    List(json.length()) { i -> OverlayPar.fromJson(json.getJSONObject(i).toMap()) }
-                } catch (e: Exception) {
-                    null  // corrupt/old cache → re-parse
-                }
-            } else null
+            // One-time cleanup: delete stale overlay_clips.json cache from old builds
+            withContext(Dispatchers.IO) {
+                File(extractedDir, "overlay_clips.json").delete()
+            }
 
-            BookService.openPublication(bookUuid, extractedDir.toURI().toURL(), clips = persistedClips)
+            logger.debug { "[epub3-init] opening publication" }
+            withContext(Dispatchers.IO) {
+                BookService.openPublication(bookUuid, extractedDir.toURI().toURL(), clips = null)
+            }
+            logger.debug { "[epub3-init] publication opened" }
             tableOfContents.value = BookService.getPublication(bookUuid)?.tableOfContents ?: emptyList()
 
-            val clips: List<OverlayPar> = persistedClips ?: run {
-                val freshClips = BookService.getOverlayClips(bookUuid)
-                if (freshClips.isNotEmpty()) {
-                    val json = JSONArray(freshClips.map { JSONObject(it.toJson()) })
-                    clipsFile.writeText(json.toString())
-                }
-                freshClips
-            }
-
-            if (clips.isNotEmpty()) {
-                val controller = MediaOverlayController(context, coroutineScope, bookUuid, extractedDir)
-                controller.initialize(clips)
-                mediaOverlayController.value = controller
-            }
+            val clips: List<OverlayPar> = BookService.getOverlayClips(bookUuid)
 
             val r2Prog = bookApi.getReadiumProgression(bookId.value)
             if (r2Prog != null) {
@@ -208,14 +192,39 @@ class Epub3ReaderState(
                 }
             }
 
+            logger.debug { "[epub3-init] succeeded" }
             state.value = LoadState.Success(Unit)
             settings.value = epubSettingsRepository.getEpub3NativeSettings()
             coroutineScope.launch {
+                val rt = Runtime.getRuntime()
+                val pre = (rt.totalMemory() - rt.freeMemory()) / 1_048_576
+                logger.info { "[epub3-diag] getPositions-coroutine START heap=${pre}MB clips=${clips.size}" }
                 runCatching { positions.value = BookService.getPositions(bookUuid) }
                     .onFailure { logger.catching(it) }
+                val post = (rt.totalMemory() - rt.freeMemory()) / 1_048_576
+                logger.info { "[epub3-diag] getPositions-coroutine END heap=${post}MB delta=${post - pre}MB" }
+            }
+
+            if (clips.isNotEmpty()) {
+                coroutineScope.launch {
+                    logger.debug { "[epub3-init] initializing media overlay controller in background (${clips.size} clips)" }
+                    runCatching {
+                        val controller = MediaOverlayController(context, coroutineScope, bookUuid, extractedDir)
+                        controller.initialize(clips)
+                        controller.applyAudioSettings(settings.value)
+                        mediaOverlayController.value = controller
+                        epubView?.let { view ->
+                            controller.attachView(view)
+                            savedLocator?.let { controller.handleUserLocatorChange(it) }
+                        }
+                        logger.debug { "[epub3-init] media overlay controller ready" }
+                    }.onFailure { e ->
+                        logger.error { "[epub3-init] media overlay controller FAILED: ${e::class.qualifiedName}: ${e.message}\n${e.stackTraceToString()}" }
+                    }
+                }
             }
         }.onFailure { e ->
-            logger.catching(e)
+            logger.error { "[epub3-init] FAILED: ${e::class.qualifiedName}: ${e.message}\n${e.stackTraceToString()}" }
             state.value = LoadState.Error(e)
         }
     }
@@ -319,7 +328,7 @@ class Epub3ReaderState(
      * Downloads the EPUB zip (if not already cached) and extracts it to
      * `context.cacheDir/epub3/<bookUuid>/`.
      */
-    private suspend fun prepareEpubDirectory(): File {
+    private suspend fun prepareEpubDirectory(): File = withContext(Dispatchers.IO) {
         val extractedDir = File(context.cacheDir, "epub3/$bookUuid").also { it.mkdirs() }
         if (extractedDir.list().isNullOrEmpty()) {
             val localPath = bookApi.getBookLocalFilePath(bookId.value)
@@ -342,6 +351,6 @@ class Epub3ReaderState(
                 zipFile.delete()
             }
         }
-        return extractedDir
+        extractedDir
     }
 }

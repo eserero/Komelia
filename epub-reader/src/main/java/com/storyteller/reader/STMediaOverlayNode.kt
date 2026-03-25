@@ -28,9 +28,9 @@ class MediaOverlayNode(
 ) : Serializable {
 
     val audioFile: String?
-        get() = audio?.removeFragment()?.path!!
+        get() = audio?.path?.substringBefore('#')
     val audioTime: String?
-        get() = audio?.fragment
+        get() = audio?.fragment ?: audio?.path?.substringAfter('#', "")
     val textFile: String
         get() = text.removeFragment().path!!
     val fragmentId: String?
@@ -38,19 +38,23 @@ class MediaOverlayNode(
     val clip: Clip?
         get() {
             val audio = audio ?: throw Exception("audio")
-            val audioFile = audio.removeFragment().path ?: throw Exception("audioFile")
-            val times = audio.fragment ?: ""
+            val rawPath = audio.path ?: throw Exception("audioFile")
+            // Url.fromEpubHref falls back to fromDecodedPath for filenames with spaces,
+            // which percent-encodes '#' as '%23' in the path instead of treating it as a
+            // URI fragment separator. Android's Uri.getPath() then decodes '%23' back to '#',
+            // so removeFragment() is a no-op. Split the path string directly to be safe.
+            val audioFile = rawPath.substringBefore('#')
+            val times = audio.fragment ?: rawPath.substringAfter('#', "")
             val (start, end) = parseTimer(times)
             return Clip(audioFile, fragmentId ?: return null, start, end)
         }
 
     private fun parseTimer(times: String): Pair<Double, Double> {
-        //  Remove "t=" prefix
-        val netTimes = times.removeRange(0, 2)
-        val start = netTimes.split(',').first()
-        val end = netTimes.split(',').last()
-        val startTimer = start.toDouble()
-        val endTimer = end.toDouble()
+        //  Remove "t=" prefix if present
+        val netTimes = if (times.startsWith("t=")) times.substring(2) else times
+        val parts = netTimes.split(',')
+        val startTimer = parts.getOrNull(0)?.toDoubleOrNull() ?: 0.0
+        val endTimer = parts.getOrNull(1)?.toDoubleOrNull() ?: 0.0
         return Pair(startTimer, endTimer)
     }
 }

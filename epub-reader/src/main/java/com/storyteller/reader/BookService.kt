@@ -89,7 +89,13 @@ object BookService {
     suspend fun getPositions(bookUuid: String): List<Locator> {
         val publication = getPublication(bookUuid)
             ?: throw Exception("Publication for book $bookUuid is unopened.")
-        return publication.positions()
+        val rt = Runtime.getRuntime()
+        val before = (rt.totalMemory() - rt.freeMemory()) / 1_048_576
+        android.util.Log.i("epub3-diag", "getPositions START heap=${before}MB chapters=${publication.readingOrder.size}")
+        val result = publication.positions()
+        val after = (rt.totalMemory() - rt.freeMemory()) / 1_048_576
+        android.util.Log.i("epub3-diag", "getPositions END heap=${after}MB delta=${after - before}MB positions=${result.size}")
+        return result
     }
 
     @OptIn(InternalReadiumApi::class)

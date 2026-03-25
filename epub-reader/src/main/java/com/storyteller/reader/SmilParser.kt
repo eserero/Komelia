@@ -13,8 +13,6 @@ import org.readium.r2.shared.InternalReadiumApi
 import org.readium.r2.shared.publication.Link
 import org.readium.r2.shared.publication.Locator
 import org.readium.r2.shared.publication.Publication
-import org.readium.r2.shared.publication.indexOfFirstWithHref
-import org.readium.r2.shared.publication.services.positionsByReadingOrder
 import org.readium.r2.shared.util.Try
 import org.readium.r2.shared.util.Url
 import org.readium.r2.shared.util.data.decodeString
@@ -106,8 +104,7 @@ internal object SmilParser {
         }
     }
 
-    private suspend fun createLocator(
-        publication: Publication,
+    private fun createLocator(
         htmlContentStart: Int,
         htmlContent: String,
         defaultLocator: Locator,
@@ -120,31 +117,11 @@ internal object SmilParser {
                 htmlContentStart
             )
         val progression = startOfFragment.toDouble() / htmlContent.length.toDouble()
-        val readingOrderIndex = publication.readingOrder.indexOfFirstWithHref(text.removeFragment())
-            ?: throw Exception("Could not find a locator for href ${text.removeFragment()} in reading order")
 
-        val startOfChapterProgression =
-            publication.positionsByReadingOrder()[readingOrderIndex].first().locations.totalProgression
-                ?: return Pair(defaultLocator, htmlContentStart)
-
-        val chapterIndex = publication.readingOrder.indexOfFirstWithHref(text.removeFragment())
-            ?: return Pair(defaultLocator, htmlContentStart)
-        val nextChapterIndex = chapterIndex + 1
-        val startOfNextChapterProgression = nextChapterIndex.let {
-            if (it == publication.readingOrder.size) {
-                return@let 1.0
-            } else {
-                val nextChapterLink = publication.readingOrder[nextChapterIndex]
-                val readingOrderIndex =
-                    publication.readingOrder.indexOfFirstWithHref(nextChapterLink.url())
-                        ?: throw Exception("Could not find a locator for href ${nextChapterLink.url()} in reading order")
-
-                return@let publication.positionsByReadingOrder()[readingOrderIndex].first().locations.totalProgression
-            }
-        } ?: return Pair(defaultLocator, htmlContentStart)
-        val totalProgression =
-            startOfChapterProgression + (progression * (startOfNextChapterProgression - startOfChapterProgression))
-
+        // totalProgression is intentionally omitted: computing it requires
+        // positionsByReadingOrder() which reads all chapter HTML files simultaneously
+        // and causes OOM for large audio books. Clip lookups use href+fragment and
+        // within-chapter progression only — totalProgression is never used.
         return Pair(
             Locator(
                 href = text.removeFragment(),
@@ -152,7 +129,7 @@ internal object SmilParser {
                 locations = Locator.Locations(
                     fragments = listOf(text.fragment!!),
                     progression = progression,
-                    totalProgression = totalProgression
+                    totalProgression = null
                 )
             ), startOfFragment + (text.fragment?.length ?: 0) + 5
         )
@@ -181,7 +158,6 @@ internal object SmilParser {
 
         val pair =
             createLocator(
-                publication,
                 htmlContentStart,
                 htmlContent,
                 defaultLocator,
