@@ -1,5 +1,6 @@
 package snd.komelia.ui.reader.image.paged
 
+import androidx.compose.animation.core.exponentialDecay
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.layout.Arrangement
@@ -174,7 +175,10 @@ fun BoxScope.PagedReaderContent(
             )
         }
     ) {
-        ScalableContainer(scaleState = screenScaleState) {
+        ScalableContainer(
+            scaleState = screenScaleState,
+            flingSpec = exponentialDecay(frictionMultiplier = 0.4f),
+        ) {
             val transitionPage = pagedReaderState.transitionPage.collectAsState().value
             if (transitionPage != null) {
                 TransitionPage(transitionPage)

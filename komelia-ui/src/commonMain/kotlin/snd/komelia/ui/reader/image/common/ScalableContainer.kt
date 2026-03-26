@@ -1,5 +1,6 @@
 package snd.komelia.ui.reader.image.common
 
+import androidx.compose.animation.core.DecayAnimationSpec
 import androidx.compose.animation.rememberSplineBasedDecay
 import androidx.compose.foundation.gestures.Orientation.Horizontal
 import androidx.compose.foundation.gestures.Orientation.Vertical
@@ -43,6 +44,7 @@ import kotlin.math.abs
 @Composable
 fun ScalableContainer(
     scaleState: ScreenScaleState,
+    flingSpec: DecayAnimationSpec<Offset>? = null,
     content: @Composable BoxScope.() -> Unit,
 ) {
     val platform = LocalPlatform.current
@@ -61,7 +63,8 @@ fun ScalableContainer(
     val areaCenter = remember(areaSize) { Offset(areaSize.width / 2f, areaSize.height / 2f) }
 
     val flingScope = rememberCoroutineScope()
-    val flingSpec = rememberSplineBasedDecay<Offset>()
+    val defaultFlingSpec = rememberSplineBasedDecay<Offset>()
+    val resolvedFlingSpec = flingSpec ?: defaultFlingSpec
     var flingInProgress by remember { mutableStateOf(false) }
     val scrollOrientation = scaleState.scrollOrientation.collectAsState().value ?: Vertical
     val scrollConfig = remember { platformScrollConfig() }
@@ -81,7 +84,7 @@ fun ScalableContainer(
                         scaleState.isFlinging.value = true  // prevent premature snap LaunchedEffect
                         flingScope.launch {
                             flingInProgress = true
-                            scaleState.performFling(flingSpec)
+                            scaleState.performFling(resolvedFlingSpec)
                             flingInProgress = false
                         }
                     },

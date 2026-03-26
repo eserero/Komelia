@@ -700,6 +700,7 @@ class ViewModelFactory(
             serverDeleteAction = dependencies.offlineDependencies.actions.get(),
             userDeleteAction = dependencies.offlineDependencies.actions.get(),
             platformContext = dependencies.coilContext,
+            offlineScannerService = dependencies.offlineDependencies.offlineScannerService,
 
             taskEmitter = dependencies.offlineDependencies.taskEmitter,
             downloadEvents = dependencies.offlineDependencies.bookDownloadEvents

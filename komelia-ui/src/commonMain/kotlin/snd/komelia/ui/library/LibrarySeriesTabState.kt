@@ -33,6 +33,7 @@ import snd.komelia.ui.series.SeriesFilter
 import snd.komelia.ui.series.SeriesFilterState
 import snd.komga.client.book.KomgaReadStatus
 import snd.komga.client.common.KomgaPageRequest
+import snd.komga.client.series.KomgaSeriesId
 import snd.komga.client.common.KomgaSort.KomgaBooksSort
 import snd.komga.client.common.KomgaSort.KomgaSeriesSort
 import snd.komga.client.common.Page
@@ -55,6 +56,8 @@ class LibrarySeriesTabState(
 ) : StateScreenModel<LoadState<Unit>>(LoadState.Uninitialized) {
     val pageLoadSize = MutableStateFlow(50)
     var series by mutableStateOf<List<KomgaSeries>>(emptyList())
+        private set
+    var downloadedSeriesIds by mutableStateOf<Set<KomgaSeriesId>>(emptySet())
         private set
     var totalSeriesPages by mutableStateOf(1)
         private set
@@ -161,6 +164,7 @@ class LibrarySeriesTabState(
             totalSeriesPages = seriesPage.totalPages
             totalSeriesCount = seriesPage.totalElements
             series = seriesPage.content
+            downloadedSeriesIds = bookApi.getDownloadedSeriesIds(seriesPage.content.map { it.id })
             mutableState.value = LoadState.Success(Unit)
         }.onFailure { mutableState.value = LoadState.Error(it) }
     }

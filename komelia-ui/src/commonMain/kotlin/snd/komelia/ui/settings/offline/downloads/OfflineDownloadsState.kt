@@ -12,11 +12,15 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import snd.komelia.AppNotifications
+import snd.komelia.KomgaAuthenticationState
 import snd.komelia.offline.settings.OfflineSettingsRepository
+import snd.komelia.offline.sync.OfflineScannerService
 import snd.komelia.offline.sync.model.DownloadEvent
 import snd.komelia.offline.sync.model.DownloadEvent.BookDownloadCompleted
 import snd.komelia.offline.sync.model.DownloadEvent.BookDownloadError
 import snd.komelia.offline.sync.model.DownloadEvent.BookDownloadProgress
+import snd.komelia.offline.sync.model.OfflineScanResult
 import snd.komelia.offline.tasks.OfflineTaskEmitter
 import snd.komga.client.book.KomgaBookId
 
@@ -25,6 +29,9 @@ class OfflineDownloadsState(
     platformContext: PlatformContext,
     private val taskEmitter: OfflineTaskEmitter,
     private val settingsRepository: OfflineSettingsRepository,
+    private val offlineScannerService: OfflineScannerService,
+    private val authState: KomgaAuthenticationState,
+    private val appNotifications: AppNotifications,
     private val coroutineScope: CoroutineScope,
 ) {
     private val internalDownloadDir = getDefaultInternalDownloadsDir(platformContext)
@@ -33,7 +40,9 @@ class OfflineDownloadsState(
         .stateIn(coroutineScope, SharingStarted.Eagerly, emptyList())
 
     val storageLocation = settingsRepository.getDownloadDirectory()
-        .stateIn(coroutineScope, SharingStarted.Eagerly,null)
+        .stateIn(coroutineScope, SharingStarted.Eagerly, null)
+
+    val scanState = MutableStateFlow<OfflineScanState>(OfflineScanState.Idle)
 
     init {
         downloadEvents.onEach { event ->
@@ -75,6 +84,46 @@ class OfflineDownloadsState(
     fun onDownloadCancel(bookId: KomgaBookId) {
         coroutineScope.launch { taskEmitter.cancelBookDownload(bookId) }
     }
+
+    fun onScanClick() {
+        val root = storageLocation.value ?: return
+        val user = authState.authenticatedUser.value ?: return
+
+        coroutineScope.launch {
+            scanState.value = OfflineScanState.Scanning(0, null)
+            val results = mutableListOf<OfflineScanResult>()
+            try {
+                offlineScannerService.scan(root, user).collect { result ->
+                    results.add(result)
+                    scanState.value = OfflineScanState.Scanning(results.size, result)
+                }
+            } catch (e: Exception) {
+                appNotifications.addErrorNotification(e)
+            } finally {
+                scanState.value = OfflineScanState.Finished(OfflineScanReport(results))
+            }
+        }
+    }
+
+    fun onScanDialogClose() {
+        scanState.value = OfflineScanState.Idle
+    }
+}
+
+sealed interface OfflineScanState {
+    data object Idle : OfflineScanState
+    data class Scanning(val count: Int, val lastResult: OfflineScanResult?) : OfflineScanState
+    data class Finished(val report: OfflineScanReport) : OfflineScanState
+}
+
+data class OfflineScanReport(
+    val results: List<OfflineScanResult>
+) {
+    val importedCount = results.count { it is OfflineScanResult.Imported }
+    val updatedCount = results.count { it is OfflineScanResult.Updated }
+    val outOfSyncCount = results.count { it is OfflineScanResult.OutOfSync }
+    val alreadyIndexedCount = results.count { it is OfflineScanResult.AlreadyIndexed }
+    val noMatchCount = results.count { it is OfflineScanResult.NoMatch }
 }
 
 internal data class DefaultDownloadStorageLocation(

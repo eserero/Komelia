@@ -2,6 +2,7 @@ package snd.komelia.komga.api
 
 import snd.komelia.komga.api.model.KomeliaBook
 import snd.komga.client.book.KomgaBookId
+import snd.komga.client.series.KomgaSeriesId
 import snd.komga.client.book.KomgaBookMetadataUpdateRequest
 import snd.komga.client.book.KomgaBookPage
 import snd.komga.client.book.KomgaBookReadProgressUpdateRequest
@@ -81,4 +82,7 @@ interface KomgaBookApi {
 
     // Returns local filesystem path if already on-device; null means must download
     suspend fun getBookLocalFilePath(bookId: KomgaBookId): String? = null
+
+    // Returns the subset of seriesIds that have at least one downloaded book
+    suspend fun getDownloadedSeriesIds(seriesIds: List<KomgaSeriesId>): Set<KomgaSeriesId> = emptySet()
 }

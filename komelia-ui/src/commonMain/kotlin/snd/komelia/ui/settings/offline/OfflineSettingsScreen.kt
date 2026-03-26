@@ -102,7 +102,10 @@ class OfflineSettingsScreen : Screen {
                         onStorageLocationChange = downloadsState::onStorageLocationChange,
                         onStorageLocationReset = downloadsState::onStorageLocationReset,
                         downloads = downloadsState.downloads.collectAsState().value,
-                        onDownloadCancel = downloadsState::onDownloadCancel
+                        onDownloadCancel = downloadsState::onDownloadCancel,
+                        scanState = downloadsState.scanState.collectAsState().value,
+                        onScanClick = downloadsState::onScanClick,
+                        onScanDialogClose = downloadsState::onScanDialogClose
                     )
                 }
 

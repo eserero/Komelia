@@ -45,10 +45,12 @@ import snd.komelia.ui.common.menus.SeriesMenuActions
 import snd.komelia.ui.platform.PlatformType
 import snd.komelia.ui.platform.VerticalScrollbarWithFullSpans
 import snd.komga.client.series.KomgaSeries
+import snd.komga.client.series.KomgaSeriesId
 
 @Composable
 fun SeriesLazyCardGrid(
     series: List<KomgaSeries>,
+    downloadedSeriesIds: Set<KomgaSeriesId> = emptySet(),
     onSeriesClick: (KomgaSeries) -> Unit,
     seriesMenuActions: SeriesMenuActions?,
 
@@ -106,6 +108,7 @@ fun SeriesLazyCardGrid(
                 ) {
                     SeriesImageCard(
                         series = series,
+                        isDownloaded = series.id in downloadedSeriesIds,
                         onSeriesClick = { onSeriesClick(series) },
                         seriesMenuActions = seriesMenuActions,
                         isSelected = isSelected,

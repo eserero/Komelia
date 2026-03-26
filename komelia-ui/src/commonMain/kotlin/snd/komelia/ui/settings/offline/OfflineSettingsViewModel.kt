@@ -10,6 +10,7 @@ import snd.komelia.KomgaAuthenticationState
 import snd.komelia.offline.server.actions.MediaServerDeleteAction
 import snd.komelia.offline.server.repository.OfflineMediaServerRepository
 import snd.komelia.offline.settings.OfflineSettingsRepository
+import snd.komelia.offline.sync.OfflineScannerService
 import snd.komelia.offline.sync.model.DownloadEvent
 import snd.komelia.offline.sync.repository.LogJournalRepository
 import snd.komelia.offline.tasks.OfflineTaskEmitter
@@ -29,6 +30,7 @@ class OfflineSettingsViewModel(
     private val serverDeleteAction: MediaServerDeleteAction,
     private val userDeleteAction: UserDeleteAction,
     private val platformContext: PlatformContext,
+    private val offlineScannerService: OfflineScannerService,
 
     private val taskEmitter: OfflineTaskEmitter,
     private val downloadEvents: SharedFlow<DownloadEvent>,
@@ -53,6 +55,9 @@ class OfflineSettingsViewModel(
         downloadEvents = downloadEvents,
         taskEmitter = taskEmitter,
         settingsRepository = offlineSettingsRepository,
+        offlineScannerService = offlineScannerService,
+        authState = authState,
+        appNotifications = appNotifications,
         platformContext = platformContext,
         coroutineScope = screenModelScope,
     )

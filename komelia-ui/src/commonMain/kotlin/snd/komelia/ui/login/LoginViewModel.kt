@@ -69,7 +69,7 @@ class LoginViewModel(
             val offlineServer = offlineServerRepository.findByUrl(url)
 
             offlineIsAvailable.value = offlineUsers.any { it.id != OfflineUser.ROOT }
-            offlineUser.value = offlineServer?.let { server -> offlineUsers.first { it.serverId == server.id } }
+            offlineUser.value = offlineServer?.let { server -> offlineUsers.firstOrNull { it.serverId == server.id } }
             val isOffline = offlineSettingsRepository.getOfflineMode().first()
 
             when (platform) {

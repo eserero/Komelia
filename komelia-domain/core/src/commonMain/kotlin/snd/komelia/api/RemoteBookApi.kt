@@ -22,6 +22,7 @@ import snd.komga.client.common.KomgaThumbnailId
 import snd.komga.client.common.Page
 import snd.komga.client.library.KomgaLibraryId
 import snd.komga.client.readlist.KomgaReadList
+import snd.komga.client.series.KomgaSeriesId
 import snd.komga.client.search.BookConditionBuilder
 
 private const val EPUB_BUFFER_SIZE: Int = 64 * 1024
@@ -215,6 +216,10 @@ class RemoteBookApi(
                 onChunk(packet.readBytes())
             }
         }
+    }
+
+    override suspend fun getDownloadedSeriesIds(seriesIds: List<KomgaSeriesId>): Set<KomgaSeriesId> {
+        return offlineBookRepository.findAllBySeriesIds(seriesIds).map { it.seriesId }.toSet()
     }
 
     private suspend fun getKomeliaBook(book: KomgaBook): KomeliaBook {

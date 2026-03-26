@@ -18,7 +18,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.OfflinePin
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
@@ -59,6 +62,7 @@ fun SeriesImageCard(
     isSelected: Boolean = false,
     onSeriesSelect: (() -> Unit)? = null,
     seriesMenuActions: SeriesMenuActions? = null,
+    isDownloaded: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val libraries = LocalLibraries.current
@@ -88,7 +92,7 @@ fun SeriesImageCard(
                 isSelected = isSelected,
                 seriesActions = seriesMenuActions,
             ) {
-                SeriesImageBadges(series = series)
+                SeriesImageBadges(series = series, isDownloaded = isDownloaded)
             }
         }
     )
@@ -187,7 +191,24 @@ private fun SeriesCardHoverOverlay(
 @Composable
 private fun SeriesImageBadges(
     series: KomgaSeries,
+    isDownloaded: Boolean = false,
 ) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        Row {
+            if (isDownloaded) {
+                Icon(
+                    imageVector = Icons.Filled.OfflinePin,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier
+                        .padding(1.dp)
+                        .size(26.dp)
+                        .clip(CircleShape)
+                        .background(Color.Black)
+                )
+            }
+        }
+    }
     if (series.booksUnreadCount > 0) {
         Box(
             modifier = Modifier.fillMaxSize(),

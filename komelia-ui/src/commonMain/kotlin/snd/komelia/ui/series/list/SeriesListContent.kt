@@ -68,11 +68,13 @@ import snd.komelia.ui.platform.cursorForHand
 import snd.komelia.ui.series.SeriesFilterState
 import snd.komelia.ui.series.view.SeriesFilterContent
 import snd.komga.client.series.KomgaSeries
+import snd.komga.client.series.KomgaSeriesId
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SeriesListContent(
     series: List<KomgaSeries>,
+    downloadedSeriesIds: Set<KomgaSeriesId> = emptySet(),
     seriesTotalCount: Int,
     seriesActions: SeriesMenuActions,
     onSeriesClick: (KomgaSeries) -> Unit,
@@ -120,6 +122,7 @@ fun SeriesListContent(
 
             SeriesLazyCardGrid(
                 series = series,
+                downloadedSeriesIds = downloadedSeriesIds,
                 onSeriesClick = if (editMode) onSeriesSelect else onSeriesClick,
                 seriesMenuActions = if (editMode) null else seriesActions,
 

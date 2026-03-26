@@ -26,6 +26,7 @@ import snd.komelia.offline.readprogress.actions.ProgressDeleteForBookAction
 import snd.komelia.offline.readprogress.actions.ProgressMarkAction
 import snd.komelia.offline.readprogress.actions.ProgressMarkProgressionAction
 import snd.komga.client.book.KomgaBookId
+import snd.komga.client.series.KomgaSeriesId
 import snd.komga.client.book.KomgaBookMetadataUpdateRequest
 import snd.komga.client.book.KomgaBookPage
 import snd.komga.client.book.KomgaBookReadProgressUpdateRequest
@@ -324,6 +325,10 @@ class OfflineBookApi(
     override suspend fun getBookRawFile(bookId: KomgaBookId): ByteArray {
         val book = bookRepository.get(bookId)
         return book.fileDownloadPath.readBytes()
+    }
+
+    override suspend fun getDownloadedSeriesIds(seriesIds: List<KomgaSeriesId>): Set<KomgaSeriesId> {
+        return seriesIds.toSet()
     }
 
     override suspend fun getBookLocalFilePath(bookId: KomgaBookId): String? {

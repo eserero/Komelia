@@ -82,9 +82,11 @@ import snd.komelia.offline.server.actions.MediaServerSaveAction
 import snd.komelia.offline.server.repository.OfflineMediaServerRepository
 import snd.komelia.offline.settings.OfflineSettingsRepository
 import snd.komelia.offline.sync.BookDownloadService
+import snd.komelia.offline.sync.OfflineScannerService
 import snd.komelia.offline.sync.PlatformDownloadManager
 import snd.komelia.offline.sync.SyncManager
 import snd.komelia.offline.sync.actions.SyncEntrySaveAction
+import snd.komelia.offline.sync.createOfflineFileSystem
 import snd.komelia.offline.sync.actions.SyncReadProgressAction
 import snd.komelia.offline.sync.model.DownloadEvent
 import snd.komelia.offline.sync.repository.LogJournalRepository
@@ -268,12 +270,30 @@ abstract class OfflineModule(
         )
         taskProcessor.initialize()
 
+        val offlineScannerService = OfflineScannerService(
+            libraryClient = komgaClientFactory.libraryClient(),
+            seriesClient = komgaClientFactory.seriesClient(),
+            bookClient = komgaClientFactory.bookClient(),
+            bookRepository = repositories.bookRepository,
+            bookImportAction = actions.get(),
+            libraryImportAction = actions.get(),
+            seriesImportAction = actions.get(),
+            libraryRepository = repositories.libraryRepository,
+            seriesRepository = repositories.seriesRepository,
+            mediaServerRepository = repositories.mediaServerRepository,
+            mediaServerSaveAction = actions.get(),
+            userImportAction = actions.get(),
+            onlineServerUrl = onlineServerUrl,
+            fileSystem = createOfflineFileSystem()
+        )
+
         return OfflineDependencies(
             actions = actions,
             taskEmitter = taskEmitter,
             komgaEvents = komgaEvents,
             bookDownloadEvents = bookDownloadEvents,
             downloadService = downloadService,
+            offlineScannerService = offlineScannerService,
             repositories = repositories,
             fileService = fileService,
             komgaApi = komgaApi

@@ -2,6 +2,7 @@ package snd.komelia.ui.reader.image.continuous
 
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.exponentialDecay
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -154,7 +155,10 @@ fun BoxScope.ContinuousReaderContent(
             consumed
         }
     ) {
-        ScalableContainer(continuousReaderState.screenScaleState) {
+        ScalableContainer(
+            scaleState = continuousReaderState.screenScaleState,
+            flingSpec = exponentialDecay(frictionMultiplier = 0.4f),
+        ) {
             ReaderPages(state = continuousReaderState)
         }
     }

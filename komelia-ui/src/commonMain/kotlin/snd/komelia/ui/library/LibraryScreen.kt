@@ -183,6 +183,7 @@ class LibraryScreen(
             else -> {
                 SeriesListContent(
                     series = seriesTabState.series,
+                    downloadedSeriesIds = seriesTabState.downloadedSeriesIds,
                     seriesActions = seriesTabState.seriesMenuActions(),
                     seriesTotalCount = seriesTabState.totalSeriesCount,
                     onSeriesClick = { navigator.push(seriesScreen(it)) },

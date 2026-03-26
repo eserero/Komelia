@@ -6,6 +6,7 @@ import snd.komelia.offline.action.OfflineActions
 import snd.komelia.offline.api.OfflineKomgaApi
 import snd.komelia.offline.mediacontainer.BookContentExtractors
 import snd.komelia.offline.sync.BookDownloadService
+import snd.komelia.offline.sync.OfflineScannerService
 import snd.komelia.offline.sync.model.DownloadEvent
 import snd.komelia.offline.tasks.OfflineTaskEmitter
 import snd.komga.client.sse.KomgaEvent
@@ -16,6 +17,7 @@ data class OfflineDependencies(
     val komgaEvents: SharedFlow<KomgaEvent>,
     val bookDownloadEvents: MutableSharedFlow<DownloadEvent>,
     val downloadService: BookDownloadService,
+    val offlineScannerService: OfflineScannerService,
 
     val repositories: OfflineRepositories,
     val fileService: BookContentExtractors,
