@@ -2,6 +2,7 @@ package snd.komelia.offline.api
 
 import io.github.vinceglb.filekit.readBytes
 import snd.komelia.offline.localFilePath
+import snd.komelia.offline.readChunked
 import kotlinx.coroutines.flow.StateFlow
 import snd.komelia.komga.api.KomgaBookApi
 import snd.komelia.komga.api.model.KomeliaBook
@@ -325,6 +326,11 @@ class OfflineBookApi(
     override suspend fun getBookRawFile(bookId: KomgaBookId): ByteArray {
         val book = bookRepository.get(bookId)
         return book.fileDownloadPath.readBytes()
+    }
+
+    override suspend fun downloadBookRawFile(bookId: KomgaBookId, onChunk: suspend (ByteArray) -> Unit) {
+        val book = bookRepository.get(bookId)
+        book.fileDownloadPath.readChunked(64 * 1024, onChunk)
     }
 
     override suspend fun getDownloadedSeriesIds(seriesIds: List<KomgaSeriesId>): Set<KomgaSeriesId> {
