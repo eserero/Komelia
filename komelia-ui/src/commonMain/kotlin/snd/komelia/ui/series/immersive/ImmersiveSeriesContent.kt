@@ -47,6 +47,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -187,6 +188,21 @@ fun ImmersiveSeriesContent(
 
     val publisherLogo = rememberPublisherLogo(series.metadata.publisher)
 
+    val writers = remember(series.booksMetadata.authors) {
+        series.booksMetadata.authors
+            .filter { it.role.lowercase() == "writer" }
+            .joinToString(", ") { it.name }
+    }
+    val year = series.booksMetadata.releaseDate?.year
+    val authorYearText = buildString {
+        if (writers.isNotEmpty()) append(writers)
+        if (year != null) {
+            if (writers.isNotEmpty()) append(" ")
+            append("($year)")
+        }
+    }
+    val useNewUi2 = LocalUseNewLibraryUI2.current
+
     ImmersiveDetailScaffold(
         coverData = coverData,
         coverKey = series.id.value,
@@ -195,6 +211,16 @@ fun ImmersiveSeriesContent(
         initiallyExpanded = initiallyExpanded,
         onExpandChange = onExpandChange,
         publisherLogo = publisherLogo,
+        heroTextContent = if (useNewUi2) {
+            { expandFraction ->
+                snd.komelia.ui.common.immersive.ImmersiveHeroText(
+                    seriesTitle = title,
+                    authorYear = authorYearText,
+                    expandFraction = expandFraction,
+                    accentColor = accentColor,
+                )
+            }
+        } else null,
         topBarContent = {
             if (selectionMode) {
                 BulkActionsContainer(
@@ -263,7 +289,7 @@ fun ImmersiveSeriesContent(
                 showReadActions = false,
             )
         },
-        cardContent = { expandFraction, onThumbnailPositioned ->
+        cardContent = { expandFraction, onThumbnailPositioned, onTextPositioned ->
             val thumbnailOffset = (126.dp * expandFraction).coerceAtLeast(0.dp)
 
             // Thumbnail metrics — must match ImmersiveDetailScaffold Layer 3
@@ -287,14 +313,26 @@ fun ImmersiveSeriesContent(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .heightIn(min = (thumbnailTopGap + thumbnailHeight) * expandFraction)
+                            .let { modifier ->
+                                if (useNewUi2) {
+                                    modifier.layout { measurable, constraints ->
+                                        val placeable = measurable.measure(constraints)
+                                        val desiredHeight = ((thumbnailTopGap + thumbnailHeight) * expandFraction).roundToPx()
+                                        layout(constraints.maxWidth, desiredHeight) {
+                                            placeable.place(0, 0)
+                                        }
+                                    }
+                                } else {
+                                    modifier.heightIn(min = (thumbnailTopGap + thumbnailHeight) * expandFraction)
+                                }
+                            }
                             .padding(
                                 start = 16.dp,
                                 end = 16.dp,
                                 top = lerp(8f, thumbnailTopGap.value, expandFraction).dp,
                             )
                     ) {
-                        if (LocalUseNewLibraryUI2.current) {
+                        if (useNewUi2) {
                             Box(
                                 modifier = Modifier
                                     .size(width = 110.dp, height = thumbnailHeight)
@@ -309,6 +347,21 @@ fun ImmersiveSeriesContent(
                                     modifier = Modifier
                                         .size(width = 110.dp, height = thumbnailHeight)
                                         .clip(RoundedCornerShape(8.dp))
+                                )
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .padding(start = 126.dp)
+                                    .onGloballyPositioned { onTextPositioned(it) }
+                                    .graphicsLayer { alpha = if (expandFraction > 0.99f) 1f else 0f }
+                            ) {
+                                snd.komelia.ui.common.immersive.ImmersiveHeroText(
+                                    seriesTitle = title,
+                                    authorYear = authorYearText,
+                                    expandFraction = 1f,
+                                    accentColor = accentColor,
+                                    modifier = Modifier.padding(horizontal = 0.dp)
                                 )
                             }
                         } else if (expandFraction > 0.01f) {
@@ -328,27 +381,19 @@ fun ImmersiveSeriesContent(
                             }
                         }
 
-                        Column(modifier = Modifier.padding(start = thumbnailOffset)) {
-                            Text(
-                                text = title,
-                                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                            )
-                            val writers = remember(series.booksMetadata.authors) {
-                                series.booksMetadata.authors
-                                    .filter { it.role.lowercase() == "writer" }
-                                    .joinToString(", ") { it.name }
-                            }
-                            val year = series.booksMetadata.releaseDate?.year
-                            val writersYearText = buildString {
-                                if (writers.isNotEmpty()) append(writers)
-                                if (year != null) { if (writers.isNotEmpty()) append(" "); append("($year)") }
-                            }
-                            if (writersYearText.isNotEmpty()) {
+                        if (!useNewUi2) {
+                            Column(modifier = Modifier.padding(start = thumbnailOffset)) {
                                 Text(
-                                    text = writersYearText,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    modifier = Modifier.padding(top = 2.dp),
+                                    text = title,
+                                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
                                 )
+                                if (authorYearText.isNotEmpty()) {
+                                    Text(
+                                        text = authorYearText,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        modifier = Modifier.padding(top = 2.dp),
+                                    )
+                                }
                             }
                         }
 

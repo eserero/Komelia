@@ -124,7 +124,12 @@ fun ImmersiveDetailScaffold(
     publisherLogo: ImageBitmap? = null,
     topBarContent: @Composable () -> Unit,
     fabContent: @Composable () -> Unit,
-    cardContent: @Composable ColumnScope.(expandFraction: Float, onThumbnailPositioned: (LayoutCoordinates) -> Unit) -> Unit,
+    heroTextContent: (@Composable (expandFraction: Float) -> Unit)? = null,
+    cardContent: @Composable ColumnScope.(
+        expandFraction: Float,
+        onThumbnailPositioned: (LayoutCoordinates) -> Unit,
+        onTextPositioned: (LayoutCoordinates) -> Unit,
+    ) -> Unit,
 ) {
     val density = LocalDensity.current
     val immersiveColorEnabled = LocalImmersiveColorEnabled.current
@@ -231,6 +236,7 @@ fun ImmersiveDetailScaffold(
         val screenWidth = maxWidth
 
         var targetThumbnailOffset by remember { mutableStateOf(Offset.Zero) }
+        var targetTextOffset by remember { mutableStateOf(Offset.Zero) }
         var scaffoldCoordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
 
         // Use remember (not rememberSaveable) so pager pages don't restore stale saved state.
@@ -430,7 +436,13 @@ fun ImmersiveDetailScaffold(
                                     targetThumbnailOffset = Offset(absPos.x, absPos.y - cardOffsetPx)
                                 }
                             }
-                            cardContent(expandFraction, onThumbnailPositioned)
+                            val onTextPositioned: (LayoutCoordinates) -> Unit = { coords ->
+                                scaffoldCoordinates?.let { root ->
+                                    val absPos = root.localPositionOf(coords, Offset.Zero)
+                                    targetTextOffset = Offset(absPos.x, absPos.y - cardOffsetPx)
+                                }
+                            }
+                            cardContent(expandFraction, onThumbnailPositioned, onTextPositioned)
                         }
                     }
                 }
@@ -511,6 +523,23 @@ fun ImmersiveDetailScaffold(
                                 )
                             )
                     )
+                }
+
+                if (heroTextContent != null) {
+                    val targetTextX = with(density) { targetTextOffset.x.toDp() }
+                    val targetTextY = with(density) { targetTextOffset.y.toDp() }
+
+                    val startTextY = collapsedOffset - 120.dp // Approximate start position at bottom of image
+                    val currentTextX = lerp(0.dp, targetTextX, expandFraction)
+                    val currentTextY = lerp(startTextY, targetTextY, expandFraction)
+
+                    Box(
+                        modifier = Modifier
+                            .offset(x = currentTextX, y = currentTextY)
+                            .fillMaxWidth()
+                    ) {
+                        heroTextContent(expandFraction)
+                    }
                 }
             }
 
