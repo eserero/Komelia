@@ -47,6 +47,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -56,6 +57,7 @@ import snd.komelia.komga.api.model.KomeliaBook
 import snd.komelia.ui.LoadState
 import snd.komelia.ui.LocalHideParenthesesInNames
 import snd.komelia.ui.LocalKomgaEvents
+import snd.komelia.ui.LocalUseNewLibraryUI2
 import snd.komga.client.sse.KomgaEvent.ThumbnailBookEvent
 import snd.komga.client.sse.KomgaEvent.ThumbnailSeriesEvent
 import snd.komelia.ui.collection.SeriesCollectionsContent
@@ -261,7 +263,7 @@ fun ImmersiveSeriesContent(
                 showReadActions = false,
             )
         },
-        cardContent = { expandFraction ->
+        cardContent = { expandFraction, onThumbnailPositioned ->
             val thumbnailOffset = (126.dp * expandFraction).coerceAtLeast(0.dp)
 
             // Thumbnail metrics — must match ImmersiveDetailScaffold Layer 3
@@ -292,7 +294,24 @@ fun ImmersiveSeriesContent(
                                 top = lerp(8f, thumbnailTopGap.value, expandFraction).dp,
                             )
                     ) {
-                        if (expandFraction > 0.01f) {
+                        if (LocalUseNewLibraryUI2.current) {
+                            Box(
+                                modifier = Modifier
+                                    .size(width = 110.dp, height = thumbnailHeight)
+                                    .onGloballyPositioned { onThumbnailPositioned(it) }
+                                    .graphicsLayer { alpha = if (expandFraction > 0.99f) 1f else 0f }
+                            ) {
+                                ThumbnailImage(
+                                    data = coverData,
+                                    cacheKey = series.id.value,
+                                    crossfade = false,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .size(width = 110.dp, height = thumbnailHeight)
+                                        .clip(RoundedCornerShape(8.dp))
+                                )
+                            }
+                        } else if (expandFraction > 0.01f) {
                             Box(
                                 modifier = Modifier
                                     .graphicsLayer { alpha = (expandFraction * 2f - 1f).coerceIn(0f, 1f) }

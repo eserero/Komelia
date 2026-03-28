@@ -48,6 +48,7 @@ val LocalCardLayoutBelow = compositionLocalOf { false }
 val LocalImmersiveColorEnabled = compositionLocalOf { true }
 val LocalImmersiveColorAlpha = compositionLocalOf { 0.12f }
 val LocalShowImmersiveNavBar = compositionLocalOf { false }
+val LocalUseNewLibraryUI2 = compositionLocalOf { false }
 val LocalHideParenthesesInNames = compositionLocalOf { false }
 val LocalCardLayoutOverlayBackground = compositionLocalOf { true }
 val LocalRawStatusBarHeight = staticCompositionLocalOf { 0.dp }

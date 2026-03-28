@@ -78,6 +78,7 @@ fun MainView(
     var immersiveColorEnabled by remember { mutableStateOf(true) }
     var immersiveColorAlpha by remember { mutableStateOf(0.12f) }
     var showImmersiveNavBar by remember { mutableStateOf(false) }
+    var useNewLibraryUI2 by remember { mutableStateOf(false) }
     var hideParenthesesInNames by remember { mutableStateOf(false) }
     var cardLayoutOverlayBackground by remember { mutableStateOf(true) }
     LaunchedEffect(dependencies) {
@@ -118,6 +119,10 @@ fun MainView(
     LaunchedEffect(dependencies) {
         dependencies?.appRepositories?.settingsRepository?.getCardLayoutOverlayBackground()
             ?.collect { cardLayoutOverlayBackground = it }
+    }
+    LaunchedEffect(dependencies) {
+        dependencies?.appRepositories?.settingsRepository?.getUseNewLibraryUI2()
+            ?.collect { useNewLibraryUI2 = it }
     }
 
     MaterialTheme(colorScheme = theme.colorScheme) {
@@ -172,6 +177,7 @@ fun MainView(
                 LocalShowImmersiveNavBar provides showImmersiveNavBar,
                 LocalHideParenthesesInNames provides hideParenthesesInNames,
                 LocalCardLayoutOverlayBackground provides cardLayoutOverlayBackground,
+                LocalUseNewLibraryUI2 provides useNewLibraryUI2,
             ) {
                 MainContent(platformType, dependencies.komgaSharedState)
 

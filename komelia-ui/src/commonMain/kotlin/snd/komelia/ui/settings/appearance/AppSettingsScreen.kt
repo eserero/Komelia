@@ -45,6 +45,8 @@ class AppSettingsScreen : Screen {
                     onHideParenthesesInNamesChange = vm::onHideParenthesesInNamesChange,
                     cardLayoutOverlayBackground = vm.cardLayoutOverlayBackground,
                     onCardLayoutOverlayBackgroundChange = vm::onCardLayoutOverlayBackgroundChange,
+                    useNewLibraryUI2 = vm.useNewLibraryUI2,
+                    onUseNewLibraryUI2Change = vm::onUseNewLibraryUI2Change,
                 )
                                 }
                             }

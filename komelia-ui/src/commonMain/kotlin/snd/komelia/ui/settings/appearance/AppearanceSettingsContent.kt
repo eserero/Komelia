@@ -89,6 +89,8 @@ fun AppearanceSettingsContent(
     onHideParenthesesInNamesChange: (Boolean) -> Unit,
     cardLayoutOverlayBackground: Boolean,
     onCardLayoutOverlayBackgroundChange: (Boolean) -> Unit,
+    useNewLibraryUI2: Boolean,
+    onUseNewLibraryUI2Change: (Boolean) -> Unit,
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -162,6 +164,15 @@ fun AppearanceSettingsContent(
                 onCheckedChange = onShowImmersiveNavBarChange,
                 label = { Text("Show navigation bar in immersive screens") },
                 supportingText = { Text("Display the bottom navigation bar on series, book, and oneshot screens") },
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+            )
+
+            SwitchWithLabel(
+                checked = useNewLibraryUI2,
+                onCheckedChange = onUseNewLibraryUI2Change,
+                label = { Text("New UI 2") },
+                supportingText = { Text("Morphing cover image that flies to thumbnail on expand") },
                 modifier = Modifier.fillMaxWidth(),
                 contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
             )

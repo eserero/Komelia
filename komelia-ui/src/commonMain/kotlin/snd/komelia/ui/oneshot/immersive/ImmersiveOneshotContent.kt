@@ -56,6 +56,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -71,6 +73,7 @@ import snd.komelia.ui.LocalAnimatedVisibilityScope
 import snd.komelia.ui.LocalHideParenthesesInNames
 import snd.komelia.ui.LocalKomgaEvents
 import snd.komelia.ui.LocalSharedTransitionScope
+import snd.komelia.ui.LocalUseNewLibraryUI2
 import snd.komelia.ui.collection.SeriesCollectionsContent
 import snd.komelia.ui.common.components.AppFilterChipDefaults
 import coil3.compose.rememberAsyncImagePainter
@@ -196,7 +199,7 @@ fun ImmersiveOneshotContent(
             publisherLogo = publisherLogo,
             topBarContent = {},   // Fixed overlay handles this
             fabContent = {},      // Fixed overlay handles this
-            cardContent = { expandFraction ->
+            cardContent = { expandFraction, onThumbnailPositioned ->
                 if (book == null || library == null) {
                     Box(
                         modifier = Modifier.fillMaxWidth().padding(top = 48.dp),
@@ -213,6 +216,7 @@ fun ImmersiveOneshotContent(
                         coverData = coverData,
                         publisherLogo = publisherLogo,
                         expandFraction = expandFraction,
+                        onThumbnailPositioned = onThumbnailPositioned,
                         onLibraryClick = onLibraryClick,
                         onFilterClick = onFilterClick,
                         readLists = readLists,
@@ -317,6 +321,7 @@ private fun OneshotCardContent(
     coverData: Any,
     publisherLogo: androidx.compose.ui.graphics.ImageBitmap?,
     expandFraction: Float,
+    onThumbnailPositioned: (LayoutCoordinates) -> Unit,
     onLibraryClick: (KomgaLibrary) -> Unit,
     onFilterClick: (SeriesScreenFilter) -> Unit,
     readLists: Map<KomgaReadList, List<KomeliaBook>>,
@@ -364,7 +369,24 @@ private fun OneshotCardContent(
                         top = lerp(8f, thumbnailTopGap.value, expandFraction).dp,
                     )
             ) {
-                if (expandFraction > 0.01f) {
+                if (LocalUseNewLibraryUI2.current) {
+                    Box(
+                        modifier = Modifier
+                            .size(width = 110.dp, height = thumbnailHeight)
+                            .onGloballyPositioned { onThumbnailPositioned(it) }
+                            .graphicsLayer { alpha = if (expandFraction > 0.99f) 1f else 0f }
+                    ) {
+                        ThumbnailImage(
+                            data = coverData,
+                            cacheKey = series.id.value,
+                            crossfade = false,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .size(width = 110.dp, height = thumbnailHeight)
+                                .clip(RoundedCornerShape(8.dp))
+                        )
+                    }
+                } else if (expandFraction > 0.01f) {
                     Box(
                         modifier = Modifier
                             .graphicsLayer { alpha = (expandFraction * 2f - 1f).coerceIn(0f, 1f) }
