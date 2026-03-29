@@ -5,6 +5,7 @@ import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.staticCompositionLocalOf
+import dev.chrisbanes.haze.HazeState
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.unit.Dp
@@ -56,6 +57,7 @@ val LocalRawNavBarHeight = staticCompositionLocalOf { 0.dp }
 // When transparent bars mode is active and content extends behind the nav bar,
 // scrollable content should add this as bottom padding so items remain reachable.
 val LocalTransparentNavBarPadding = compositionLocalOf { 0.dp }
+val LocalHazeState = compositionLocalOf<HazeState?> { null }
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 val LocalSharedTransitionScope = compositionLocalOf<SharedTransitionScope?> { null }
