@@ -2,7 +2,10 @@ package snd.komelia.ui.library
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Menu
@@ -17,6 +20,7 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -41,6 +45,7 @@ import snd.komelia.ui.LoadState.Loading
 import snd.komelia.ui.LoadState.Success
 import snd.komelia.ui.LoadState.Uninitialized
 import snd.komelia.ui.LocalAccentColor
+import snd.komelia.ui.LocalTheme
 import snd.komelia.ui.LocalKomgaState
 import snd.komelia.ui.LocalMainScreenViewModel
 import snd.komelia.ui.LocalOfflineMode
@@ -100,63 +105,80 @@ class LibraryScreen(
             when (val state = vm.state.collectAsState().value) {
                 is Error -> ErrorContent(message = state.exception.message ?: "Unknown Error", onReload = vm::reload)
                 Uninitialized, Loading, is Success -> {
-                    Column {
-                        val (totalCountInfo, onPageSizeChange) = when (vm.currentTab) {
-                            SERIES -> {
-                                val state = vm.seriesTabState
-                                Triple(
-                                    state.totalSeriesCount,
-                                    "series",
-                                    state.pageLoadSize.collectAsState().value
-                                ) to state::onPageSizeChange
-                            }
+                    val theme = LocalTheme.current
+                    val showToolbar = vm.showToolbar.collectAsState().value
+                    val floatToolbar = theme.transparentBars && showToolbar
 
-                            COLLECTIONS -> {
-                                val state = vm.collectionsTabState
-                                Triple(
-                                    state.totalCollections,
-                                    if (state.totalCollections > 1) "collections" else "collection",
-                                    state.pageSize
-                                ) to state::onPageSizeChange
-                            }
-
-                            READ_LISTS -> {
-                                val state = vm.readListsTabState
-                                Triple(
-                                    state.totalReadLists,
-                                    if (state.totalReadLists > 1) "read lists" else "read list",
-                                    state.pageSize
-                                ) to state::onPageSizeChange
-                            }
-                        }
-                        val (totalCount, countLabel, pageSize) = totalCountInfo
-
-                        if (vm.showToolbar.collectAsState().value) {
-                            LibraryToolBar(
-                                library = vm.library.collectAsState().value,
-                                libraryActions = vm.libraryActions(),
-                                totalCount = totalCount,
-                                countLabel = countLabel,
-                                pageSize = pageSize,
-                                onPageSizeChange = onPageSizeChange
-                            )
+                    val (totalCountInfo, onPageSizeChange) = when (vm.currentTab) {
+                        SERIES -> {
+                            val state = vm.seriesTabState
+                            Triple(
+                                state.totalSeriesCount,
+                                "series",
+                                state.pageLoadSize.collectAsState().value
+                            ) to state::onPageSizeChange
                         }
 
-                        val segmentedButtons = @Composable {
-                            LibrarySegmentedButtons(
-                                currentTab = vm.currentTab,
-                                collectionsCount = vm.collectionsCount,
-                                readListsCount = vm.readListsCount,
-                                onBrowseClick = vm::toBrowseTab,
-                                onCollectionsClick = vm::toCollectionsTab,
-                                onReadListsClick = vm::toReadListsTab
-                            )
+                        COLLECTIONS -> {
+                            val state = vm.collectionsTabState
+                            Triple(
+                                state.totalCollections,
+                                if (state.totalCollections > 1) "collections" else "collection",
+                                state.pageSize
+                            ) to state::onPageSizeChange
                         }
 
+                        READ_LISTS -> {
+                            val state = vm.readListsTabState
+                            Triple(
+                                state.totalReadLists,
+                                if (state.totalReadLists > 1) "read lists" else "read list",
+                                state.pageSize
+                            ) to state::onPageSizeChange
+                        }
+                    }
+                    val (totalCount, countLabel, pageSize) = totalCountInfo
+
+                    val toolbarContent: @Composable () -> Unit = {
+                        LibraryToolBar(
+                            library = vm.library.collectAsState().value,
+                            libraryActions = vm.libraryActions(),
+                            totalCount = totalCount,
+                            countLabel = countLabel,
+                            pageSize = pageSize,
+                            onPageSizeChange = onPageSizeChange
+                        )
+                    }
+
+                    val segmentedButtons = @Composable {
+                        if (floatToolbar) Spacer(modifier = Modifier.height(64.dp))
+                        LibrarySegmentedButtons(
+                            currentTab = vm.currentTab,
+                            collectionsCount = vm.collectionsCount,
+                            readListsCount = vm.readListsCount,
+                            onBrowseClick = vm::toBrowseTab,
+                            onCollectionsClick = vm::toCollectionsTab,
+                            onReadListsClick = vm::toReadListsTab
+                        )
+                    }
+
+                    val tabContent: @Composable () -> Unit = {
                         when (vm.currentTab) {
                             SERIES -> BrowseTab(vm.seriesTabState, segmentedButtons)
                             COLLECTIONS -> CollectionsTab(vm.collectionsTabState, segmentedButtons)
                             READ_LISTS -> ReadListsTab(vm.readListsTabState, segmentedButtons)
+                        }
+                    }
+
+                    if (floatToolbar) {
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            tabContent()
+                            toolbarContent()
+                        }
+                    } else {
+                        Column {
+                            if (showToolbar) toolbarContent()
+                            tabContent()
                         }
                     }
                 }
@@ -317,8 +339,13 @@ fun LibraryToolBar(
     val mainScreenVm = LocalMainScreenViewModel.current
     val coroutineScope = rememberCoroutineScope()
 
-    Column(modifier = Modifier.fillMaxWidth()) {
+    val theme = LocalTheme.current
+    Box(modifier = Modifier.fillMaxWidth()) {
         TopAppBar(
+            colors = if (theme.transparentBars)
+                TopAppBarDefaults.topAppBarColors(containerColor = theme.topBarContainerColor)
+            else
+                TopAppBarDefaults.topAppBarColors(),
             title = {
                 Text(
                     library?.let { library.name } ?: "All Libraries",

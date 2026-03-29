@@ -194,10 +194,14 @@ class MainScreen(
                 bottomBar = {
                     if (!isImmersiveScreen || showImmersiveNavBar) {
                         if (useNewLibraryUI) {
+                            val theme = LocalTheme.current
                             AppNavigationBar(
                                 navigator = navigator,
                                 vm = vm,
-                                containerColor = LocalNavBarColor.current ?: MaterialTheme.colorScheme.surfaceVariant
+                                containerColor = if (theme.transparentBars)
+                                    theme.navBarContainerColor
+                                else
+                                    LocalNavBarColor.current ?: MaterialTheme.colorScheme.surfaceVariant
                             )
                         } else {
                             StandardBottomNavigationBar(
@@ -210,6 +214,12 @@ class MainScreen(
                 }
             ) { paddingValues ->
                 val layoutDirection = LocalLayoutDirection.current
+                val theme = LocalTheme.current
+                val transparentBars = useNewLibraryUI && theme.transparentBars
+                val bottomPadding = if (transparentBars) 0.dp else paddingValues.calculateBottomPadding()
+                CompositionLocalProvider(
+                    LocalTransparentNavBarPadding provides if (transparentBars) paddingValues.calculateBottomPadding() else 0.dp
+                ) {
                 ModalNavigationDrawer(
                     drawerState = vm.navBarState,
                     drawerContent = { LibrariesNavBar(vm, navigator) },
@@ -221,7 +231,7 @@ class MainScreen(
                                     start = paddingValues.calculateStartPadding(layoutDirection),
                                     end = paddingValues.calculateEndPadding(layoutDirection),
                                     top = paddingValues.calculateTopPadding(),
-                                    bottom = paddingValues.calculateBottomPadding(),
+                                    bottom = bottomPadding,
                                 )
                                 .consumeWindowInsets(paddingValues)
                                 .statusBarsPadding()
@@ -252,6 +262,7 @@ class MainScreen(
                         }
                     }
                 )
+                }
             }
         }
     }
@@ -275,41 +286,41 @@ class MainScreen(
         NavigationBar(
             containerColor = containerColor,
         ) {
-            NavigationBarItem(
-                alwaysShowLabel = true,
-                selected = navigator.lastItem is LibraryScreen,
-                onClick = vm::navigateToLibrary,
-                icon = { Icon(Icons.Rounded.LocalLibrary, null) },
-                label = { Text("Libraries") },
-                colors = itemColors
-            )
-            NavigationBarItem(
-                alwaysShowLabel = true,
-                selected = navigator.lastItem is HomeScreen,
-                onClick = { if (navigator.lastItem !is HomeScreen) navigator.replaceAll(HomeScreen()) },
-                icon = { Icon(Icons.Rounded.Home, null) },
-                label = { Text("Home") },
-                colors = itemColors
-            )
-            NavigationBarItem(
-                alwaysShowLabel = true,
-                selected = navigator.lastItem is SearchScreen,
-                onClick = { if (navigator.lastItem !is SearchScreen) navigator.push(SearchScreen(null)) },
-                icon = { Icon(Icons.Rounded.Search, null) },
-                label = { Text("Search") },
-                colors = itemColors
-            )
-            NavigationBarItem(
-                alwaysShowLabel = true,
-                selected = navigator.lastItem is MobileSettingsScreen || navigator.lastItem is SettingsScreen,
-                onClick = {
-                    if (navigator.lastItem !is MobileSettingsScreen && navigator.lastItem !is SettingsScreen)
-                        navigator.push(MobileSettingsScreen())
-                },
-                icon = { Icon(Icons.Rounded.Settings, null) },
-                label = { Text("Settings") },
-                colors = itemColors
-            )
+                NavigationBarItem(
+                    alwaysShowLabel = true,
+                    selected = navigator.lastItem is LibraryScreen,
+                    onClick = vm::navigateToLibrary,
+                    icon = { Icon(Icons.Rounded.LocalLibrary, null) },
+                    label = { Text("Libraries") },
+                    colors = itemColors
+                )
+                NavigationBarItem(
+                    alwaysShowLabel = true,
+                    selected = navigator.lastItem is HomeScreen,
+                    onClick = { if (navigator.lastItem !is HomeScreen) navigator.replaceAll(HomeScreen()) },
+                    icon = { Icon(Icons.Rounded.Home, null) },
+                    label = { Text("Home") },
+                    colors = itemColors
+                )
+                NavigationBarItem(
+                    alwaysShowLabel = true,
+                    selected = navigator.lastItem is SearchScreen,
+                    onClick = { if (navigator.lastItem !is SearchScreen) navigator.push(SearchScreen(null)) },
+                    icon = { Icon(Icons.Rounded.Search, null) },
+                    label = { Text("Search") },
+                    colors = itemColors
+                )
+                NavigationBarItem(
+                    alwaysShowLabel = true,
+                    selected = navigator.lastItem is MobileSettingsScreen || navigator.lastItem is SettingsScreen,
+                    onClick = {
+                        if (navigator.lastItem !is MobileSettingsScreen && navigator.lastItem !is SettingsScreen)
+                            navigator.push(MobileSettingsScreen())
+                    },
+                    icon = { Icon(Icons.Rounded.Settings, null) },
+                    label = { Text("Settings") },
+                    colors = itemColors
+                )
         }
     }
 

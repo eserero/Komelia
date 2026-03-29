@@ -58,7 +58,20 @@ class AppSettingsViewModel(
 
     fun onAppThemeChange(theme: AppTheme) {
         this.currentTheme = theme
-        screenModelScope.launch { settingsRepository.putAppTheme(theme) }
+        screenModelScope.launch {
+            settingsRepository.putAppTheme(theme)
+            when (theme) {
+                AppTheme.LIGHT_MODERN -> {
+                    this@AppSettingsViewModel.accentColor = Color(0xFF6A1CF6.toInt())
+                    settingsRepository.putAccentColor(Color(0xFF6A1CF6.toInt()).toArgb().toLong())
+                }
+                AppTheme.DARK_MODERN -> {
+                    this@AppSettingsViewModel.accentColor = Color(0xFFBA9EFF.toInt())
+                    settingsRepository.putAccentColor(Color(0xFFBA9EFF.toInt()).toArgb().toLong())
+                }
+                else -> {}
+            }
+        }
     }
 
     fun onAccentColorChange(color: Color?) {

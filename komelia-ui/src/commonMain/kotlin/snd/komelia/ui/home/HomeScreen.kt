@@ -28,6 +28,7 @@ import snd.komelia.ui.LocalAccentColor
 import snd.komelia.ui.LocalKomgaState
 import snd.komelia.ui.LocalOfflineMode
 import snd.komelia.ui.LocalReloadEvents
+import snd.komelia.ui.LocalTransparentNavBarPadding
 import snd.komelia.ui.LocalViewModelFactory
 import snd.komelia.ui.ReloadableScreen
 import snd.komelia.ui.book.bookScreen
@@ -103,6 +104,7 @@ class HomeScreen(private val libraryId: KomgaLibraryId? = null) : ReloadableScre
 
             }
 
+            val extraBottomPadding = LocalTransparentNavBarPadding.current
             FloatingActionButton(
                 onClick = { navigator.replaceAll(FilterEditScreen(vm.currentFilters.value)) },
                 containerColor = accentColor ?: MaterialTheme.colorScheme.primaryContainer,
@@ -113,7 +115,7 @@ class HomeScreen(private val libraryId: KomgaLibraryId? = null) : ReloadableScre
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .windowInsetsPadding(WindowInsets.navigationBars)
-                    .padding(bottom = 16.dp, end = 16.dp)
+                    .padding(bottom = 16.dp + extraBottomPadding, end = 16.dp)
             ) {
                 Icon(Icons.Rounded.Edit, null)
             }
