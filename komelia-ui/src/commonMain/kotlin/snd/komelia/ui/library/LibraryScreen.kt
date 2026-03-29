@@ -39,6 +39,8 @@ import cafe.adriel.voyager.core.model.rememberScreenModel
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
+import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.materials.HazeMaterials
 import kotlinx.coroutines.launch
 import snd.komelia.ui.LoadState.Error
 import snd.komelia.ui.LoadState.Loading
@@ -50,6 +52,7 @@ import snd.komelia.ui.LocalKomgaState
 import snd.komelia.ui.LocalMainScreenViewModel
 import snd.komelia.ui.LocalOfflineMode
 import snd.komelia.ui.LocalReloadEvents
+import snd.komelia.ui.LocalHazeState
 import snd.komelia.ui.LocalViewModelFactory
 import snd.komelia.ui.ReloadableScreen
 import snd.komelia.ui.collection.CollectionScreen
@@ -340,12 +343,18 @@ fun LibraryToolBar(
     val coroutineScope = rememberCoroutineScope()
 
     val theme = LocalTheme.current
+    val hazeState = LocalHazeState.current
     Box(modifier = Modifier.fillMaxWidth()) {
         TopAppBar(
-            colors = if (theme.transparentBars)
+            colors = if (theme.transparentBars && hazeState != null)
+                TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+            else if (theme.transparentBars)
                 TopAppBarDefaults.topAppBarColors(containerColor = theme.topBarContainerColor)
             else
                 TopAppBarDefaults.topAppBarColors(),
+            modifier = if (theme.transparentBars && hazeState != null)
+                Modifier.hazeEffect(hazeState) { style = HazeMaterials.thin(theme.topBarContainerColor) }
+            else Modifier,
             title = {
                 Text(
                     library?.let { library.name } ?: "All Libraries",
