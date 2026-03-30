@@ -17,6 +17,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
+import snd.komelia.ui.LocalFloatingToolbarPadding
+import snd.komelia.ui.LocalTransparentNavBarPadding
 import snd.komelia.ui.LocalUseNewLibraryUI
 import snd.komelia.ui.common.cards.ReadListImageCard
 import snd.komelia.ui.common.components.Pagination
@@ -40,13 +42,15 @@ fun ReadListLazyCardGrid(
     val useNewLibraryUI = LocalUseNewLibraryUI.current
     val cardSpacing = if (useNewLibraryUI) 7.dp else 8.dp
     val horizontalPadding = 10.dp
+    val extraBottomPadding = LocalTransparentNavBarPadding.current
+    val toolbarPadding = LocalFloatingToolbarPadding.current
     Box {
         LazyVerticalGrid(
             columns = GridCells.Adaptive(minSize),
             state = scrollState,
             horizontalArrangement = Arrangement.spacedBy(cardSpacing),
             verticalArrangement = Arrangement.spacedBy(cardSpacing),
-            contentPadding = PaddingValues(start = horizontalPadding, end = horizontalPadding, bottom = 30.dp),
+            contentPadding = PaddingValues(start = horizontalPadding, end = horizontalPadding, top = toolbarPadding, bottom = 30.dp + extraBottomPadding),
         ) {
             beforeContent?.let {
                 item(span = { GridItemSpan(maxLineSpan) }) {

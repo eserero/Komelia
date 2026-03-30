@@ -189,16 +189,19 @@ class MainScreen(
         val showImmersiveNavBar = LocalShowImmersiveNavBar.current
         val rawStatusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
         val rawNavBarHeight = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+        val theme = LocalTheme.current
+        val transparentBars = useNewLibraryUI && theme.transparentBars
+        val hazeState = if (transparentBars) rememberHazeState() else null
         CompositionLocalProvider(
             LocalRawStatusBarHeight provides rawStatusBarHeight,
             LocalRawNavBarHeight provides rawNavBarHeight,
+            LocalHazeState provides hazeState,
         ) {
             Scaffold(
                 containerColor = MaterialTheme.colorScheme.surface,
                 bottomBar = {
                     if (!isImmersiveScreen || showImmersiveNavBar) {
                         if (useNewLibraryUI) {
-                            val theme = LocalTheme.current
                             AppNavigationBar(
                                 navigator = navigator,
                                 vm = vm,
@@ -218,13 +221,9 @@ class MainScreen(
                 }
             ) { paddingValues ->
                 val layoutDirection = LocalLayoutDirection.current
-                val theme = LocalTheme.current
-                val transparentBars = useNewLibraryUI && theme.transparentBars
                 val bottomPadding = if (transparentBars) 0.dp else paddingValues.calculateBottomPadding()
-                val hazeState = if (transparentBars) rememberHazeState() else null
                 CompositionLocalProvider(
-                    LocalTransparentNavBarPadding provides if (transparentBars) paddingValues.calculateBottomPadding() else 0.dp,
-                    LocalHazeState provides hazeState,
+                    LocalTransparentNavBarPadding provides if (transparentBars) paddingValues.calculateBottomPadding() + rawNavBarHeight else 0.dp,
                 ) {
                 ModalNavigationDrawer(
                     drawerState = vm.navBarState,
@@ -282,6 +281,7 @@ class MainScreen(
     ) {
         val accentColor = LocalAccentColor.current
         val hazeState = LocalHazeState.current
+        val hazeStyle = if (hazeState != null) HazeMaterials.regular(containerColor) else null
         val itemColors = if (accentColor != null) {
             NavigationBarItemDefaults.colors(
                 selectedIconColor = if (accentColor.luminance() > 0.5f) Color.Black else Color.White,
@@ -293,8 +293,8 @@ class MainScreen(
         }
         NavigationBar(
             containerColor = if (hazeState != null) Color.Transparent else containerColor,
-            modifier = if (hazeState != null)
-                Modifier.hazeEffect(hazeState) { style = HazeMaterials.regular(containerColor) }
+            modifier = if (hazeState != null && hazeStyle != null)
+                Modifier.hazeEffect(hazeState) { style = hazeStyle }
             else Modifier,
         ) {
                 NavigationBarItem(

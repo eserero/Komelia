@@ -87,6 +87,7 @@ import snd.komelia.ui.common.menus.BookMenuActions
 import snd.komelia.ui.common.menus.OneshotActionsMenu
 import snd.komelia.ui.dialogs.ConfirmationDialog
 import snd.komelia.ui.dialogs.permissions.DownloadNotificationRequestDialog
+import snd.komelia.ui.LocalTransparentNavBarPadding
 import snd.komelia.ui.library.SeriesScreenFilter
 import snd.komelia.ui.readlist.BookReadListsContent
 import snd.komelia.ui.book.BookInfoColumn
@@ -306,13 +307,14 @@ fun ImmersiveOneshotContent(
         }
 
         // Fixed overlay: FAB
+        val extraBottomPadding = LocalTransparentNavBarPadding.current
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .then(fabOverlayModifier)
-                .windowInsetsPadding(WindowInsets.navigationBars)
-                .padding(bottom = 16.dp)
+                .then(if (extraBottomPadding == 0.dp) Modifier.windowInsetsPadding(WindowInsets.navigationBars) else Modifier)
+                .padding(bottom = 16.dp + extraBottomPadding)
         ) {
             ImmersiveDetailFab(
                 onReadClick = { if (book != null) onBookReadClick(true) },

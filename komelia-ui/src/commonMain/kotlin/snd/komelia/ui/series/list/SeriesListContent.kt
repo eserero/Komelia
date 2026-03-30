@@ -66,6 +66,7 @@ import snd.komelia.ui.platform.WindowSizeClass.FULL
 import snd.komelia.ui.platform.WindowSizeClass.MEDIUM
 import snd.komelia.ui.platform.cursorForHand
 import snd.komelia.ui.series.SeriesFilterState
+import snd.komelia.ui.LocalTransparentNavBarPadding
 import snd.komelia.ui.series.view.SeriesFilterContent
 import snd.komga.client.series.KomgaSeries
 import snd.komga.client.series.KomgaSeriesId
@@ -226,6 +227,7 @@ fun SeriesListContent(
         }
 
         // Filter FAB
+        val extraBottomPadding = LocalTransparentNavBarPadding.current
         if (filterState != null) {
             AnimatedVisibility(
                 visible = !showFilters && !editMode,
@@ -233,8 +235,8 @@ fun SeriesListContent(
                 exit = fadeOut(),
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .windowInsetsPadding(WindowInsets.navigationBars)
-                    .padding(bottom = 16.dp, end = 16.dp),
+                    .then(if (extraBottomPadding == 0.dp) Modifier.windowInsetsPadding(WindowInsets.navigationBars) else Modifier)
+                    .padding(bottom = 16.dp + extraBottomPadding, end = 16.dp),
             ) {
                 ExtendedFloatingActionButton(
                     onClick = { showFilters = true },

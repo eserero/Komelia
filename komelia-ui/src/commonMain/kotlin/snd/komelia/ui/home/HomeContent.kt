@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import snd.komelia.komga.api.model.KomeliaBook
 import snd.komelia.ui.LocalPlatform
+import snd.komelia.ui.LocalTransparentNavBarPadding
 import snd.komelia.ui.LocalUseNewLibraryUI
 import snd.komelia.ui.common.cards.BookImageCard
 import snd.komelia.ui.common.components.AppFilterChipDefaults
@@ -198,11 +199,12 @@ private fun DisplayContent(
     onBookReadClick: (KomeliaBook, Boolean) -> Unit,
 ) {
     val useNewLibraryUI = LocalUseNewLibraryUI.current
+    val extraBottomPadding = LocalTransparentNavBarPadding.current
     if (useNewLibraryUI && activeFilterNumber == 0) {
         LazyColumn(
             state = columnState,
             verticalArrangement = Arrangement.spacedBy(20.dp),
-            contentPadding = PaddingValues(bottom = 15.dp),
+            contentPadding = PaddingValues(bottom = 15.dp + extraBottomPadding),
         ) {
             for (data in filters) {
                 val isEmpty = when (data) {
@@ -234,7 +236,7 @@ private fun DisplayContent(
             columns = GridCells.Adaptive(cardWidth),
             horizontalArrangement = Arrangement.spacedBy(15.dp),
             verticalArrangement = Arrangement.spacedBy(15.dp),
-            contentPadding = PaddingValues(bottom = 15.dp)
+            contentPadding = PaddingValues(bottom = 15.dp + extraBottomPadding)
         ) {
             for (data in filters) {
                 if (activeFilterNumber == 0 || data.filter.order == activeFilterNumber) {

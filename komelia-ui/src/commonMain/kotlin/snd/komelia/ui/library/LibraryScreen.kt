@@ -2,7 +2,6 @@ package snd.komelia.ui.library
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -20,8 +19,10 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -40,6 +41,8 @@ import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 import dev.chrisbanes.haze.materials.HazeMaterials
 import kotlinx.coroutines.launch
 import snd.komelia.ui.LoadState.Error
@@ -52,6 +55,7 @@ import snd.komelia.ui.LocalKomgaState
 import snd.komelia.ui.LocalMainScreenViewModel
 import snd.komelia.ui.LocalOfflineMode
 import snd.komelia.ui.LocalReloadEvents
+import snd.komelia.ui.LocalFloatingToolbarPadding
 import snd.komelia.ui.LocalHazeState
 import snd.komelia.ui.LocalViewModelFactory
 import snd.komelia.ui.ReloadableScreen
@@ -154,7 +158,6 @@ class LibraryScreen(
                     }
 
                     val segmentedButtons = @Composable {
-                        if (floatToolbar) Spacer(modifier = Modifier.height(64.dp))
                         LibrarySegmentedButtons(
                             currentTab = vm.currentTab,
                             collectionsCount = vm.collectionsCount,
@@ -174,9 +177,20 @@ class LibraryScreen(
                     }
 
                     if (floatToolbar) {
+                        val toolbarHazeState = if (theme.transparentBars) rememberHazeState() else null
+                        CompositionLocalProvider(
+                            LocalHazeState provides toolbarHazeState,
+                            LocalFloatingToolbarPadding provides 64.dp,
+                        ) {
                         Box(modifier = Modifier.fillMaxSize()) {
-                            tabContent()
+                            Box(
+                                Modifier.fillMaxSize()
+                                    .then(if (toolbarHazeState != null) Modifier.hazeSource(toolbarHazeState) else Modifier)
+                            ) {
+                                tabContent()
+                            }
                             toolbarContent()
+                        }
                         }
                     } else {
                         Column {
@@ -344,16 +358,18 @@ fun LibraryToolBar(
 
     val theme = LocalTheme.current
     val hazeState = LocalHazeState.current
+    val hazeStyle = if (theme.transparentBars && hazeState != null) HazeMaterials.thin(theme.topBarContainerColor) else null
     Box(modifier = Modifier.fillMaxWidth()) {
         TopAppBar(
+            windowInsets = WindowInsets(0),
             colors = if (theme.transparentBars && hazeState != null)
                 TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
             else if (theme.transparentBars)
                 TopAppBarDefaults.topAppBarColors(containerColor = theme.topBarContainerColor)
             else
                 TopAppBarDefaults.topAppBarColors(),
-            modifier = if (theme.transparentBars && hazeState != null)
-                Modifier.hazeEffect(hazeState) { style = HazeMaterials.thin(theme.topBarContainerColor) }
+            modifier = if (hazeState != null && hazeStyle != null)
+                Modifier.hazeEffect(hazeState) { style = hazeStyle }
             else Modifier,
             title = {
                 Text(

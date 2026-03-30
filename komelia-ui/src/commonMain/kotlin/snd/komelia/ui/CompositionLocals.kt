@@ -57,6 +57,9 @@ val LocalRawNavBarHeight = staticCompositionLocalOf { 0.dp }
 // When transparent bars mode is active and content extends behind the nav bar,
 // scrollable content should add this as bottom padding so items remain reachable.
 val LocalTransparentNavBarPadding = compositionLocalOf { 0.dp }
+// When a floating toolbar overlays scroll content (e.g. LibraryScreen in modern themes),
+// scrollable grids should add this as top contentPadding so items start below the toolbar.
+val LocalFloatingToolbarPadding = compositionLocalOf { 0.dp }
 val LocalHazeState = compositionLocalOf<HazeState?> { null }
 
 @OptIn(ExperimentalSharedTransitionApi::class)

@@ -28,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -178,7 +179,7 @@ fun LibraryItemCard(
         // Below Card Text Logic
         if (cardLayoutBelow) {
             Column(
-                modifier = Modifier.padding(top = 4.dp, bottom = 4.dp), // NO horizontal padding
+                modifier = Modifier.padding(top = 4.dp, bottom = 4.dp).graphicsLayer {}, // NO horizontal padding
                 verticalArrangement = Arrangement.Center
             ) {
                 val useNewLibraryUI2 = LocalUseNewLibraryUI2.current

@@ -114,7 +114,7 @@ class HomeScreen(private val libraryId: KomgaLibraryId? = null) : ReloadableScre
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .windowInsetsPadding(WindowInsets.navigationBars)
+                    .then(if (extraBottomPadding == 0.dp) Modifier.windowInsetsPadding(WindowInsets.navigationBars) else Modifier)
                     .padding(bottom = 16.dp + extraBottomPadding, end = 16.dp)
             ) {
                 Icon(Icons.Rounded.Edit, null)
