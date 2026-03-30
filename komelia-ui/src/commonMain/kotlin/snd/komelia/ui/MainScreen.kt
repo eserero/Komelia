@@ -249,7 +249,7 @@ class MainScreen(
                                     else
                                         Modifier.consumeWindowInsets(paddingValues)
                                 )
-                                .statusBarsPadding()
+                                .then(if (!isModernNewTopBar) Modifier.statusBarsPadding() else Modifier)
                                 .then(if (hazeState != null) Modifier.hazeSource(hazeState) else Modifier)
                         ) {
                             SharedTransitionLayout {

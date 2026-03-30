@@ -94,18 +94,20 @@ fun HomeContent(
             onBookClick = onBookClick,
             onBookReadClick = onBookReadClick,
             topContent = {
-                HomeHeaderSection()
-                Toolbar(
-                    filters = filters,
-                    currentFilterNumber = activeFilterNumber,
-                    onFilterChange = { newFilter ->
-                        onFilterChange(newFilter)
-                        coroutineScope.launch {
-                            if (useNewLibraryUI && newFilter == 0) columnState.animateScrollToItem(0)
-                            else gridState.animateScrollToItem(0)
-                        }
-                    },
-                )
+                Column {
+                    HomeHeaderSection()
+                    Toolbar(
+                        filters = filters,
+                        currentFilterNumber = activeFilterNumber,
+                        onFilterChange = { newFilter ->
+                            onFilterChange(newFilter)
+                            coroutineScope.launch {
+                                if (useNewLibraryUI && newFilter == 0) columnState.animateScrollToItem(0)
+                                else gridState.animateScrollToItem(0)
+                            }
+                        },
+                    )
+                }
             },
         )
     } else {

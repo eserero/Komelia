@@ -187,21 +187,23 @@ class LibraryScreen(
                     }
 
                     val newUI2BeforeContent = @Composable {
-                        LibraryHeaderSection(
-                            library = library,
-                            totalCount = totalCount,
-                            countLabel = countLabel,
-                            pageSize = pageSize,
-                            onPageSizeChange = onPageSizeChange,
-                        )
-                        LibraryTabChips(
-                            currentTab = vm.currentTab,
-                            collectionsCount = vm.collectionsCount,
-                            readListsCount = vm.readListsCount,
-                            onBrowseClick = vm::toBrowseTab,
-                            onCollectionsClick = vm::toCollectionsTab,
-                            onReadListsClick = vm::toReadListsTab,
-                        )
+                        Column {
+                            LibraryHeaderSection(
+                                library = library,
+                                totalCount = totalCount,
+                                countLabel = countLabel,
+                                pageSize = pageSize,
+                                onPageSizeChange = onPageSizeChange,
+                            )
+                            LibraryTabChips(
+                                currentTab = vm.currentTab,
+                                collectionsCount = vm.collectionsCount,
+                                readListsCount = vm.readListsCount,
+                                onBrowseClick = vm::toBrowseTab,
+                                onCollectionsClick = vm::toCollectionsTab,
+                                onReadListsClick = vm::toReadListsTab,
+                            )
+                        }
                     }
 
                     val tabContent: @Composable () -> Unit = {
@@ -216,9 +218,19 @@ class LibraryScreen(
                     if (useNewUI2) {
                         val barHeight = 45.dp
                         val statusBarHeight = if (theme.transparentBars) LocalRawStatusBarHeight.current else 0.dp
-                        CompositionLocalProvider(LocalFloatingToolbarPadding provides barHeight + statusBarHeight) {
+                        val screenHazeState = if (theme.transparentBars) rememberHazeState() else null
+                        CompositionLocalProvider(
+                            LocalFloatingToolbarPadding provides barHeight + statusBarHeight,
+                            LocalHazeState provides screenHazeState,
+                        ) {
                             Box(Modifier.fillMaxSize()) {
-                                tabContent()
+                                Box(
+                                    Modifier
+                                        .fillMaxSize()
+                                        .then(if (screenHazeState != null) Modifier.hazeSource(screenHazeState) else Modifier)
+                                ) {
+                                    tabContent()
+                                }
                                 NewTopAppBar(library = library, libraryActions = vm.libraryActions())
                             }
                         }

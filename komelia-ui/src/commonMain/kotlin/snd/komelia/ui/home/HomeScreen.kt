@@ -26,9 +26,12 @@ import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.model.rememberScreenModel
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 import snd.komelia.ui.LoadState
 import snd.komelia.ui.LocalAccentColor
 import snd.komelia.ui.LocalFloatingToolbarPadding
+import snd.komelia.ui.LocalHazeState
 import snd.komelia.ui.LocalKomgaState
 import snd.komelia.ui.LocalOfflineMode
 import snd.komelia.ui.LocalRawStatusBarHeight
@@ -82,63 +85,73 @@ class HomeScreen(private val libraryId: KomgaLibraryId? = null) : ReloadableScre
         val barHeight = 45.dp
         val statusBarHeight = if (theme.transparentBars) LocalRawStatusBarHeight.current else 0.dp
         val floatingPadding = if (useNewUI2) barHeight + statusBarHeight else 0.dp
-        CompositionLocalProvider(LocalFloatingToolbarPadding provides floatingPadding) {
-        Box(Modifier.fillMaxSize()) {
-        ScreenPullToRefreshBox(screenState = vm.state, onRefresh = vm::reload) {
-            when (val state = vm.state.collectAsState().value) {
-                is LoadState.Error -> ErrorContent(
-                    message = state.exception.message ?: "Unknown Error",
-                    onReload = vm::reload
-                )
-
-                else ->
-                    HomeContent(
-                        filters = vm.currentFilters.collectAsState().value,
-                        activeFilterNumber = vm.activeFilterNumber.collectAsState().value,
-                        onFilterChange = vm::onFilterChange,
-
-                        cardWidth = vm.cardWidth.collectAsState().value,
-                        onSeriesClick = { navigator push seriesScreen(it) },
-                        seriesMenuActions = vm.seriesMenuActions(),
-                        bookMenuActions = vm.bookMenuActions(),
-                        onBookClick = { navigator push bookScreen(it) },
-                        onBookReadClick = { book, markProgress ->
-                            navigator.parent?.push(
-                                readerScreen(
-                                    book = book,
-                                    markReadProgress = markProgress,
-                                    onExit = { lastReadBook ->
-                                        if (lastReadBook.id != book.id) {
-                                            vm.reload()
-                                        }
-                                    }
-                                )
+        val screenHazeState = if (useNewUI2 && theme.transparentBars) rememberHazeState() else null
+        CompositionLocalProvider(
+            LocalFloatingToolbarPadding provides floatingPadding,
+            LocalHazeState provides screenHazeState,
+        ) {
+            Box(Modifier.fillMaxSize()) {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .then(if (screenHazeState != null) Modifier.hazeSource(screenHazeState) else Modifier)
+                ) {
+                    ScreenPullToRefreshBox(screenState = vm.state, onRefresh = vm::reload) {
+                        when (val state = vm.state.collectAsState().value) {
+                            is LoadState.Error -> ErrorContent(
+                                message = state.exception.message ?: "Unknown Error",
+                                onReload = vm::reload
                             )
-                        },
-                    )
 
-            }
+                            else ->
+                                HomeContent(
+                                    filters = vm.currentFilters.collectAsState().value,
+                                    activeFilterNumber = vm.activeFilterNumber.collectAsState().value,
+                                    onFilterChange = vm::onFilterChange,
 
-            val extraBottomPadding = LocalTransparentNavBarPadding.current
-            FloatingActionButton(
-                onClick = { navigator.replaceAll(FilterEditScreen(vm.currentFilters.value)) },
-                containerColor = accentColor ?: MaterialTheme.colorScheme.primaryContainer,
-                contentColor = if (accentColor != null) {
-                    if (accentColor.luminance() > 0.5f) Color.Black else Color.White
-                } else MaterialTheme.colorScheme.onPrimaryContainer,
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .then(if (extraBottomPadding == 0.dp) Modifier.windowInsetsPadding(WindowInsets.navigationBars) else Modifier)
-                    .padding(bottom = 16.dp + extraBottomPadding, end = 16.dp)
-            ) {
-                Icon(Icons.Rounded.Edit, null)
+                                    cardWidth = vm.cardWidth.collectAsState().value,
+                                    onSeriesClick = { navigator push seriesScreen(it) },
+                                    seriesMenuActions = vm.seriesMenuActions(),
+                                    bookMenuActions = vm.bookMenuActions(),
+                                    onBookClick = { navigator push bookScreen(it) },
+                                    onBookReadClick = { book, markProgress ->
+                                        navigator.parent?.push(
+                                            readerScreen(
+                                                book = book,
+                                                markReadProgress = markProgress,
+                                                onExit = { lastReadBook ->
+                                                    if (lastReadBook.id != book.id) {
+                                                        vm.reload()
+                                                    }
+                                                }
+                                            )
+                                        )
+                                    },
+                                )
+
+                        }
+
+                        val extraBottomPadding = LocalTransparentNavBarPadding.current
+                        FloatingActionButton(
+                            onClick = { navigator.replaceAll(FilterEditScreen(vm.currentFilters.value)) },
+                            containerColor = accentColor ?: MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = if (accentColor != null) {
+                                if (accentColor.luminance() > 0.5f) Color.Black else Color.White
+                            } else MaterialTheme.colorScheme.onPrimaryContainer,
+                            shape = RoundedCornerShape(16.dp),
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .then(if (extraBottomPadding == 0.dp) Modifier.windowInsetsPadding(WindowInsets.navigationBars) else Modifier)
+                                .padding(bottom = 16.dp + extraBottomPadding, end = 16.dp)
+                        ) {
+                            Icon(Icons.Rounded.Edit, null)
+                        }
+                    }
+                }
+                if (useNewUI2) {
+                    NewTopAppBar()
+                }
             }
-        }
-        if (useNewUI2) {
-            NewTopAppBar()
-        }
-        }
         }
     }
 }
