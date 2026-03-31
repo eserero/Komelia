@@ -1,5 +1,6 @@
 package snd.komelia.ui.reader
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -36,32 +37,28 @@ fun ReaderControlsCard(
         .padding(bottom = 16.dp)
         .navigationBarsPadding()
 
-    if (hazeState != null && hazeStyle != null) {
-        Box(
-            modifier = commonModifier
-                .shadow(8.dp, RoundedCornerShape(28.dp))
-                .clip(RoundedCornerShape(28.dp))
-                .hazeEffect(hazeState) { style = hazeStyle }
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-            ) {
-                content()
-            }
+    Box(modifier = commonModifier) {
+        if (hazeState != null && hazeStyle != null) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .shadow(8.dp, RoundedCornerShape(28.dp))
+                    .clip(RoundedCornerShape(28.dp))
+                    .hazeEffect(hazeState) { style = hazeStyle }
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .shadow(8.dp, RoundedCornerShape(28.dp))
+                    .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(28.dp))
+            )
         }
-    } else {
-        Surface(
-            shape = RoundedCornerShape(28.dp),
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 3.dp,
-            shadowElevation = 8.dp,
-            modifier = commonModifier
+
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
         ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-            ) {
-                content()
-            }
+            content()
         }
     }
 }

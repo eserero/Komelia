@@ -77,6 +77,7 @@ fun ProgressSlider(
     layoutDirection: LayoutDirection,
     modifier: Modifier = Modifier,
     isBare: Boolean = false,
+    loadThumbnailPreviews: Boolean = true,
 ) {
     PageSpreadProgressSlider(
         pageSpreads = pages.map { listOf(it) },
@@ -86,6 +87,7 @@ fun ProgressSlider(
         layoutDirection = layoutDirection,
         modifier = modifier,
         isBare = isBare,
+        loadThumbnailPreviews = loadThumbnailPreviews,
     )
 }
 
@@ -98,6 +100,7 @@ fun PageSpreadProgressSlider(
     layoutDirection: LayoutDirection,
     modifier: Modifier = Modifier,
     isBare: Boolean = false,
+    loadThumbnailPreviews: Boolean = true,
 ) {
     if (pageSpreads.isEmpty()) return
 
@@ -124,6 +127,7 @@ fun PageSpreadProgressSlider(
                         layoutDirection = layoutDirection,
                         interactionSource = interactionSource,
                         isBare = isBare,
+                        loadThumbnailPreviews = loadThumbnailPreviews,
                     )
                 }
             }
@@ -140,6 +144,7 @@ private fun Slider(
     layoutDirection: LayoutDirection,
     interactionSource: MutableInteractionSource,
     isBare: Boolean,
+    loadThumbnailPreviews: Boolean,
 ) {
     var currentPos by remember(currentSpreadIndex) { mutableStateOf(currentSpreadIndex) }
     val currentSpread = remember(pageSpreads, currentPos) { pageSpreads.getOrElse(currentPos) { pageSpreads.last() } }
@@ -171,7 +176,7 @@ private fun Slider(
     )
 
     Layout(content = {
-        if (showPreview && !isBare) {
+        if (showPreview && loadThumbnailPreviews) {
             Row {
                 for (pageMetadata in currentSpread) {
                     BookPageThumbnail(
@@ -182,12 +187,13 @@ private fun Slider(
             }
         } else Spacer(Modifier)
 
-        val labelBackground = accentColor?.copy(alpha = 0.8f) ?: MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f)
+        val labelBackground =
+            accentColor?.copy(alpha = 0.8f) ?: MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f)
         val onLabelColor = if (accentColor != null) {
             if (accentColor.luminance() > 0.5f) Color.Black else Color.White
         } else MaterialTheme.colorScheme.onSurfaceVariant
 
-        if (!isBare) {
+        if (showPreview || !isBare) {
             Text(
                 label,
                 textAlign = TextAlign.Center,
@@ -267,6 +273,14 @@ private fun Slider(
                     y = previewPlaceable.height + labelPlaceable.height
                 )
             } else {
+                previewPlaceable.placeRelative(
+                    x = previewOffsetX,
+                    y = -previewPlaceable.height - labelPlaceable.height - 10.dp.roundToPx()
+                )
+                labelPlaceable.placeRelative(
+                    x = labelOffsetX,
+                    y = -labelPlaceable.height - 10.dp.roundToPx()
+                )
                 sliderPlaceable.placeRelative(0, 0)
             }
         }

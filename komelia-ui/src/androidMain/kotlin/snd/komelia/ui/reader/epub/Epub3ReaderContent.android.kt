@@ -291,7 +291,7 @@ actual fun Epub3ReaderContent(state: EpubReaderState) {
                             exit = fadeOut(tween(200)),
                             modifier = Modifier
                                 .align(Alignment.BottomCenter)
-                                .padding(horizontal = 2.dp)
+                                .then(if (useNewUI2) Modifier.fillMaxWidth().padding(horizontal = 16.dp) else Modifier.padding(horizontal = 2.dp))
                                 .padding(bottom = audioPlayerBottomPadding),
                         ) {
                             AudioMiniPlayer(
@@ -303,6 +303,7 @@ actual fun Epub3ReaderContent(state: EpubReaderState) {
                                 onCoverClick = { coroutineScope.launch { playerTransitionState.animateTo(true) } },
                                 sharedTransitionScope = this@SharedTransitionLayout,
                                 animatedVisibilityScope = this,
+                                useNewUI2 = useNewUI2,
                             )
                         }
 

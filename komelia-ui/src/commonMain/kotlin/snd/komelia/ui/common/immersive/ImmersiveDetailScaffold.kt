@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -428,6 +429,10 @@ fun ImmersiveDetailScaffold(
                                         .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
                                 )
                             }
+                        } else {
+                            // Edge-to-edge: card starts at y=0 (screen top). Grow a spacer from 0 → statusBarDp
+                            // as the card expands so content clears the status bar when fully expanded.
+                            Spacer(Modifier.height(lerp(0.dp, statusBarDp, expandFraction)))
                         }
                         Column(modifier = Modifier.fillMaxWidth().weight(1f)) {
                             val onThumbnailPositioned: (LayoutCoordinates) -> Unit = { coords ->
@@ -481,8 +486,10 @@ fun ImmersiveDetailScaffold(
                 val targetX = with(density) { targetThumbnailOffset.x.toDp() }
                 val targetY = with(density) { targetThumbnailOffset.y.toDp() }
 
-                val startY = if (immersive) -statusBarDp else 0.dp
-                val startHeight = if (immersive) collapsedOffset + statusBarDp else collapsedOffset
+                // UI2 uses edge-to-edge layout (content starts at y=0 behind status bar),
+                // so no negative offset is needed — the cover starts flush with the screen top.
+                val startY = 0.dp
+                val startHeight = collapsedOffset
 
                 val currentWidth = lerp(screenWidth, 110.dp, expandFraction)
                 val currentHeight = lerp(startHeight, thumbnailHeight, expandFraction)

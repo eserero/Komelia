@@ -76,6 +76,7 @@ fun BoxScope.SettingsOverlay(
     val linearLightDownsampling = commonReaderState.linearLightDownsampling.collectAsState().value
     val stretchToFit = commonReaderState.imageStretchToFit.collectAsState().value
     val cropBorders = commonReaderState.cropBorders.collectAsState().value
+    val loadThumbnailPreviews = commonReaderState.loadThumbnailPreviews.collectAsState().value
     val flashEnabled = commonReaderState.flashOnPageChange.collectAsState().value
     val flashDuration = commonReaderState.flashDuration.collectAsState().value
     val flashEveryNPages = commonReaderState.flashEveryNPages.collectAsState().value
@@ -101,6 +102,8 @@ fun BoxScope.SettingsOverlay(
             onStretchToFitChange = commonReaderState::onStretchToFitChange,
             cropBorders = cropBorders,
             onCropBordersChange = commonReaderState::onCropBordersChange,
+            loadThumbnailPreviews = loadThumbnailPreviews,
+            onLoadThumbnailPreviewsChange = commonReaderState::onLoadThumbnailPreviewsChange,
             zoom = zoom,
             pagedReaderState = pagedReaderState,
             continuousReaderState = continuousReaderState,
@@ -141,6 +144,8 @@ fun BoxScope.SettingsOverlay(
             onStretchToFitChange = commonReaderState::onStretchToFitChange,
             cropBorders = cropBorders,
             onCropBordersChange = commonReaderState::onCropBordersChange,
+            loadThumbnailPreviews = loadThumbnailPreviews,
+            onLoadThumbnailPreviewsChange = commonReaderState::onLoadThumbnailPreviewsChange,
             zoom = zoom,
             showImageSettings = commonReaderState.expandImageSettings.collectAsState().value,
             onShowImageSettingsChange = { commonReaderState.expandImageSettings.value = it },
@@ -182,6 +187,7 @@ fun BoxScope.SettingsOverlay(
                 pageSpreads = pagedReaderState.pageSpreads.collectAsState().value,
                 currentSpreadIndex = pagedReaderState.currentSpreadIndex.collectAsState().value,
                 onPageNumberChange = pagedReaderState::onPageChange,
+                loadThumbnailPreviews = loadThumbnailPreviews,
                 show = show,
                 layoutDirection = layoutDirection,
                 modifier = Modifier.align(Alignment.BottomStart)
@@ -203,6 +209,7 @@ fun BoxScope.SettingsOverlay(
                 pageSpreads = pages.map { listOf(it) },
                 currentSpreadIndex = currentIndex.page,
                 onPageNumberChange = panelsReaderState::onPageChange,
+                loadThumbnailPreviews = loadThumbnailPreviews,
                 show = show,
                 layoutDirection = layoutDirection,
                 modifier = Modifier.align(Alignment.BottomStart)
@@ -224,6 +231,7 @@ fun BoxScope.SettingsOverlay(
                 pages = continuousReaderState.currentBookPages.collectAsState(emptyList()).value,
                 currentPageIndex = continuousReaderState.currentBookPageIndex.collectAsState(0).value,
                 onPageNumberChange = { coroutineScope.launch { continuousReaderState.scrollToBookPage(it + 1) } },
+                loadThumbnailPreviews = loadThumbnailPreviews,
                 show = show,
                 layoutDirection = layoutDirection,
                 modifier = Modifier.align(Alignment.BottomStart)

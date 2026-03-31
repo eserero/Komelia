@@ -54,9 +54,10 @@ fun AudioMiniPlayer(
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
     modifier: Modifier = Modifier,
+    useNewUI2: Boolean = false,
 ) {
     val isPlaying by controller.isPlaying.collectAsState()
-    val pillShape = RoundedCornerShape(50)
+    val shape = if (useNewUI2) RoundedCornerShape(28.dp) else RoundedCornerShape(50)
     with(sharedTransitionScope) {
         Surface(
             modifier = modifier
@@ -67,9 +68,9 @@ fun AudioMiniPlayer(
                     exit = fadeOut(tween(300, easing = emphasizedAccelerateEasing)),
                     boundsTransform = { _, _ -> tween(500, easing = emphasizedEasing) },
                     resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds,
-                    clipInOverlayDuringTransition = OverlayClip(pillShape),
+                    clipInOverlayDuringTransition = OverlayClip(shape),
                 ),
-            shape = pillShape,
+            shape = shape,
             color = backgroundColor,
             contentColor = MaterialTheme.colorScheme.onSurface,
             tonalElevation = 6.dp,
