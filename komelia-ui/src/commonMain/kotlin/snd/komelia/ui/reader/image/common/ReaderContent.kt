@@ -62,6 +62,7 @@ import snd.komelia.ui.reader.image.paged.PagedReaderState
 import snd.komelia.ui.reader.image.panels.PanelsReaderContent
 import snd.komelia.ui.reader.image.panels.PanelsReaderState
 import snd.komelia.ui.LocalUseNewLibraryUI2
+import snd.komelia.ui.platform.BackPressHandler
 import snd.komelia.ui.reader.ReaderTopBar
 import snd.komelia.ui.reader.image.settings.SettingsOverlay
 import snd.komelia.ui.settings.imagereader.ncnn.NcnnSettingsState
@@ -111,6 +112,15 @@ fun ReaderContent(
         commonReaderState.pixelDensity.value = density
     }
 
+    BackPressHandler {
+        when {
+            showImageContextMenu -> showImageContextMenu = false
+            showSettingsMenu -> showSettingsMenu = false
+            showHelpDialog -> showHelpDialog = false
+            else -> onExit()
+        }
+    }
+
     val useNewUI2 = LocalUseNewLibraryUI2.current
 
     val theme = LocalTheme.current
@@ -136,10 +146,26 @@ fun ReaderContent(
                     var consumed = true
                     when (event.key) {
                         Key.M -> showSettingsMenu = !showSettingsMenu
-                        Key.Escape -> showSettingsMenu = false
+                        Key.Escape -> {
+                            when {
+                                showImageContextMenu -> showImageContextMenu = false
+                                showSettingsMenu -> showSettingsMenu = false
+                                showHelpDialog -> showHelpDialog = false
+                                else -> consumed = false
+                            }
+                        }
+
                         Key.H -> showHelpDialog = true
                         Key.DirectionLeft -> if (event.isAltPressed) onExit() else consumed = false
-                        Key.Back -> if (showSettingsMenu) showSettingsMenu = false else onExit()
+                        Key.Back -> {
+                            when {
+                                showImageContextMenu -> showImageContextMenu = false
+                                showSettingsMenu -> showSettingsMenu = false
+                                showHelpDialog -> showHelpDialog = false
+                                else -> onExit()
+                            }
+                        }
+
                         Key.U -> commonReaderState.onStretchToFitCycle()
                         Key.C -> if (event.isAltPressed) commonReaderState.onColorCorrectionDisable() else consumed = false
                         else -> consumed = false
