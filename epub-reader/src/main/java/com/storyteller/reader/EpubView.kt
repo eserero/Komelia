@@ -104,7 +104,8 @@ interface EpubViewListener {
 class EpubView(
     context: Context,
     val activity: FragmentActivity,
-    var listener: EpubViewListener? = null
+    var listener: EpubViewListener? = null,
+    val shouldApplyInsetsPadding: Boolean = false,
 ) : FrameLayout(context), EpubNavigatorFragment.Listener, DecorableNavigator.Listener {
 
     // Propagate layout through the view tree so ViewPager and WebViews size correctly.

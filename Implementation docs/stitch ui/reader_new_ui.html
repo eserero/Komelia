@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif:wght@400;700;900&amp;family=Inter:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@300,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "background": "#000000",
+              "surface": "#121212",
+              "on-surface": "#F5F5F5",
+              "primary": "#6200EE",
+              "primary-variant": "#ba9eff",
+              "surface-container": "#1E1E1E",
+              "outline": "#333333",
+              "on-primary": "#FFFFFF"
+            },
+            fontFamily: {
+              "headline": ["Noto Serif", "serif"],
+              "body": ["Inter", "sans-serif"],
+              "label": ["Inter", "sans-serif"]
+            },
+            borderRadius: {
+              "DEFAULT": "0.5rem",
+              "lg": "1rem",
+              "xl": "1.5rem",
+              "full": "9999px"
+            },
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+        }
+        .reader-canvas {
+            height: 100dvh;
+            width: 100%;
+            overflow-y: auto;
+            scrollbar-width: none;
+        }
+        .reader-canvas::-webkit-scrollbar {
+            display: none;
+        }
+        .glass-hud {
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+        }
+        .hud-overlay {
+            background: linear-gradient(to bottom, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0) 25%, rgba(0, 0, 0, 0) 75%, rgba(0, 0, 0, 0.9) 100%);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body selection:bg-primary/30">
+<!-- Immersive Comic Canvas -->
+<main class="reader-canvas relative bg-background">
+<div class="flex flex-col items-center w-full min-h-full">
+<!-- Full bleed comic art -->
+<img alt="Comic page" class="w-full max-w-4xl h-auto shadow-2xl" data-alt="Intense cyberpunk comic art page featuring a neon-lit city street with rain-slicked pavement and vibrant cyan and magenta lights" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDXZI7XjduXk12aK65bA9Og_UJ1lEIS4iM1VF6UvwY2lOLWhmFahfwKw5Mmlr4CMUJCsDjTwmTc0wjehD575KBjkVuVtNtexybpH7KIlGkAJ9e1VrdlZpsQ5HZPvPYywBRwxgd7gDRhSqBKMDCnGcmddSHaHocDLVw4NRYBGSOBOmGDm37LMEL_tdL2iOCw4mvNeYDZs5KGCLyZuGeWR3hMUeFf_hxeTgp24KAkeC2gm0KvwZut6BVZdle-V4KkhGA7omuODY5ot6Bv"/>
+<img alt="Comic page 2" class="w-full max-w-4xl h-auto shadow-2xl" data-alt="Dramatic comic panel showing a masked hero overlooking a futuristic skyline with golden hour lighting and high contrast shadows" src="https://lh3.googleusercontent.com/aida-public/AB6AXuASqEKXyn4rsORsR6LXCFYZZrUvQVA8TXUTy3TLL94isVCdlk9d16gi9IaKx5PsUCfIGo-yrhR3xCyQ6Tjgq--UnsIC0Cv4KoI56MWz6khOBTSf_7q7o7ETtsn11fevv70I4C_VC16KquAiynT4I0Mx6HUnPOdzPKt9k-VEnHi5F5WJG5ykuNckRpzZobJ5lXauXwovOEzafoRCh43c9J7THFqLpvTZeluuC3GVyFKaNbW5zjxCvcDcE0J0lEEDWenD2zSpSRZjdPdN"/>
+</div>
+</main>
+<!-- Top Navigation UI (HUD) -->
+<nav class="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-8 h-20 glass-hud transition-all duration-500 border-b border-white/5">
+<div class="flex items-center gap-6">
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors active:scale-90" onclick="window.location.href='{{DATA:SCREEN:SCREEN_12}}'">
+<span class="material-symbols-outlined text-on-surface" data-icon="arrow_back">arrow_back</span>
+</button>
+<div class="flex flex-col">
+<h1 class="font-headline font-black text-xl tracking-tight leading-none uppercase">NEON RECKONING</h1>
+<span class="font-label text-[10px] uppercase tracking-[0.2em] text-primary-variant font-medium mt-1">CHAPTER 04: THE VOID ECHO</span>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors active:scale-90">
+<span class="material-symbols-outlined text-on-surface" data-icon="bookmark">bookmark</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors active:scale-90">
+<span class="material-symbols-outlined text-on-surface" data-icon="settings">settings</span>
+</button>
+</div>
+</nav>
+<!-- Reader Bottom Controls (HUD) -->
+<aside class="fixed bottom-0 left-0 w-full z-50 p-8 flex flex-col items-center gap-6">
+<!-- Floating Info Chip -->
+<div class="bg-black/80 backdrop-blur-xl px-5 py-2 rounded-full shadow-2xl flex items-center gap-3 border border-white/10">
+<span class="font-label text-[10px] font-bold text-on-surface/50 tracking-wider">PAGE</span>
+<span class="font-headline text-primary-variant font-bold text-sm">24</span>
+<span class="text-white/20 text-xs">/</span>
+<span class="font-label text-xs text-on-surface/40">52</span>
+</div>
+<!-- Main Control Bar -->
+<div class="w-full max-w-xl bg-black/60 backdrop-blur-2xl rounded-[2rem] p-5 flex flex-col gap-5 shadow-[0_32px_64px_rgba(0,0,0,0.8)] border border-white/5">
+<!-- Progress Slider -->
+<div class="relative w-full h-8 flex items-center px-4">
+<div class="absolute left-4 right-4 h-1 bg-white/10 rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[46%] shadow-[0_0_20px_rgba(98,0,238,0.5)]"></div>
+</div>
+<input class="absolute left-4 right-4 opacity-0 cursor-pointer w-[calc(100%-2rem)] h-full z-10" max="100" min="0" type="range" value="46"/>
+<!-- Visual Thumb -->
+<div class="absolute left-[46%] -translate-x-1/2 w-3.5 h-3.5 bg-primary-variant rounded-full ring-4 ring-primary/20 shadow-lg transition-transform hover:scale-125"></div>
+</div>
+<!-- Quick Actions -->
+<div class="flex items-center justify-between px-2">
+<div class="flex items-center gap-8">
+<button class="flex flex-col items-center gap-1.5 group">
+<span class="material-symbols-outlined text-on-surface/60 group-hover:text-primary-variant transition-colors" data-icon="brightness_medium">brightness_medium</span>
+<span class="font-label text-[9px] uppercase tracking-[0.15em] opacity-40 group-hover:opacity-80">Display</span>
+</button>
+<button class="flex flex-col items-center gap-1.5 group">
+<span class="material-symbols-outlined text-on-surface/60 group-hover:text-primary-variant transition-colors" data-icon="screen_rotation">screen_rotation</span>
+<span class="font-label text-[9px] uppercase tracking-[0.15em] opacity-40 group-hover:opacity-80">Rotate</span>
+</button>
+</div>
+<div class="flex items-center gap-4">
+<button class="flex items-center justify-center w-11 h-11 rounded-full bg-white/5 hover:bg-primary/20 hover:text-primary-variant transition-all active:scale-90 group border border-white/5">
+<span class="material-symbols-outlined" data-icon="skip_previous">skip_previous</span>
+</button>
+<button class="flex items-center justify-center w-11 h-11 rounded-full bg-white/5 hover:bg-primary/20 hover:text-primary-variant transition-all active:scale-90 group border border-white/5">
+<span class="material-symbols-outlined" data-icon="skip_next">skip_next</span>
+</button>
+</div>
+<div class="flex items-center gap-8">
+<button class="flex flex-col items-center gap-1.5 group">
+<span class="material-symbols-outlined text-on-surface/60 group-hover:text-primary-variant transition-colors" data-icon="auto_stories">auto_stories</span>
+<span class="font-label text-[9px] uppercase tracking-[0.15em] opacity-40 group-hover:opacity-80">Chapters</span>
+</button>
+</div>
+</div>
+</div>
+</aside>
+<!-- Reader Mode Contextual Menu (Hidden) -->
+<div class="hidden fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-md px-6">
+<div class="w-full max-w-sm bg-surface rounded-[2rem] p-8 shadow-2xl border border-white/10">
+<h3 class="font-headline text-2xl mb-8 font-bold">Reader Settings</h3>
+<div class="space-y-8">
+<section>
+<label class="font-label text-[10px] uppercase tracking-[0.2em] text-on-surface/40 block mb-4">View Mode</label>
+<div class="grid grid-cols-2 gap-4">
+<button class="bg-primary/20 border border-primary/50 text-primary-variant py-4 rounded-2xl flex items-center justify-center gap-2">
+<span class="material-symbols-outlined" data-icon="vertical_split">vertical_split</span>
+<span class="font-body text-sm font-bold">Vertical</span>
+</button>
+<button class="bg-white/5 border border-white/10 text-on-surface/60 py-4 rounded-2xl flex items-center justify-center gap-2 hover:bg-white/10">
+<span class="material-symbols-outlined" data-icon="auto_stories">auto_stories</span>
+<span class="font-body text-sm font-bold">Two-Page</span>
+</button>
+</div>
+</section>
+<section>
+<label class="font-label text-[10px] uppercase tracking-[0.2em] text-on-surface/40 block mb-4">Brightness</label>
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-on-surface/40" data-icon="light_mode">light_mode</span>
+<input class="flex-1 h-1 bg-white/10 rounded-full accent-primary appearance-none cursor-pointer" type="range"/>
+<span class="material-symbols-outlined text-on-surface" data-icon="brightness_7">brightness_7</span>
+</div>
+</section>
+<button class="w-full py-5 mt-4 bg-primary text-white font-headline font-bold rounded-2xl active:scale-[0.98] transition-all shadow-lg shadow-primary/25">
+                Apply Changes
+            </button>
+</div>
+</div>
+</div>
+<!-- Interaction Guide -->
+<div class="fixed inset-0 pointer-events-none z-0 flex items-center justify-center opacity-0 group hover:opacity-100 transition-opacity">
+<div class="text-on-surface/5 flex flex-col items-center animate-pulse">
+<span class="material-symbols-outlined text-7xl" data-icon="ads_click">ads_click</span>
+<p class="font-label text-[10px] uppercase tracking-[0.5em] mt-6">Tap to show controls</p>
+</div>
+</div>
+</body></html>

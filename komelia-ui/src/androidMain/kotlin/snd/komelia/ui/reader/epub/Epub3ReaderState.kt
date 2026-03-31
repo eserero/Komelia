@@ -146,7 +146,6 @@ class Epub3ReaderState(
 
     override suspend fun initialize(navigator: Navigator) {
         this.navigator.value = navigator
-        if (platformType == PlatformType.MOBILE) windowState.setFullscreen(true)
         if (state.value !is LoadState.Uninitialized) return
 
         logger.debug { "[epub3-init] starting for bookId=${bookId.value.value}" }
