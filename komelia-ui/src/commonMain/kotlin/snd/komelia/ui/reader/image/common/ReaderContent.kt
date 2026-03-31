@@ -11,6 +11,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -19,6 +20,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
+import snd.komelia.ui.LocalHazeState
+import snd.komelia.ui.LocalTheme
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -56,6 +61,8 @@ import snd.komelia.ui.reader.image.paged.PagedReaderContent
 import snd.komelia.ui.reader.image.paged.PagedReaderState
 import snd.komelia.ui.reader.image.panels.PanelsReaderContent
 import snd.komelia.ui.reader.image.panels.PanelsReaderState
+import snd.komelia.ui.LocalUseNewLibraryUI2
+import snd.komelia.ui.reader.ReaderTopBar
 import snd.komelia.ui.reader.image.settings.SettingsOverlay
 import snd.komelia.ui.settings.imagereader.ncnn.NcnnSettingsState
 import snd.komelia.ui.settings.imagereader.onnxruntime.OnnxRuntimeSettingsState
@@ -104,131 +111,154 @@ fun ReaderContent(
         commonReaderState.pixelDensity.value = density
     }
 
+    val useNewUI2 = LocalUseNewLibraryUI2.current
+
+    val theme = LocalTheme.current
+    val readerHazeState = if (theme.transparentBars) rememberHazeState() else null
+
     val topLevelFocus = remember { FocusRequester() }
     val volumeKeysNavigation = commonReaderState.volumeKeysNavigation.collectAsState().value
     val tapNavigationMode = commonReaderState.tapNavigationMode.collectAsState().value
     var hasFocus by remember { mutableStateOf(false) }
-    Box(
-        Modifier
-            .fillMaxSize()
-            .onSizeChanged {
-                screenScaleState.setAreaSize(it)
-            }
-            .focusable()
-            .focusRequester(topLevelFocus)
-            .onFocusChanged { hasFocus = it.hasFocus }
-            .onKeyEvent { event ->
-                if (event.type != KeyUp) return@onKeyEvent false
-
-                var consumed = true
-                when (event.key) {
-                    Key.M -> showSettingsMenu = !showSettingsMenu
-                    Key.Escape -> showSettingsMenu = false
-                    Key.H -> showHelpDialog = true
-                    Key.DirectionLeft -> if (event.isAltPressed) onExit() else consumed = false
-                    Key.Back -> if (showSettingsMenu) showSettingsMenu = false else onExit()
-                    Key.U -> commonReaderState.onStretchToFitCycle()
-                    Key.C -> if (event.isAltPressed) commonReaderState.onColorCorrectionDisable() else consumed = false
-                    else -> consumed = false
-                }
-                consumed
-            }
-    ) {
-        val areaSize = screenScaleState.areaSize.collectAsState()
-        if (areaSize.value == IntSize.Zero) {
-            LoadingMaxSizeIndicator()
-            return
-        }
-
-        when (commonReaderState.readerType.collectAsState().value) {
-            PAGED -> {
-                PagedReaderContent(
-                    showHelpDialog = showHelpDialog,
-                    onShowHelpDialogChange = { showHelpDialog = it },
-                    showSettingsMenu = showSettingsMenu,
-                    onShowSettingsMenuChange = { showSettingsMenu = it },
-                    screenScaleState = screenScaleState,
-                    pagedReaderState = pagedReaderState,
-                    volumeKeysNavigation = volumeKeysNavigation,
-                    tapNavigationMode = tapNavigationMode,
-                    onLongPress = onLongPress
-                )
-            }
-
-            CONTINUOUS -> {
-                ContinuousReaderContent(
-                    showHelpDialog = showHelpDialog,
-                    onShowHelpDialogChange = { showHelpDialog = it },
-                    showSettingsMenu = showSettingsMenu,
-                    onShowSettingsMenuChange = { showSettingsMenu = it },
-                    screenScaleState = screenScaleState,
-                    continuousReaderState = continuousReaderState,
-                    volumeKeysNavigation = volumeKeysNavigation,
-                    tapNavigationMode = tapNavigationMode,
-                    onLongPress = onLongPress
-                )
-            }
-
-            PANELS -> {
-                check(panelsReaderState != null)
-                PanelsReaderContent(
-                    showHelpDialog = showHelpDialog,
-                    onShowHelpDialogChange = { showHelpDialog = it },
-                    showSettingsMenu = showSettingsMenu,
-                    onShowSettingsMenuChange = { showSettingsMenu = it },
-                    screenScaleState = screenScaleState,
-                    panelsReaderState = panelsReaderState,
-                    volumeKeysNavigation = volumeKeysNavigation,
-                    tapNavigationMode = tapNavigationMode,
-                    onLongPress = onLongPress
-                )
-            }
-
-        }
-
+    CompositionLocalProvider(LocalHazeState provides readerHazeState) {
         Box(
-            Modifier.offset {
-                IntOffset(contextMenuAnchorOffset.x.toInt(), contextMenuAnchorOffset.y.toInt())
-            }
-        ) {
-            AnimatedDropdownMenu(
-                expanded = showImageContextMenu,
-                onDismissRequest = { showImageContextMenu = false },
-                transformOrigin = TransformOrigin(0f, 0f)
-            ) {
-                DropdownMenuItem(
-                    text = { Text("Save image") },
-                    leadingIcon = { Icon(Icons.Rounded.Download, contentDescription = null) },
-                    onClick = {
-                        showImageContextMenu = false
-                        commonReaderState.saveCurrentPageToDownloads()
+            Modifier
+                .fillMaxSize()
+                .onSizeChanged {
+                    screenScaleState.setAreaSize(it)
+                }
+                .focusable()
+                .focusRequester(topLevelFocus)
+                .onFocusChanged { hasFocus = it.hasFocus }
+                .onKeyEvent { event ->
+                    if (event.type != KeyUp) return@onKeyEvent false
+
+                    var consumed = true
+                    when (event.key) {
+                        Key.M -> showSettingsMenu = !showSettingsMenu
+                        Key.Escape -> showSettingsMenu = false
+                        Key.H -> showHelpDialog = true
+                        Key.DirectionLeft -> if (event.isAltPressed) onExit() else consumed = false
+                        Key.Back -> if (showSettingsMenu) showSettingsMenu = false else onExit()
+                        Key.U -> commonReaderState.onStretchToFitCycle()
+                        Key.C -> if (event.isAltPressed) commonReaderState.onColorCorrectionDisable() else consumed = false
+                        else -> consumed = false
                     }
+                    consumed
+                }
+        ) {
+            val areaSize = screenScaleState.areaSize.collectAsState()
+            if (areaSize.value == IntSize.Zero) {
+                LoadingMaxSizeIndicator()
+            } else {
+                Box(
+                    Modifier.fillMaxSize().then(
+                        if (readerHazeState != null) Modifier.hazeSource(readerHazeState) else Modifier
+                    )
+                ) {
+                    when (commonReaderState.readerType.collectAsState().value) {
+                        PAGED -> {
+                            PagedReaderContent(
+                                showHelpDialog = showHelpDialog,
+                                onShowHelpDialogChange = { showHelpDialog = it },
+                                showSettingsMenu = showSettingsMenu,
+                                onShowSettingsMenuChange = { showSettingsMenu = it },
+                                screenScaleState = screenScaleState,
+                                pagedReaderState = pagedReaderState,
+                                volumeKeysNavigation = volumeKeysNavigation,
+                                tapNavigationMode = tapNavigationMode,
+                                onLongPress = onLongPress
+                            )
+                        }
+
+                        CONTINUOUS -> {
+                            ContinuousReaderContent(
+                                showHelpDialog = showHelpDialog,
+                                onShowHelpDialogChange = { showHelpDialog = it },
+                                showSettingsMenu = showSettingsMenu,
+                                onShowSettingsMenuChange = { showSettingsMenu = it },
+                                screenScaleState = screenScaleState,
+                                continuousReaderState = continuousReaderState,
+                                volumeKeysNavigation = volumeKeysNavigation,
+                                tapNavigationMode = tapNavigationMode,
+                                onLongPress = onLongPress
+                            )
+                        }
+
+                        PANELS -> {
+                            check(panelsReaderState != null)
+                            PanelsReaderContent(
+                                showHelpDialog = showHelpDialog,
+                                onShowHelpDialogChange = { showHelpDialog = it },
+                                showSettingsMenu = showSettingsMenu,
+                                onShowSettingsMenuChange = { showSettingsMenu = it },
+                                screenScaleState = screenScaleState,
+                                panelsReaderState = panelsReaderState,
+                                volumeKeysNavigation = volumeKeysNavigation,
+                                tapNavigationMode = tapNavigationMode,
+                                onLongPress = onLongPress
+                            )
+                        }
+                    }
+                }
+
+                Box(
+                    Modifier.offset {
+                        IntOffset(contextMenuAnchorOffset.x.toInt(), contextMenuAnchorOffset.y.toInt())
+                    }
+                ) {
+                    AnimatedDropdownMenu(
+                        expanded = showImageContextMenu,
+                        onDismissRequest = { showImageContextMenu = false },
+                        transformOrigin = TransformOrigin(0f, 0f)
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Save image") },
+                            leadingIcon = { Icon(Icons.Rounded.Download, contentDescription = null) },
+                            onClick = {
+                                showImageContextMenu = false
+                                commonReaderState.saveCurrentPageToDownloads()
+                            }
+                        )
+                    }
+                }
+
+                SettingsOverlay(
+                    show = showSettingsMenu,
+                    commonReaderState = commonReaderState,
+                    pagedReaderState = pagedReaderState,
+                    continuousReaderState = continuousReaderState,
+                    panelsReaderState = panelsReaderState,
+                    onnxRuntimeSettingsState = onnxRuntimeSettingsState,
+                    ncnnSettingsState = ncnnSettingsState,
+                    screenScaleState = screenScaleState,
+                    isColorCorrectionsActive = isColorCorrectionActive,
+                    onColorCorrectionClick = onColorCorrectionClick,
+                    onBackPress = onExit,
+                    ohShowHelpDialogChange = { showHelpDialog = it },
+                )
+
+                if (showSettingsMenu && useNewUI2) {
+                    val book = commonReaderState.booksState.collectAsState().value?.currentBook
+                    val allUpscaleActivities by ncnnSettingsState.globalUpscaleActivities.collectAsState()
+                    ReaderTopBar(
+                        seriesTitle = book?.seriesTitle ?: "",
+                        bookTitle = book?.metadata?.title ?: "",
+                        onBack = onExit,
+                        upscaleActivities = allUpscaleActivities,
+                        modifier = Modifier.align(Alignment.TopCenter)
+                    )
+                }
+
+                EInkFlashOverlay(
+                    enabled = commonReaderState.flashOnPageChange.collectAsState().value,
+                    pageChangeFlow = commonReaderState.pageChangeFlow,
+                    flashEveryNPages = commonReaderState.flashEveryNPages.collectAsState().value,
+                    flashWith = commonReaderState.flashWith.collectAsState().value,
+                    flashDuration = commonReaderState.flashDuration.collectAsState().value
                 )
             }
         }
-
-        SettingsOverlay(
-            show = showSettingsMenu,
-            commonReaderState = commonReaderState,
-            pagedReaderState = pagedReaderState,
-            continuousReaderState = continuousReaderState,
-            panelsReaderState = panelsReaderState,
-            onnxRuntimeSettingsState = onnxRuntimeSettingsState,
-            ncnnSettingsState = ncnnSettingsState,
-            screenScaleState = screenScaleState,
-            isColorCorrectionsActive = isColorCorrectionActive,
-            onColorCorrectionClick = onColorCorrectionClick,
-            onBackPress = onExit,
-            ohShowHelpDialogChange = { showHelpDialog = it },
-        )
-
-        EInkFlashOverlay(
-            enabled = commonReaderState.flashOnPageChange.collectAsState().value,
-            pageChangeFlow = commonReaderState.pageChangeFlow,
-            flashEveryNPages = commonReaderState.flashEveryNPages.collectAsState().value,
-            flashWith = commonReaderState.flashWith.collectAsState().value,
-            flashDuration = commonReaderState.flashDuration.collectAsState().value
-        )
     }
     LaunchedEffect(hasFocus) {
         if (!hasFocus) topLevelFocus.requestFocus()

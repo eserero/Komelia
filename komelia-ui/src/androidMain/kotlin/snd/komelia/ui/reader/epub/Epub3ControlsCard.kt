@@ -37,7 +37,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -47,7 +46,102 @@ import org.readium.r2.shared.util.Url
 import snd.komelia.ui.LocalAccentColor
 import snd.komelia.ui.common.components.AppSlider
 import snd.komelia.ui.common.components.AppSliderDefaults
+import snd.komelia.ui.reader.ReaderControlsCard
 import kotlin.math.roundToInt
+
+@Composable
+fun Epub3ControlsCardNewUI(
+    state: Epub3ReaderState,
+    onSettingsClick: () -> Unit,
+    onChapterClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    onCardHeightChanged: (Int) -> Unit = {},
+) {
+    val positions by state.positions.collectAsState()
+    val currentLocator by state.currentLocator.collectAsState()
+    val toc by state.tableOfContents.collectAsState()
+    val accentColor = LocalAccentColor.current
+
+    ReaderControlsCard(modifier = modifier.onSizeChanged { onCardHeightChanged(it.height) }) {
+        if (positions.isNotEmpty()) {
+            val currentIndex = remember(currentLocator, positions) {
+                locatorToPositionIndex(positions, currentLocator)
+            }
+            val interactionScope = rememberCoroutineScope()
+            var interactionEndJob by remember { mutableStateOf<Job?>(null) }
+            var isInteracting by remember { mutableStateOf(false) }
+            var sliderDraft by remember { mutableStateOf(currentIndex.toFloat()) }
+
+            LaunchedEffect(currentIndex) {
+                if (!isInteracting) sliderDraft = currentIndex.toFloat()
+            }
+
+            fun navigate(newIndex: Int) {
+                sliderDraft = newIndex.toFloat()
+                state.navigateToPosition(newIndex)
+                isInteracting = true
+                interactionEndJob?.cancel()
+                interactionEndJob = interactionScope.launch { delay(700); isInteracting = false }
+            }
+
+            Epub3LocationLabel(
+                positions = positions,
+                currentLocator = currentLocator,
+                overrideIndex = sliderDraft.roundToInt(),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            AppSlider(
+                value = sliderDraft,
+                onValueChange = { isInteracting = true; sliderDraft = it },
+                onValueChangeFinished = { navigate(sliderDraft.roundToInt()) },
+                valueRange = 0f..(positions.size - 1).toFloat(),
+                steps = 0,
+                accentColor = accentColor,
+                colors = AppSliderDefaults.colors(accentColor = accentColor),
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            val locator = currentLocator
+            val chapterTitle = if (locator != null) {
+                locator.title
+                    ?: findTocLink(toc, locator.href)?.title
+                    ?: locator.href.toString()
+                        .substringAfterLast('/')
+                        .substringBeforeLast('.')
+                        .replace('-', ' ')
+                        .replace('_', ' ')
+            } else ""
+
+            SuggestionChip(
+                onClick = onChapterClick,
+                label = {
+                    Text(
+                        text = chapterTitle,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                },
+                modifier = Modifier.weight(1f),
+            )
+
+            IconButton(onClick = onSettingsClick) {
+                Icon(Icons.Default.Tune, contentDescription = "Reader settings", tint = accentColor ?: MaterialTheme.colorScheme.primary)
+            }
+        }
+    }
+}
 
 fun locatorToPositionIndex(positions: List<Locator>, locator: Locator?): Int {
     if (locator == null || positions.isEmpty()) return 0
@@ -148,7 +242,7 @@ fun Epub3ControlsCard(
                             text = chapterTitle,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
-                            textAlign = TextAlign.Center,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                             modifier = Modifier.fillMaxWidth()
                         )
                     },
@@ -209,7 +303,7 @@ fun Epub3PageNavigatorRow(
             positions = positions,
             currentLocator = currentLocator,
             overrideIndex = sliderDraft.roundToInt(),
-            textAlign = TextAlign.Center,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
             modifier = Modifier.fillMaxWidth(),
         )
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -244,7 +338,7 @@ fun Epub3LocationLabel(
     positions: List<Locator>,
     currentLocator: Locator?,
     modifier: Modifier = Modifier,
-    textAlign: TextAlign = TextAlign.Unspecified,
+    textAlign: androidx.compose.ui.text.style.TextAlign = androidx.compose.ui.text.style.TextAlign.Unspecified,
     overrideIndex: Int? = null,
 ) {
     val index = overrideIndex ?: remember(currentLocator, positions) {

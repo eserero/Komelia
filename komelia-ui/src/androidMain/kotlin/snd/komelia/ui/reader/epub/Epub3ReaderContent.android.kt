@@ -29,6 +29,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -36,6 +38,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
+import snd.komelia.ui.LocalHazeState
+import snd.komelia.ui.LocalPlatform
+import snd.komelia.ui.LocalTheme
+import snd.komelia.ui.LocalWindowState
+import snd.komelia.ui.platform.PlatformType.MOBILE
 import androidx.compose.ui.graphics.compositeOver
 import coil3.compose.rememberAsyncImagePainter
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -44,7 +53,9 @@ import snd.komelia.image.coil.BookDefaultThumbnailRequest
 import snd.komelia.settings.model.Epub3NativeSettings
 import snd.komelia.ui.LocalImmersiveColorAlpha
 import snd.komelia.ui.LocalImmersiveColorEnabled
+import snd.komelia.ui.LocalUseNewLibraryUI2
 import snd.komelia.ui.common.immersive.extractDominantColor
+import snd.komelia.ui.reader.ReaderTopBar
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -64,6 +75,7 @@ import snd.komelia.ui.reader.epub.audio.AudioMiniPlayer
 actual fun Epub3ReaderContent(state: EpubReaderState) {
     val activity = LocalContext.current as FragmentActivity
     val epub3State = state as? Epub3ReaderState
+    val useNewUI2 = LocalUseNewLibraryUI2.current
 
     val settingsFlow = remember(epub3State) {
         epub3State?.settings ?: MutableStateFlow(Epub3NativeSettings())
@@ -75,20 +87,44 @@ actual fun Epub3ReaderContent(state: EpubReaderState) {
     val playerTransitionState = remember { SeekableTransitionState(false) }
     val playerTransition = rememberTransition(playerTransitionState, label = "audio-player")
 
-    Box(modifier = Modifier.fillMaxSize().background(themeBgColor)) {
-        AndroidView(
-            factory = { ctx ->
-                EpubView(context = ctx, activity = activity).also { view ->
-                    epub3State?.onEpubViewCreated(view)
-                }
-            },
+    val theme = LocalTheme.current
+    val readerHazeState = if (theme.transparentBars) rememberHazeState() else null
+
+    CompositionLocalProvider(LocalHazeState provides readerHazeState) {
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 56.dp, bottom = 66.dp)
-        )
+                .background(themeBgColor)
+        ) {
+            Box(
+                Modifier.fillMaxSize().then(
+                    if (readerHazeState != null) Modifier.hazeSource(readerHazeState) else Modifier
+                )
+            ) {
+                AndroidView(
+                    factory = { ctx ->
+                        EpubView(context = ctx, activity = activity).also { view ->
+                            epub3State?.onEpubViewCreated(view)
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(top = 56.dp, bottom = 66.dp)
+                )
+            }
 
         if (epub3State != null) {
             val showControls by epub3State.showControls.collectAsState()
+
+            if (LocalPlatform.current == MOBILE) {
+                val windowState = LocalWindowState.current
+                DisposableEffect(showControls) {
+                    if (showControls) windowState.setFullscreen(false)
+                    else windowState.setFullscreen(true)
+                    onDispose { windowState.setFullscreen(true) }
+                }
+            }
+
             val showSettings by epub3State.showSettings.collectAsState()
             val showToc by epub3State.showToc.collectAsState()
             val toc by epub3State.tableOfContents.collectAsState()
@@ -118,7 +154,7 @@ actual fun Epub3ReaderContent(state: EpubReaderState) {
             )
 
             // Persistent info bar in the 56dp gap above the EpubView
-            if (positions.isNotEmpty()) {
+            if (positions.isNotEmpty() && !useNewUI2) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -153,24 +189,35 @@ actual fun Epub3ReaderContent(state: EpubReaderState) {
                         .background(Color.Black.copy(alpha = 0.4f))
                         .clickable { epub3State.toggleControls() }
                 )
-                // Top bar
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .align(Alignment.TopStart)
-                        .background(MaterialTheme.colorScheme.surface)
-                        .statusBarsPadding()
-                ) {
-                    IconButton(onClick = { epub3State.closeWebview() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Leave")
-                    }
+
+                if (useNewUI2) {
                     val book by epub3State.book.collectAsState()
-                    Text(
-                        text = book?.metadata?.title ?: "",
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
+                    ReaderTopBar(
+                        seriesTitle = book?.seriesTitle ?: "",
+                        bookTitle = book?.metadata?.title ?: "",
+                        onBack = { epub3State.closeWebview() },
+                        modifier = Modifier.align(Alignment.TopCenter)
                     )
+                } else {
+                    // Top bar
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .align(Alignment.TopStart)
+                            .background(MaterialTheme.colorScheme.surface)
+                            .statusBarsPadding()
+                    ) {
+                        IconButton(onClick = { epub3State.closeWebview() }) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Leave")
+                        }
+                        val book by epub3State.book.collectAsState()
+                        Text(
+                            text = book?.metadata?.title ?: "",
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
             }
 
@@ -182,13 +229,22 @@ actual fun Epub3ReaderContent(state: EpubReaderState) {
                     exit = slideOutVertically(targetOffsetY = { it }),
                     modifier = Modifier.align(Alignment.BottomCenter)
                 ) {
-                    Epub3ControlsCard(
-                        state = epub3State,
-                        onDismiss = { epub3State.toggleControls() },
-                        onCardHeightChanged = { cardHeightPx = it },
-                        onSettingsClick = { epub3State.toggleSettings() },
-                        onChapterClick = { epub3State.toggleToc() },
-                    )
+                    if (useNewUI2) {
+                        Epub3ControlsCardNewUI(
+                            state = epub3State,
+                            onSettingsClick = { epub3State.toggleSettings() },
+                            onChapterClick = { epub3State.toggleToc() },
+                            onCardHeightChanged = { cardHeightPx = it },
+                        )
+                    } else {
+                        Epub3ControlsCard(
+                            state = epub3State,
+                            onDismiss = { epub3State.toggleControls() },
+                            onCardHeightChanged = { cardHeightPx = it },
+                            onSettingsClick = { epub3State.toggleSettings() },
+                            onChapterClick = { epub3State.toggleToc() },
+                        )
+                    }
                 }
             }
 
@@ -300,6 +356,7 @@ actual fun Epub3ReaderContent(state: EpubReaderState) {
                     onDismiss = { epub3State.showToc.value = false },
                 )
             }
+        }
         }
     }
 

@@ -30,6 +30,7 @@ import snd.komelia.settings.model.ReaderType.PAGED
 import snd.komelia.settings.model.ReaderType.PANELS
 import snd.komelia.ui.LocalPlatform
 import snd.komelia.ui.LocalStrings
+import snd.komelia.ui.LocalUseNewLibraryUI2
 import snd.komelia.ui.LocalWindowWidth
 import snd.komelia.ui.platform.PlatformType.DESKTOP
 import snd.komelia.ui.platform.WindowSizeClass.COMPACT
@@ -61,6 +62,7 @@ fun BoxScope.SettingsOverlay(
     ohShowHelpDialogChange: (Boolean) -> Unit,
 ) {
     if (!show) return
+    val useNewUI2 = LocalUseNewLibraryUI2.current
     val windowWidth = LocalWindowWidth.current
     val platform = LocalPlatform.current
     val book = commonReaderState.booksState.collectAsState().value?.currentBook
@@ -80,7 +82,7 @@ fun BoxScope.SettingsOverlay(
     val flashWith = commonReaderState.flashWith.collectAsState().value
     val tapNavigationMode = commonReaderState.tapNavigationMode.collectAsState().value
 
-    if ((windowWidth == COMPACT || windowWidth == MEDIUM) && platform != DESKTOP) {
+    if (useNewUI2 || ((windowWidth == COMPACT || windowWidth == MEDIUM) && platform != DESKTOP)) {
         BottomSheetSettingsOverlay(
             book = book,
             readerType = readerType,
@@ -103,6 +105,7 @@ fun BoxScope.SettingsOverlay(
             pagedReaderState = pagedReaderState,
             continuousReaderState = continuousReaderState,
             panelsReaderState = panelsReaderState,
+            commonReaderState = commonReaderState,
 
             flashEnabled = flashEnabled,
             onFlashEnabledChange = commonReaderState::onFlashEnabledChange,
@@ -163,6 +166,9 @@ fun BoxScope.SettingsOverlay(
             onShowHelpMenu = { ohShowHelpDialogChange(true) },
         )
     }
+
+    if (useNewUI2) return
+
     when (readerType) {
         PAGED -> {
             val readingDirection = pagedReaderState.readingDirection.collectAsState().value
