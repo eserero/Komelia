@@ -23,7 +23,6 @@ import snd.komelia.AppNotifications
 import snd.komelia.komga.api.KomgaBookApi
 import snd.komelia.komga.api.KomgaReferentialApi
 import snd.komelia.komga.api.KomgaSeriesApi
-import snd.komelia.komga.api.model.KomeliaBook
 import snd.komelia.offline.tasks.OfflineTaskEmitter
 import snd.komelia.settings.CommonSettingsRepository
 import snd.komelia.ui.LoadState
@@ -31,14 +30,11 @@ import snd.komelia.ui.common.menus.BookMenuActions
 import snd.komelia.ui.common.menus.SeriesMenuActions
 import snd.komelia.ui.series.SeriesFilter
 import snd.komelia.ui.series.SeriesFilterState
-import snd.komga.client.book.KomgaReadStatus
 import snd.komga.client.common.KomgaPageRequest
 import snd.komga.client.series.KomgaSeriesId
-import snd.komga.client.common.KomgaSort.KomgaBooksSort
 import snd.komga.client.common.KomgaSort.KomgaSeriesSort
 import snd.komga.client.common.Page
 import snd.komga.client.library.KomgaLibrary
-import snd.komga.client.search.allOfBooks
 import snd.komga.client.search.allOfSeries
 import snd.komga.client.series.KomgaSeries
 import snd.komga.client.sse.KomgaEvent
@@ -66,9 +62,6 @@ class LibrarySeriesTabState(
     var currentSeriesPage by mutableStateOf(1)
         private set
 
-    var keepReadingBooks by mutableStateOf<List<KomeliaBook>>(emptyList())
-        private set
-
     val isInEditMode = MutableStateFlow(false)
     var selectedSeries by mutableStateOf<List<KomgaSeries>>(emptyList())
         private set
@@ -92,7 +85,6 @@ class LibrarySeriesTabState(
 
             pageLoadSize.value = settingsRepository.getSeriesPageLoadSize().first()
             loadSeriesPage(1)
-            loadKeepReadingBooks()
 
             settingsRepository.getSeriesPageLoadSize()
                 .onEach {
@@ -187,22 +179,6 @@ class LibrarySeriesTabState(
                 sort = filter.sortOrder.komgaSort
             )
         )
-    }
-
-    private suspend fun loadKeepReadingBooks() {
-        val lib = library.value ?: return
-        notifications.runCatchingToNotifications {
-            keepReadingBooks = bookApi.getBookList(
-                conditionBuilder = allOfBooks {
-                    library { isEqualTo(lib.id) }
-                    readStatus { isEqualTo(KomgaReadStatus.IN_PROGRESS) }
-                },
-                pageRequest = KomgaPageRequest(
-                    sort = KomgaBooksSort.byReadDateDesc(),
-                    size = 20
-                )
-            ).content
-        }
     }
 
     private fun delayLoadState(): Deferred<Unit> {

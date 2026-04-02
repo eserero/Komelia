@@ -10,6 +10,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Menu
 import androidx.compose.material.icons.rounded.MoreVert
@@ -22,6 +25,7 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.SuggestionChip
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.foundation.layout.WindowInsets
@@ -63,6 +67,7 @@ import snd.komelia.ui.LoadState.Success
 import snd.komelia.ui.LoadState.Uninitialized
 import snd.komelia.ui.LocalAccentColor
 import snd.komelia.ui.LocalTheme
+import snd.komelia.ui.Theme
 import snd.komelia.ui.LocalKomgaState
 import snd.komelia.ui.LocalMainScreenViewModel
 import snd.komelia.ui.LocalOfflineMode
@@ -92,8 +97,11 @@ import snd.komelia.ui.platform.ScreenPullToRefreshBox
 import snd.komelia.ui.readlist.ReadListScreen
 import snd.komelia.ui.book.bookScreen
 import snd.komelia.ui.reader.readerScreen
+import snd.komelia.ui.common.cards.BookImageCard
+import snd.komelia.ui.common.menus.BookMenuActions
 import snd.komelia.ui.series.list.SeriesListContent
 import snd.komelia.ui.series.seriesScreen
+import snd.komelia.komga.api.model.KomeliaBook
 import snd.komga.client.common.KomgaAuthor
 import snd.komga.client.library.KomgaLibrary
 import snd.komga.client.library.KomgaLibraryId
@@ -186,6 +194,7 @@ class LibraryScreen(
                         )
                     }
 
+                    val showContinueReading = vm.showContinueReading.collectAsState().value
                     val newUI2BeforeContent = @Composable {
                         Column {
                             LibraryHeaderSection(
@@ -199,10 +208,32 @@ class LibraryScreen(
                                 currentTab = vm.currentTab,
                                 collectionsCount = vm.collectionsCount,
                                 readListsCount = vm.readListsCount,
+                                showContinueReading = showContinueReading,
+                                onReadingClick = vm::toggleContinueReading,
                                 onBrowseClick = vm::toBrowseTab,
                                 onCollectionsClick = vm::toCollectionsTab,
                                 onReadListsClick = vm::toReadListsTab,
                             )
+                            if (showContinueReading) {
+                                ContinueReadingSection(
+                                    books = vm.keepReadingBooks,
+                                    bookMenuActions = vm.seriesTabState.bookMenuActions(),
+                                    onBookClick = { navigator.push(bookScreen(it)) },
+                                    onBookReadClick = { book, mark ->
+                                        navigator.push(
+                                            readerScreen(
+                                                book = book,
+                                                markReadProgress = mark,
+                                                onExit = { lastReadBook ->
+                                                    if (lastReadBook.id != book.id) {
+                                                        vm.reload()
+                                                    }
+                                                }
+                                            )
+                                        )
+                                    }
+                                )
+                            }
                         }
                     }
 
@@ -299,23 +330,6 @@ class LibraryScreen(
                     onPageChange = seriesTabState::onPageChange,
 
                     minSize = seriesTabState.cardWidth.collectAsState().value,
-
-                    keepReadingBooks = seriesTabState.keepReadingBooks,
-                    bookMenuActions = seriesTabState.bookMenuActions(),
-                    onBookClick = { navigator.push(bookScreen(it)) },
-                    onBookReadClick = { book, mark ->
-                        navigator.push(
-                            readerScreen(
-                                book = book,
-                                markReadProgress = mark,
-                                onExit = { lastReadBook ->
-                                    if (lastReadBook.id != book.id) {
-                                        seriesTabState.reload()
-                                    }
-                                }
-                            )
-                        )
-                    },
                     beforeContent = beforeContent
                 )
             }
@@ -399,6 +413,50 @@ class LibraryScreen(
 }
 
 @Composable
+private fun ContinueReadingSection(
+    books: List<KomeliaBook>,
+    bookMenuActions: BookMenuActions,
+    onBookClick: (KomeliaBook) -> Unit,
+    onBookReadClick: (KomeliaBook, Boolean) -> Unit,
+) {
+    if (books.isEmpty()) return
+    val theme = LocalTheme.current
+    val containerColor = if (theme.type == Theme.ThemeType.DARK) Color(43, 43, 43)
+    else MaterialTheme.colorScheme.surfaceVariant
+
+    Surface(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+        color = containerColor,
+    ) {
+        Column(
+            modifier = Modifier.padding(vertical = 12.dp)
+        ) {
+            Text(
+                "Continue Reading",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp)
+            )
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(books, key = { it.id.value }) { book ->
+                    BookImageCard(
+                        book = book,
+                        onBookReadClick = { onBookReadClick(book, it) },
+                        onBookClick = { onBookClick(book) },
+                        bookMenuActions = bookMenuActions,
+                        showSeriesTitle = true,
+                        modifier = Modifier.width(120.dp),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun LibraryHeaderSection(
     library: KomgaLibrary?,
     totalCount: Int,
@@ -441,50 +499,64 @@ private fun LibraryTabChips(
     currentTab: LibraryTab,
     collectionsCount: Int,
     readListsCount: Int,
+    showContinueReading: Boolean,
+    onReadingClick: () -> Unit,
     onBrowseClick: () -> Unit,
     onCollectionsClick: () -> Unit,
     onReadListsClick: () -> Unit,
 ) {
-    if (collectionsCount == 0 && readListsCount == 0) return
     val chipColors = AppFilterChipDefaults.filterChipColors()
     LazyRow(
         modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
         contentPadding = PaddingValues(horizontal = 0.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
+        if (collectionsCount > 0 || readListsCount > 0) {
+            item {
+                FilterChip(
+                    selected = currentTab == SERIES,
+                    onClick = onBrowseClick,
+                    label = { Text("Series") },
+                    colors = chipColors,
+                    shape = AppFilterChipDefaults.shape(),
+                    border = AppFilterChipDefaults.filterChipBorder(currentTab == SERIES),
+                )
+            }
+            if (collectionsCount > 0) {
+                item {
+                    FilterChip(
+                        selected = currentTab == COLLECTIONS,
+                        onClick = onCollectionsClick,
+                        label = { Text("Collections") },
+                        colors = chipColors,
+                        shape = AppFilterChipDefaults.shape(),
+                        border = AppFilterChipDefaults.filterChipBorder(currentTab == COLLECTIONS),
+                    )
+                }
+            }
+            if (readListsCount > 0) {
+                item {
+                    FilterChip(
+                        selected = currentTab == READ_LISTS,
+                        onClick = onReadListsClick,
+                        label = { Text("Read Lists") },
+                        colors = chipColors,
+                        shape = AppFilterChipDefaults.shape(),
+                        border = AppFilterChipDefaults.filterChipBorder(currentTab == READ_LISTS),
+                    )
+                }
+            }
+        }
+
         item {
             FilterChip(
-                selected = currentTab == SERIES,
-                onClick = onBrowseClick,
-                label = { Text("Series") },
+                selected = showContinueReading,
+                onClick = onReadingClick,
+                label = { Text("Reading") },
                 colors = chipColors,
                 shape = AppFilterChipDefaults.shape(),
-                border = AppFilterChipDefaults.filterChipBorder(currentTab == SERIES),
+                border = AppFilterChipDefaults.filterChipBorder(showContinueReading),
             )
-        }
-        if (collectionsCount > 0) {
-            item {
-                FilterChip(
-                    selected = currentTab == COLLECTIONS,
-                    onClick = onCollectionsClick,
-                    label = { Text("Collections") },
-                    colors = chipColors,
-                    shape = AppFilterChipDefaults.shape(),
-                    border = AppFilterChipDefaults.filterChipBorder(currentTab == COLLECTIONS),
-                )
-            }
-        }
-        if (readListsCount > 0) {
-            item {
-                FilterChip(
-                    selected = currentTab == READ_LISTS,
-                    onClick = onReadListsClick,
-                    label = { Text("Read Lists") },
-                    colors = chipColors,
-                    shape = AppFilterChipDefaults.shape(),
-                    border = AppFilterChipDefaults.filterChipBorder(currentTab == READ_LISTS),
-                )
-            }
         }
     }
 }

@@ -102,7 +102,7 @@ actual fun Epub3ReaderContent(state: EpubReaderState) {
             ) {
                 AndroidView(
                     factory = { ctx ->
-                        EpubView(context = ctx, activity = activity, shouldApplyInsetsPadding = useNewUI2).also { view ->
+                        EpubView(context = ctx, activity = activity, shouldApplyInsetsPadding = false).also { view ->
                             epub3State?.onEpubViewCreated(view)
                         }
                     },
@@ -161,33 +161,6 @@ actual fun Epub3ReaderContent(state: EpubReaderState) {
                     label = "AudioPlayerBottomPadding"
                 )
 
-                // Persistent info bar in the 56dp gap above the EpubView
-                if (positions.isNotEmpty() && !useNewUI2) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp)
-                            .padding(horizontal = 12.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.Bottom,
-                    ) {
-                        Text(
-                            text = chapterTitle,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier
-                                .weight(1f)
-                                .padding(end = 8.dp, bottom = 4.dp),
-                        )
-                        Epub3LocationLabel(
-                            positions = positions,
-                            currentLocator = currentLocator,
-                            modifier = Modifier.padding(bottom = 4.dp),
-                        )
-                    }
-                }
 
                 if (showControls) {
                     if (useNewUI2) {

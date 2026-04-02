@@ -188,4 +188,11 @@ class SettingsRepositoryWrapper(
         wrapper.transform { it.copy(cardLayoutOverlayBackground = enabled) }
     }
 
+    override fun getShowContinueReading(): Flow<Boolean> =
+        wrapper.state.map { it.showContinueReading }.distinctUntilChanged()
+
+    override suspend fun putShowContinueReading(enabled: Boolean) {
+        wrapper.transform { it.copy(showContinueReading = enabled) }
+    }
+
 }

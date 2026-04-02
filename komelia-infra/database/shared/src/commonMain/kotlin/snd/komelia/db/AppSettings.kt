@@ -34,4 +34,5 @@ data class AppSettings(
     val cardLayoutOverlayBackground: Boolean = true,
     val showImmersiveNavBar: Boolean = false,
     val useNewLibraryUI2: Boolean = false,
+    val showContinueReading: Boolean = true,
 )

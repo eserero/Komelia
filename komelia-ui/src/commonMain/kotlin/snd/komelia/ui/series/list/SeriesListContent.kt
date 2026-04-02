@@ -19,10 +19,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.ui.layout.layout
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.FilterListOff
@@ -50,17 +46,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import io.github.snd_r.komelia.ui.komelia_ui.generated.resources.Inter_SemiBold
 import io.github.snd_r.komelia.ui.komelia_ui.generated.resources.Res
-import org.jetbrains.compose.resources.Font
-import snd.komelia.komga.api.model.KomeliaBook
 import snd.komelia.ui.LocalAccentColor
 import snd.komelia.ui.LocalStrings
 import snd.komelia.ui.LocalUseNewLibraryUI
 import snd.komelia.ui.LocalWindowWidth
-import snd.komelia.ui.common.cards.BookImageCard
 import snd.komelia.ui.common.itemlist.SeriesLazyCardGrid
-import snd.komelia.ui.common.menus.BookMenuActions
 import snd.komelia.ui.common.menus.SeriesMenuActions
 import snd.komelia.ui.common.menus.bulk.BottomPopupBulkActionsPanel
 import snd.komelia.ui.common.menus.bulk.BulkActionsContainer
@@ -99,11 +90,6 @@ fun SeriesListContent(
     onPageSizeChange: (Int) -> Unit,
 
     minSize: Dp,
-
-    keepReadingBooks: List<KomeliaBook> = emptyList(),
-    bookMenuActions: BookMenuActions? = null,
-    onBookClick: (KomeliaBook) -> Unit = {},
-    onBookReadClick: (KomeliaBook, Boolean) -> Unit = { _, _ -> },
     beforeContent: (@Composable () -> Unit)? = null,
 ) {
     val useNewLibraryUI = LocalUseNewLibraryUI.current
@@ -140,43 +126,7 @@ fun SeriesListContent(
                 onPageChange = onPageChange,
 
                 beforeContent = {
-                    Column {
-                        beforeContent?.invoke()
-                        AnimatedVisibility(!editMode) {
-                            Column {
-                                if (useNewLibraryUI && keepReadingBooks.isNotEmpty() && bookMenuActions != null) {
-                                    LibrarySectionHeader("Keep Reading")
-                                    val gridPadding = 10.dp
-                                    val density = LocalDensity.current
-                                    LazyRow(
-                                        modifier = Modifier.layout { measurable, constraints ->
-                                            val insetPx = with(density) { gridPadding.roundToPx() }
-                                            val placeable = measurable.measure(
-                                                constraints.copy(maxWidth = constraints.maxWidth + insetPx * 2)
-                                            )
-                                            layout(constraints.maxWidth, placeable.height) {
-                                                placeable.place(-insetPx, 0)
-                                            }
-                                        },
-                                        contentPadding = PaddingValues(horizontal = gridPadding),
-                                        horizontalArrangement = Arrangement.spacedBy(7.dp),
-                                    ) {
-                                        items(keepReadingBooks) { book ->
-                                            BookImageCard(
-                                                book = book,
-                                                onBookClick = { onBookClick(book) },
-                                                onBookReadClick = { onBookReadClick(book, it) },
-                                                bookMenuActions = bookMenuActions,
-                                                showSeriesTitle = true,
-                                                modifier = Modifier.width(minSize),
-                                            )
-                                        }
-                                    }
-                                }
-                                if (useNewLibraryUI) LibrarySectionHeader("Browse")
-                            }
-                        }
-                    }
+                    beforeContent?.invoke()
                 },
                 minSize = minSize,
             )
@@ -292,15 +242,4 @@ private fun BulkActionsToolbar(
     }
 }
 
-@Composable
-private fun LibrarySectionHeader(label: String) {
-    val inter = FontFamily(Font(Res.font.Inter_SemiBold, FontWeight.SemiBold))
-    Text(
-        label,
-        style = MaterialTheme.typography.titleLarge.copy(
-            fontFamily = inter,
-            fontWeight = FontWeight.SemiBold,
-        ),
-        modifier = Modifier.padding(vertical = 4.dp),
-    )
-}
+

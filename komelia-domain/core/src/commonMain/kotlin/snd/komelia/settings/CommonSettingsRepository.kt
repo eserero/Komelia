@@ -76,4 +76,7 @@ interface CommonSettingsRepository {
 
     fun getUseNewLibraryUI2(): Flow<Boolean>
     suspend fun putUseNewLibraryUI2(enabled: Boolean)
+
+    fun getShowContinueReading(): Flow<Boolean>
+    suspend fun putShowContinueReading(enabled: Boolean)
 }
