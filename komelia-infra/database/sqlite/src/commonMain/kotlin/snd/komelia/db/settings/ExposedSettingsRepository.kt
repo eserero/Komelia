@@ -51,6 +51,8 @@ class ExposedSettingsRepository(database: Database) : ExposedRepository(database
                 it[cardLayoutOverlayBackground] = settings.cardLayoutOverlayBackground
                 it[showImmersiveNavBar] = settings.showImmersiveNavBar
                 it[useNewLibraryUI2] = settings.useNewLibraryUI2
+                it[showContinueReading] = settings.showContinueReading
+                it[useImmersiveMorphingCover] = settings.useImmersiveMorphingCover
             }
         }
     }
@@ -84,6 +86,8 @@ class ExposedSettingsRepository(database: Database) : ExposedRepository(database
             cardLayoutOverlayBackground = get(AppSettingsTable.cardLayoutOverlayBackground),
             showImmersiveNavBar = get(AppSettingsTable.showImmersiveNavBar),
             useNewLibraryUI2 = get(AppSettingsTable.useNewLibraryUI2),
-            )
-            }
-            }
+            showContinueReading = get(AppSettingsTable.showContinueReading),
+            useImmersiveMorphingCover = get(AppSettingsTable.useImmersiveMorphingCover),
+        )
+    }
+}

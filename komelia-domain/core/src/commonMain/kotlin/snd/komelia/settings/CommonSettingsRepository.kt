@@ -79,4 +79,7 @@ interface CommonSettingsRepository {
 
     fun getShowContinueReading(): Flow<Boolean>
     suspend fun putShowContinueReading(enabled: Boolean)
+
+    fun getUseImmersiveMorphingCover(): Flow<Boolean>
+    suspend fun putUseImmersiveMorphingCover(enabled: Boolean)
 }

@@ -74,7 +74,8 @@ import snd.komelia.ui.LocalAnimatedVisibilityScope
 import snd.komelia.ui.LocalHideParenthesesInNames
 import snd.komelia.ui.LocalKomgaEvents
 import snd.komelia.ui.LocalSharedTransitionScope
-import snd.komelia.ui.LocalUseNewLibraryUI2
+import snd.komelia.ui.LocalToggleImmersiveMorphingCover
+import snd.komelia.ui.LocalUseImmersiveMorphingCover
 import snd.komelia.ui.collection.SeriesCollectionsContent
 import snd.komelia.ui.common.components.AppFilterChipDefaults
 import coil3.compose.rememberAsyncImagePainter
@@ -170,7 +171,7 @@ fun ImmersiveOneshotContent(
             append("($year)")
         }
     }
-    val useNewUi2 = LocalUseNewLibraryUI2.current
+    val useMorphingCover = LocalUseImmersiveMorphingCover.current
 
     val sharedTransitionScope = LocalSharedTransitionScope.current
     val animatedVisibilityScope = LocalAnimatedVisibilityScope.current
@@ -214,7 +215,7 @@ fun ImmersiveOneshotContent(
             initiallyExpanded = initiallyExpanded,
             onExpandChange = onExpandChange,
             publisherLogo = publisherLogo,
-            heroTextContent = if (useNewUi2) {
+            heroTextContent = if (useMorphingCover) {
                 { expandFraction ->
                     snd.komelia.ui.common.immersive.ImmersiveHeroText(
                         seriesTitle = title,
@@ -301,6 +302,7 @@ fun ImmersiveOneshotContent(
                         actions = oneshotMenuActions,
                         expanded = expandActions,
                         onDismissRequest = { expandActions = false },
+                        onToggleImmersiveMode = LocalToggleImmersiveMorphingCover.current,
                     )
                 }
             }
@@ -367,9 +369,9 @@ private fun OneshotCardContent(
     accentColor: Color?,
     authorYearText: String,
 ) {
-    val useNewUi2 = LocalUseNewLibraryUI2.current
+    val useMorphingCover = LocalUseImmersiveMorphingCover.current
     val thumbnailOffset = (126.dp * expandFraction).coerceAtLeast(0.dp)
-    val thumbnailTopGap = if (useNewUi2) 48.dp else 20.dp
+    val thumbnailTopGap = if (useMorphingCover) 48.dp else 20.dp
     val thumbnailHeight = 110.dp / 0.703f // ≈ 156.5 dp
 
     val navBarBottom = with(LocalDensity.current) {
@@ -396,7 +398,7 @@ private fun OneshotCardContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .let { modifier ->
-                        if (useNewUi2) {
+                        if (useMorphingCover) {
                             modifier.layout { measurable, constraints ->
                                 val placeable = measurable.measure(constraints)
                                 val expandedHeight = maxOf(
@@ -418,7 +420,7 @@ private fun OneshotCardContent(
                         top = lerp(8f, thumbnailTopGap.value, expandFraction).dp,
                     )
             ) {
-                if (useNewUi2) {
+                if (useMorphingCover) {
                     Box(
                         modifier = Modifier
                             .size(width = 110.dp, height = thumbnailHeight)
@@ -467,7 +469,7 @@ private fun OneshotCardContent(
                     }
                 }
 
-                if (!useNewUi2) {
+                if (!useMorphingCover) {
                     Column(modifier = Modifier.padding(start = thumbnailOffset)) {
                         // Book title (headlineSmall, bold)
                         Text(

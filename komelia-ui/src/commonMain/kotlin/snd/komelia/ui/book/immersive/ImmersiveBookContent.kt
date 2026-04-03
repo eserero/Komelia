@@ -78,7 +78,8 @@ import snd.komelia.komga.api.model.KomeliaBook
 import snd.komelia.ui.LocalAnimatedVisibilityScope
 import snd.komelia.ui.LocalHideParenthesesInNames
 import snd.komelia.ui.LocalSharedTransitionScope
-import snd.komelia.ui.LocalUseNewLibraryUI2
+import snd.komelia.ui.LocalToggleImmersiveMorphingCover
+import snd.komelia.ui.LocalUseImmersiveMorphingCover
 import snd.komelia.ui.book.BookInfoColumn
 import snd.komelia.ui.common.images.ThumbnailImage
 import snd.komelia.ui.common.immersive.ImmersiveDetailFab
@@ -205,7 +206,7 @@ fun ImmersiveBookContent(
         }
     } else Modifier
 
-    val useNewUi2 = LocalUseNewLibraryUI2.current
+    val useMorphingCover = LocalUseImmersiveMorphingCover.current
 
     Box(modifier = Modifier.fillMaxSize()) {
 
@@ -253,7 +254,7 @@ fun ImmersiveBookContent(
                 initiallyExpanded = initiallyExpanded,
                 onExpandChange = onExpandChange,
                 publisherLogo = publisherLogo,
-                heroTextContent = if (useNewUi2) {
+                heroTextContent = if (useMorphingCover) {
                     { expandFraction ->
                         snd.komelia.ui.common.immersive.ImmersiveHeroText(
                             seriesTitle = heroTitle,
@@ -269,7 +270,7 @@ fun ImmersiveBookContent(
                 fabContent = {},     // Fixed overlay handles this
                 cardContent = { expandFraction, onThumbnailPositioned, onTextPositioned ->
                     val thumbnailOffset = (126.dp * expandFraction).coerceAtLeast(0.dp)
-                    val thumbnailTopGap = if (useNewUi2) 48.dp else 20.dp
+                    val thumbnailTopGap = if (useMorphingCover) 48.dp else 20.dp
                     val thumbnailHeight = 110.dp / 0.703f // ≈ 156.5 dp
 
                     val navBarBottom = with(LocalDensity.current) {
@@ -296,7 +297,7 @@ fun ImmersiveBookContent(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .let { modifier ->
-                                        if (useNewUi2) {
+                                        if (useMorphingCover) {
                                             modifier.layout { measurable, constraints ->
                                                 val placeable = measurable.measure(constraints)
                                                 val expandedHeight = maxOf(
@@ -318,7 +319,7 @@ fun ImmersiveBookContent(
                                         top = lerp(8f, thumbnailTopGap.value, expandFraction).dp,
                                     )
                             ) {
-                                if (useNewUi2) {
+                                if (useMorphingCover) {
                                     // Morphing mode: placeholder reports position; scaffold renders the flying
                                     // overlay. The real thumbnail fades in only after the overlay disappears.
                                     Box(
@@ -371,7 +372,7 @@ fun ImmersiveBookContent(
                                     }
                                 }
 
-                                if (!useNewUi2) {
+                                if (!useMorphingCover) {
                                     Column(
                                         modifier = Modifier.padding(start = thumbnailOffset)
                                     ) {
@@ -538,6 +539,7 @@ fun ImmersiveBookContent(
                     showEditOption = true,
                     showDownloadOption = false,  // download is in FAB
                     onDismissRequest = { expandActions = false },
+                    onToggleImmersiveMode = LocalToggleImmersiveMorphingCover.current,
                 )
             }
         }

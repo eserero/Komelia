@@ -47,6 +47,8 @@ class AppSettingsScreen : Screen {
                     onCardLayoutOverlayBackgroundChange = vm::onCardLayoutOverlayBackgroundChange,
                     useNewLibraryUI2 = vm.useNewLibraryUI2,
                     onUseNewLibraryUI2Change = vm::onUseNewLibraryUI2Change,
+                    useImmersiveMorphingCover = vm.useImmersiveMorphingCover,
+                    onUseImmersiveMorphingCoverChange = vm::onUseImmersiveMorphingCoverChange,
                 )
                                 }
                             }

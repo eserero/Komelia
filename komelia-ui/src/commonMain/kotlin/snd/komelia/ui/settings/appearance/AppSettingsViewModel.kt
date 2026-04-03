@@ -31,6 +31,7 @@ class AppSettingsViewModel(
     var hideParenthesesInNames by mutableStateOf(false)
     var cardLayoutOverlayBackground by mutableStateOf(true)
     var useNewLibraryUI2 by mutableStateOf(false)
+    var useImmersiveMorphingCover by mutableStateOf(false)
 
     suspend fun initialize() {
         if (state.value !is LoadState.Uninitialized) return
@@ -46,6 +47,7 @@ class AppSettingsViewModel(
         hideParenthesesInNames = settingsRepository.getHideParenthesesInNames().first()
         cardLayoutOverlayBackground = settingsRepository.getCardLayoutOverlayBackground().first()
         useNewLibraryUI2 = settingsRepository.getUseNewLibraryUI2().first()
+        useImmersiveMorphingCover = settingsRepository.getUseImmersiveMorphingCover().first()
 
         settingsRepository.putNavBarColor(null)
         mutableState.value = LoadState.Success(Unit)
@@ -117,6 +119,11 @@ class AppSettingsViewModel(
     fun onUseNewLibraryUI2Change(enabled: Boolean) {
         this.useNewLibraryUI2 = enabled
         screenModelScope.launch { settingsRepository.putUseNewLibraryUI2(enabled) }
+    }
+
+    fun onUseImmersiveMorphingCoverChange(enabled: Boolean) {
+        this.useImmersiveMorphingCover = enabled
+        screenModelScope.launch { settingsRepository.putUseImmersiveMorphingCover(enabled) }
     }
 
 }

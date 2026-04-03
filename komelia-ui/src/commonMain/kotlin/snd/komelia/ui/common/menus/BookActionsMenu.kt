@@ -10,6 +10,7 @@ import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.ViewQuilt
 import androidx.compose.material3.DropdownMenuItem
 import snd.komelia.ui.common.components.AnimatedDropdownMenu
 import androidx.compose.material3.Icon
@@ -33,6 +34,7 @@ import snd.komelia.komga.api.model.KomeliaBook
 import snd.komelia.offline.tasks.OfflineTaskEmitter
 import snd.komelia.ui.LocalKomgaState
 import snd.komelia.ui.LocalOfflineMode
+import snd.komelia.ui.LocalUseImmersiveMorphingCover
 import snd.komelia.ui.dialogs.ConfirmationDialog
 import snd.komelia.ui.dialogs.book.edit.BookEditDialog
 import snd.komelia.ui.dialogs.permissions.DownloadNotificationRequestDialog
@@ -47,6 +49,7 @@ fun BookActionsMenu(
     showEditOption: Boolean,
     showDownloadOption: Boolean,
     onDismissRequest: () -> Unit,
+    onToggleImmersiveMode: (() -> Unit)? = null,
 ) {
     val isAdmin = LocalKomgaState.current.authenticatedUser.collectAsState().value?.roleAdmin() ?: true
     val isOffline = LocalOfflineMode.current.collectAsState().value
@@ -210,6 +213,23 @@ fun BookActionsMenu(
                     textColor = MaterialTheme.colorScheme.error,
                     leadingIconColor = MaterialTheme.colorScheme.error
                 )
+            )
+        }
+
+        if (onToggleImmersiveMode != null) {
+            val useImmersiveMorphingCover = LocalUseImmersiveMorphingCover.current
+            DropdownMenuItem(
+                text = {
+                    Text(
+                        if (useImmersiveMorphingCover) "Disable Morphing Cover" else "Enable Morphing Cover",
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                },
+                leadingIcon = { Icon(Icons.Rounded.ViewQuilt, null) },
+                onClick = {
+                    onToggleImmersiveMode()
+                    onDismissRequest()
+                }
             )
         }
     }

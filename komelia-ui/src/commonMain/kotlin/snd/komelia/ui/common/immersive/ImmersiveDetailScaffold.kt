@@ -78,7 +78,7 @@ import snd.komelia.ui.LocalRawNavBarHeight
 import snd.komelia.ui.LocalRawStatusBarHeight
 import snd.komelia.ui.LocalSharedTransitionScope
 import snd.komelia.ui.LocalTransparentNavBarPadding
-import snd.komelia.ui.LocalUseNewLibraryUI2
+import snd.komelia.ui.LocalUseImmersiveMorphingCover
 import snd.komelia.ui.common.images.ThumbnailImage
 import kotlin.math.roundToInt
 
@@ -143,7 +143,7 @@ fun ImmersiveDetailScaffold(
         MaterialTheme.colorScheme.surfaceVariant
     }
     val scrimColor = if (immersiveColorEnabled) backgroundColor.copy(alpha = 0.72f) else backgroundColor
-    val useMorphingCover = LocalUseNewLibraryUI2.current
+    val useMorphingCover = LocalUseImmersiveMorphingCover.current
 
     // Read shared transition scopes OUTSIDE BoxWithConstraints (which uses SubcomposeLayout).
     // SubcomposeLayout defers content composition to the layout phase, so any CompositionLocal

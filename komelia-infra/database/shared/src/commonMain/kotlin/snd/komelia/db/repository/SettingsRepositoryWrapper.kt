@@ -195,4 +195,10 @@ class SettingsRepositoryWrapper(
         wrapper.transform { it.copy(showContinueReading = enabled) }
     }
 
+    override fun getUseImmersiveMorphingCover(): Flow<Boolean> =
+        wrapper.state.map { it.useImmersiveMorphingCover }.distinctUntilChanged()
+
+    override suspend fun putUseImmersiveMorphingCover(enabled: Boolean) =
+        wrapper.transform { it.copy(useImmersiveMorphingCover = enabled) }
+
 }

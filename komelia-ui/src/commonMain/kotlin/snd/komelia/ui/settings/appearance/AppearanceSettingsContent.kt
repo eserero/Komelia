@@ -94,6 +94,8 @@ fun AppearanceSettingsContent(
     onCardLayoutOverlayBackgroundChange: (Boolean) -> Unit,
     useNewLibraryUI2: Boolean,
     onUseNewLibraryUI2Change: (Boolean) -> Unit,
+    useImmersiveMorphingCover: Boolean,
+    onUseImmersiveMorphingCoverChange: (Boolean) -> Unit,
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -175,6 +177,15 @@ fun AppearanceSettingsContent(
                 checked = useNewLibraryUI2,
                 onCheckedChange = onUseNewLibraryUI2Change,
                 label = { Text("New UI 2") },
+                supportingText = { Text("Modern top app bar and updated item cards") },
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+            )
+
+            SwitchWithLabel(
+                checked = useImmersiveMorphingCover,
+                onCheckedChange = onUseImmersiveMorphingCoverChange,
+                label = { Text("Morphing Immersive Cover") },
                 supportingText = { Text("Morphing cover image that flies to thumbnail on expand") },
                 modifier = Modifier.fillMaxWidth(),
                 contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)

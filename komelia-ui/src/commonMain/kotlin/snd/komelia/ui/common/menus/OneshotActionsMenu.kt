@@ -8,6 +8,7 @@ import androidx.compose.material.icons.rounded.Label
 import androidx.compose.material.icons.rounded.LabelOff
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.ViewQuilt
 import androidx.compose.material3.DropdownMenuItem
 import snd.komelia.ui.common.components.AnimatedDropdownMenu
 import androidx.compose.material3.Icon
@@ -26,6 +27,7 @@ import snd.komelia.komga.api.model.KomeliaBook
 import snd.komelia.ui.LocalKomfIntegration
 import snd.komelia.ui.LocalKomgaState
 import snd.komelia.ui.LocalOfflineMode
+import snd.komelia.ui.LocalUseImmersiveMorphingCover
 import snd.komelia.ui.dialogs.ConfirmationDialog
 import snd.komelia.ui.dialogs.collectionadd.AddToCollectionDialog
 import snd.komelia.ui.dialogs.komf.identify.KomfIdentifyDialog
@@ -40,6 +42,7 @@ fun OneshotActionsMenu(
     actions: BookMenuActions,
     expanded: Boolean,
     onDismissRequest: () -> Unit,
+    onToggleImmersiveMode: (() -> Unit)? = null,
 ) {
     val isAdmin = LocalKomgaState.current.authenticatedUser.collectAsState().value?.roleAdmin() ?: true
     val isOffline = LocalOfflineMode.current.collectAsState().value
@@ -225,7 +228,23 @@ fun OneshotActionsMenu(
                     leadingIconColor = MaterialTheme.colorScheme.error
                 )
             )
+            }
 
-        }
-    }
-}
+            if (onToggleImmersiveMode != null) {
+            val useImmersiveMorphingCover = LocalUseImmersiveMorphingCover.current
+            DropdownMenuItem(
+                text = {
+                    Text(
+                        if (useImmersiveMorphingCover) "Disable Morphing Cover" else "Enable Morphing Cover",
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                },
+                leadingIcon = { Icon(Icons.Rounded.ViewQuilt, null) },
+                onClick = {
+                    onToggleImmersiveMode()
+                    onDismissRequest()
+                }
+            )
+            }
+            }
+            }
