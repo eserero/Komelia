@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -122,19 +123,18 @@ fun Epub3ControlsCardNewUI(
                         .replace('_', ' ')
             } else ""
 
-            SuggestionChip(
+            Button(
                 onClick = onChapterClick,
-                label = {
-                    Text(
-                        text = chapterTitle,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                },
                 modifier = Modifier.weight(1f),
-            )
+            ) {
+                Text(
+                    text = chapterTitle,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
 
             IconButton(onClick = onSettingsClick) {
                 Icon(Icons.Default.Tune, contentDescription = "Reader settings", tint = accentColor ?: MaterialTheme.colorScheme.primary)

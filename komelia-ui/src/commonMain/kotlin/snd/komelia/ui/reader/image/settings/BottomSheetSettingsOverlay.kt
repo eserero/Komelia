@@ -323,7 +323,7 @@ fun BottomSheetSettingsOverlay(
                 Column(
                     Modifier
                         .padding(contentPadding)
-                        .heightIn(max = maxHeight * 0.8f)
+                        .height(maxHeight * (2f / 3f))
                         .fillMaxWidth()
                         .verticalScroll(rememberScrollState())
                         .pointerInput(Unit) { detectTapGestures(onTap = { focusManager.clearFocus() }) }
