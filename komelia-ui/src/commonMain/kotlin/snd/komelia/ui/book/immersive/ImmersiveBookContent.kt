@@ -59,6 +59,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -75,6 +78,8 @@ import snd.komelia.komga.api.model.KomeliaBook
 import snd.komelia.ui.LocalAnimatedVisibilityScope
 import snd.komelia.ui.LocalHideParenthesesInNames
 import snd.komelia.ui.LocalSharedTransitionScope
+import snd.komelia.ui.LocalToggleImmersiveMorphingCover
+import snd.komelia.ui.LocalUseImmersiveMorphingCover
 import snd.komelia.ui.book.BookInfoColumn
 import snd.komelia.ui.common.images.ThumbnailImage
 import snd.komelia.ui.common.immersive.ImmersiveDetailFab
@@ -85,6 +90,7 @@ import snd.komelia.ui.common.menus.BookActionsMenu
 import snd.komelia.ui.common.menus.BookMenuActions
 import snd.komelia.ui.dialogs.ConfirmationDialog
 import snd.komelia.ui.dialogs.permissions.DownloadNotificationRequestDialog
+import snd.komelia.ui.LocalTransparentNavBarPadding
 import snd.komelia.ui.library.SeriesScreenFilter
 import snd.komelia.ui.readlist.BookReadListsContent
 import snd.komelia.utils.removeParentheses
@@ -200,6 +206,8 @@ fun ImmersiveBookContent(
         }
     } else Modifier
 
+    val useMorphingCover = LocalUseImmersiveMorphingCover.current
+
     Box(modifier = Modifier.fillMaxSize()) {
 
         // Outer HorizontalPager — slides the entire scaffold (cover + card) laterally
@@ -220,6 +228,24 @@ fun ImmersiveBookContent(
                 dominantColor.value = extractDominantColor(coverPainter)
             }
 
+            val writers = remember(pageBook.metadata.authors) {
+                pageBook.metadata.authors
+                    .filter { it.role.lowercase() == "writer" }
+                    .joinToString(", ") { it.name }
+            }
+            val year = pageBook.metadata.releaseDate?.year
+            val authorYearText = buildString {
+                if (writers.isNotEmpty()) append(writers)
+                if (year != null) {
+                    if (writers.isNotEmpty()) append(" ")
+                    append("($year)")
+                }
+            }
+
+            val hideParentheses = LocalHideParenthesesInNames.current
+            val seriesTitle = if (hideParentheses) pageBook.seriesTitle.removeParentheses() else pageBook.seriesTitle
+            val heroTitle = "$seriesTitle ${pageBook.metadata.number}"
+
             ImmersiveDetailScaffold(
                 coverData = coverData,
                 coverKey = pageBook.id.value,
@@ -228,11 +254,23 @@ fun ImmersiveBookContent(
                 initiallyExpanded = initiallyExpanded,
                 onExpandChange = onExpandChange,
                 publisherLogo = publisherLogo,
+                heroTextContent = if (useMorphingCover) {
+                    { expandFraction ->
+                        snd.komelia.ui.common.immersive.ImmersiveHeroText(
+                            seriesTitle = heroTitle,
+                            authorYear = authorYearText,
+                            chapterTitle = pageBook.metadata.title,
+                            expandFraction = expandFraction,
+                            accentColor = accentColor,
+                            onSeriesClick = { onSeriesClick(pageBook.seriesId) },
+                        )
+                    }
+                } else null,
                 topBarContent = {},  // Fixed overlay handles this
                 fabContent = {},     // Fixed overlay handles this
-                cardContent = { expandFraction ->
+                cardContent = { expandFraction, onThumbnailPositioned, onTextPositioned ->
                     val thumbnailOffset = (126.dp * expandFraction).coerceAtLeast(0.dp)
-                    val thumbnailTopGap = 20.dp
+                    val thumbnailTopGap = if (useMorphingCover) 48.dp else 20.dp
                     val thumbnailHeight = 110.dp / 0.703f // ≈ 156.5 dp
 
                     val navBarBottom = with(LocalDensity.current) {
@@ -258,14 +296,66 @@ fun ImmersiveBookContent(
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .heightIn(min = (thumbnailTopGap + thumbnailHeight) * expandFraction)
+                                    .let { modifier ->
+                                        if (useMorphingCover) {
+                                            modifier.layout { measurable, constraints ->
+                                                val placeable = measurable.measure(constraints)
+                                                val expandedHeight = maxOf(
+                                                    (thumbnailTopGap + thumbnailHeight).roundToPx(),
+                                                    placeable.height
+                                                )
+                                                val desiredHeight = (expandedHeight * expandFraction).roundToInt()
+                                                layout(constraints.maxWidth, desiredHeight) {
+                                                    placeable.place(0, 0)
+                                                }
+                                            }
+                                        } else {
+                                            modifier.heightIn(min = (thumbnailTopGap + thumbnailHeight) * expandFraction)
+                                        }
+                                    }
                                     .padding(
                                         start = 16.dp,
                                         end = 16.dp,
                                         top = lerp(8f, thumbnailTopGap.value, expandFraction).dp,
                                     )
                             ) {
-                                if (expandFraction > 0.01f) {
+                                if (useMorphingCover) {
+                                    // Morphing mode: placeholder reports position; scaffold renders the flying
+                                    // overlay. The real thumbnail fades in only after the overlay disappears.
+                                    Box(
+                                        modifier = Modifier
+                                            .size(width = 110.dp, height = thumbnailHeight)
+                                            .onGloballyPositioned { onThumbnailPositioned(it) }
+                                            .graphicsLayer { alpha = if (expandFraction > 0.99f) 1f else 0f }
+                                    ) {
+                                        ThumbnailImage(
+                                            data = coverData,
+                                            cacheKey = pageBook.id.value,
+                                            crossfade = false,
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier
+                                                .size(width = 110.dp, height = thumbnailHeight)
+                                                .clip(RoundedCornerShape(8.dp))
+                                        )
+                                    }
+
+                                    Box(
+                                        modifier = Modifier
+                                            .padding(start = 126.dp)
+                                            .onGloballyPositioned { onTextPositioned(it) }
+                                            .graphicsLayer { alpha = if (expandFraction > 0.99f) 1f else 0f }
+                                    ) {
+                                        snd.komelia.ui.common.immersive.ImmersiveHeroText(
+                                            seriesTitle = heroTitle,
+                                            authorYear = authorYearText,
+                                            chapterTitle = pageBook.metadata.title,
+                                            expandFraction = 1f,
+                                            accentColor = accentColor,
+                                            onSeriesClick = { onSeriesClick(pageBook.seriesId) },
+                                            modifier = Modifier.padding(horizontal = 0.dp)
+                                        )
+                                    }
+                                } else if (expandFraction > 0.01f) {
                                     Box(
                                         modifier = Modifier
                                             .graphicsLayer { alpha = (expandFraction * 2f - 1f).coerceIn(0f, 1f) }
@@ -282,63 +372,49 @@ fun ImmersiveBookContent(
                                     }
                                 }
 
-                                val hideParentheses = LocalHideParenthesesInNames.current
-                                val seriesTitle = if (hideParentheses) pageBook.seriesTitle.removeParentheses() else pageBook.seriesTitle
-
-                                Column(
-                                    modifier = Modifier.padding(start = thumbnailOffset)
-                                ) {
-                                    // Line 1: Series · #N (headlineSmall, bold) — tappable link
-                                    Row(
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(4.dp))
-                                            .clickable { onSeriesClick(pageBook.seriesId) }
-                                            .padding(vertical = 2.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(2.dp),
+                                if (!useMorphingCover) {
+                                    Column(
+                                        modifier = Modifier.padding(start = thumbnailOffset)
                                     ) {
-                                        Text(
-                                            text = "$seriesTitle · #${pageBook.metadata.number}",
-                                            style = MaterialTheme.typography.headlineSmall.copy(
-                                                fontWeight = FontWeight.Bold,
-                                            ),
-                                            color = MaterialTheme.colorScheme.primary,
-                                        )
-                                        Icon(
-                                            imageVector = Icons.AutoMirrored.Filled.NavigateNext,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(18.dp),
-                                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
-                                        )
-                                    }
-                                    // Line 2: Book title (titleMedium) — only if different from series title
-                                    if (pageBook.metadata.title != seriesTitle) {
-                                        Text(
-                                            text = pageBook.metadata.title,
-                                            style = MaterialTheme.typography.titleMedium,
-                                            modifier = Modifier.padding(top = 2.dp),
-                                        )
-                                    }
-                                    // Line 3: Writers (year) — labelSmall
-                                    val writers = remember(pageBook.metadata.authors) {
-                                        pageBook.metadata.authors
-                                            .filter { it.role.lowercase() == "writer" }
-                                            .joinToString(", ") { it.name }
-                                    }
-                                    val year = pageBook.metadata.releaseDate?.year
-                                    val writersYearText = buildString {
-                                        if (writers.isNotEmpty()) append(writers)
-                                        if (year != null) {
-                                            if (writers.isNotEmpty()) append(" ")
-                                            append("($year)")
+                                        // Line 1: Series · #N (headlineSmall, bold) — tappable link
+                                        Row(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(4.dp))
+                                                .clickable { onSeriesClick(pageBook.seriesId) }
+                                                .padding(vertical = 2.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(2.dp),
+                                        ) {
+                                            Text(
+                                                text = "$seriesTitle · #${pageBook.metadata.number}",
+                                                style = MaterialTheme.typography.headlineSmall.copy(
+                                                    fontWeight = FontWeight.Bold,
+                                                ),
+                                                color = MaterialTheme.colorScheme.primary,
+                                            )
+                                            Icon(
+                                                imageVector = Icons.AutoMirrored.Filled.NavigateNext,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(18.dp),
+                                                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                                            )
                                         }
-                                    }
-                                    if (writersYearText.isNotEmpty()) {
-                                        Text(
-                                            text = writersYearText,
-                                            style = MaterialTheme.typography.labelSmall,
-                                            modifier = Modifier.padding(top = 2.dp),
-                                        )
+                                        // Line 2: Book title (titleMedium) — only if different from series title
+                                        if (pageBook.metadata.title != seriesTitle) {
+                                            Text(
+                                                text = pageBook.metadata.title,
+                                                style = MaterialTheme.typography.titleMedium,
+                                                modifier = Modifier.padding(top = 2.dp),
+                                            )
+                                        }
+                                        // Line 3: Writers (year) — labelSmall
+                                        if (authorYearText.isNotEmpty()) {
+                                            Text(
+                                                text = authorYearText,
+                                                style = MaterialTheme.typography.labelSmall,
+                                                modifier = Modifier.padding(top = 2.dp),
+                                            )
+                                        }
                                     }
                                 }
 
@@ -463,18 +539,20 @@ fun ImmersiveBookContent(
                     showEditOption = true,
                     showDownloadOption = false,  // download is in FAB
                     onDismissRequest = { expandActions = false },
+                    onToggleImmersiveMode = LocalToggleImmersiveMorphingCover.current,
                 )
             }
         }
 
         // Fixed overlay: FAB (stays still while pager slides)
+        val extraBottomPadding = LocalTransparentNavBarPadding.current
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .then(fabOverlayModifier)
-                .windowInsetsPadding(WindowInsets.navigationBars)
-                .padding(bottom = 16.dp)
+                .then(if (extraBottomPadding == 0.dp) Modifier.windowInsetsPadding(WindowInsets.navigationBars) else Modifier)
+                .padding(bottom = 16.dp + extraBottomPadding)
         ) {
             ImmersiveDetailFab(
                 onReadClick = { onReadBook(selectedBook, true) },

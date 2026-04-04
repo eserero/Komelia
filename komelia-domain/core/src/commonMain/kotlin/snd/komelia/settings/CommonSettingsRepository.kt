@@ -73,4 +73,13 @@ interface CommonSettingsRepository {
 
     fun getCardLayoutOverlayBackground(): Flow<Boolean>
     suspend fun putCardLayoutOverlayBackground(enabled: Boolean)
+
+    fun getUseNewLibraryUI2(): Flow<Boolean>
+    suspend fun putUseNewLibraryUI2(enabled: Boolean)
+
+    fun getShowContinueReading(): Flow<Boolean>
+    suspend fun putShowContinueReading(enabled: Boolean)
+
+    fun getUseImmersiveMorphingCover(): Flow<Boolean>
+    suspend fun putUseImmersiveMorphingCover(enabled: Boolean)
 }

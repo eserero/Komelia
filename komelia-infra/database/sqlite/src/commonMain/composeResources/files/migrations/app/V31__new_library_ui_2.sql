@@ -1,0 +1,1 @@
+ALTER TABLE AppSettings ADD COLUMN use_new_library_ui_2 BOOLEAN DEFAULT 0 NOT NULL;

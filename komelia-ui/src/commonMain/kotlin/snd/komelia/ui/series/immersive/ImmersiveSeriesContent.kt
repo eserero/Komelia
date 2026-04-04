@@ -47,6 +47,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -56,6 +58,8 @@ import snd.komelia.komga.api.model.KomeliaBook
 import snd.komelia.ui.LoadState
 import snd.komelia.ui.LocalHideParenthesesInNames
 import snd.komelia.ui.LocalKomgaEvents
+import snd.komelia.ui.LocalToggleImmersiveMorphingCover
+import snd.komelia.ui.LocalUseImmersiveMorphingCover
 import snd.komga.client.sse.KomgaEvent.ThumbnailBookEvent
 import snd.komga.client.sse.KomgaEvent.ThumbnailSeriesEvent
 import snd.komelia.ui.collection.SeriesCollectionsContent
@@ -88,6 +92,7 @@ import snd.komelia.utils.removeParentheses
 import snd.komga.client.collection.KomgaCollection
 import snd.komga.client.library.KomgaLibrary
 import snd.komga.client.series.KomgaSeries
+import kotlin.math.roundToInt
 
 private enum class ImmersiveTab { BOOKS, COLLECTIONS, TAGS }
 
@@ -185,6 +190,21 @@ fun ImmersiveSeriesContent(
 
     val publisherLogo = rememberPublisherLogo(series.metadata.publisher)
 
+    val writers = remember(series.booksMetadata.authors) {
+        series.booksMetadata.authors
+            .filter { it.role.lowercase() == "writer" }
+            .joinToString(", ") { it.name }
+    }
+    val year = series.booksMetadata.releaseDate?.year
+    val authorYearText = buildString {
+        if (writers.isNotEmpty()) append(writers)
+        if (year != null) {
+            if (writers.isNotEmpty()) append(" ")
+            append("($year)")
+        }
+    }
+    val useMorphingCover = LocalUseImmersiveMorphingCover.current
+
     ImmersiveDetailScaffold(
         coverData = coverData,
         coverKey = series.id.value,
@@ -193,6 +213,16 @@ fun ImmersiveSeriesContent(
         initiallyExpanded = initiallyExpanded,
         onExpandChange = onExpandChange,
         publisherLogo = publisherLogo,
+        heroTextContent = if (useMorphingCover) {
+            { expandFraction ->
+                snd.komelia.ui.common.immersive.ImmersiveHeroText(
+                    seriesTitle = title,
+                    authorYear = authorYearText,
+                    expandFraction = expandFraction,
+                    accentColor = accentColor,
+                )
+            }
+        } else null,
         topBarContent = {
             if (selectionMode) {
                 BulkActionsContainer(
@@ -247,6 +277,7 @@ fun ImmersiveSeriesContent(
                             showEditOption = true,
                             showDownloadOption = false,
                             onDismissRequest = { expandActions = false },
+                            onToggleImmersiveMode = LocalToggleImmersiveMorphingCover.current,
                         )
                     }
                 }
@@ -261,11 +292,11 @@ fun ImmersiveSeriesContent(
                 showReadActions = false,
             )
         },
-        cardContent = { expandFraction ->
+        cardContent = { expandFraction, onThumbnailPositioned, onTextPositioned ->
             val thumbnailOffset = (126.dp * expandFraction).coerceAtLeast(0.dp)
 
             // Thumbnail metrics — must match ImmersiveDetailScaffold Layer 3
-            val thumbnailTopGap = 20.dp
+            val thumbnailTopGap = if (useMorphingCover) 48.dp else 20.dp
             val thumbnailHeight = 110.dp / 0.703f // ≈ 156.5 dp
 
             val navBarBottom = with(LocalDensity.current) {
@@ -285,14 +316,62 @@ fun ImmersiveSeriesContent(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .heightIn(min = (thumbnailTopGap + thumbnailHeight) * expandFraction)
+                            .let { modifier ->
+                                if (useMorphingCover) {
+                                    modifier.layout { measurable, constraints ->
+                                        val placeable = measurable.measure(constraints)
+                                        val expandedHeight = maxOf(
+                                            (thumbnailTopGap + thumbnailHeight).roundToPx(),
+                                            placeable.height
+                                        )
+                                        val desiredHeight = (expandedHeight * expandFraction).roundToInt()
+                                        layout(constraints.maxWidth, desiredHeight) {
+                                            placeable.place(0, 0)
+                                        }
+                                    }
+                                } else {
+                                    modifier.heightIn(min = (thumbnailTopGap + thumbnailHeight) * expandFraction)
+                                }
+                            }
                             .padding(
                                 start = 16.dp,
                                 end = 16.dp,
                                 top = lerp(8f, thumbnailTopGap.value, expandFraction).dp,
                             )
                     ) {
-                        if (expandFraction > 0.01f) {
+                        if (useMorphingCover) {
+                            Box(
+                                modifier = Modifier
+                                    .size(width = 110.dp, height = thumbnailHeight)
+                                    .onGloballyPositioned { onThumbnailPositioned(it) }
+                                    .graphicsLayer { alpha = if (expandFraction > 0.99f) 1f else 0f }
+                            ) {
+                                ThumbnailImage(
+                                    data = coverData,
+                                    cacheKey = series.id.value,
+                                    crossfade = false,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .size(width = 110.dp, height = thumbnailHeight)
+                                        .clip(RoundedCornerShape(8.dp))
+                                )
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .padding(start = 126.dp)
+                                    .onGloballyPositioned { onTextPositioned(it) }
+                                    .graphicsLayer { alpha = if (expandFraction > 0.99f) 1f else 0f }
+                            ) {
+                                snd.komelia.ui.common.immersive.ImmersiveHeroText(
+                                    seriesTitle = title,
+                                    authorYear = authorYearText,
+                                    expandFraction = 1f,
+                                    accentColor = accentColor,
+                                    modifier = Modifier.padding(horizontal = 0.dp)
+                                )
+                            }
+                        } else if (expandFraction > 0.01f) {
                             Box(
                                 modifier = Modifier
                                     .graphicsLayer { alpha = (expandFraction * 2f - 1f).coerceIn(0f, 1f) }
@@ -309,27 +388,19 @@ fun ImmersiveSeriesContent(
                             }
                         }
 
-                        Column(modifier = Modifier.padding(start = thumbnailOffset)) {
-                            Text(
-                                text = title,
-                                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                            )
-                            val writers = remember(series.booksMetadata.authors) {
-                                series.booksMetadata.authors
-                                    .filter { it.role.lowercase() == "writer" }
-                                    .joinToString(", ") { it.name }
-                            }
-                            val year = series.booksMetadata.releaseDate?.year
-                            val writersYearText = buildString {
-                                if (writers.isNotEmpty()) append(writers)
-                                if (year != null) { if (writers.isNotEmpty()) append(" "); append("($year)") }
-                            }
-                            if (writersYearText.isNotEmpty()) {
+                        if (!useMorphingCover) {
+                            Column(modifier = Modifier.padding(start = thumbnailOffset)) {
                                 Text(
-                                    text = writersYearText,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    modifier = Modifier.padding(top = 2.dp),
+                                    text = title,
+                                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
                                 )
+                                if (authorYearText.isNotEmpty()) {
+                                    Text(
+                                        text = authorYearText,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        modifier = Modifier.padding(top = 2.dp),
+                                    )
+                                }
                             }
                         }
 

@@ -25,9 +25,11 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -53,17 +55,21 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.util.lerp
 import snd.komelia.ui.LocalAnimatedVisibilityScope
 import snd.komelia.ui.LocalImmersiveColorAlpha
@@ -71,6 +77,8 @@ import snd.komelia.ui.LocalImmersiveColorEnabled
 import snd.komelia.ui.LocalRawNavBarHeight
 import snd.komelia.ui.LocalRawStatusBarHeight
 import snd.komelia.ui.LocalSharedTransitionScope
+import snd.komelia.ui.LocalTransparentNavBarPadding
+import snd.komelia.ui.LocalUseImmersiveMorphingCover
 import snd.komelia.ui.common.images.ThumbnailImage
 import kotlin.math.roundToInt
 
@@ -118,7 +126,12 @@ fun ImmersiveDetailScaffold(
     publisherLogo: ImageBitmap? = null,
     topBarContent: @Composable () -> Unit,
     fabContent: @Composable () -> Unit,
-    cardContent: @Composable ColumnScope.(expandFraction: Float) -> Unit,
+    heroTextContent: (@Composable (expandFraction: Float) -> Unit)? = null,
+    cardContent: @Composable ColumnScope.(
+        expandFraction: Float,
+        onThumbnailPositioned: (LayoutCoordinates) -> Unit,
+        onTextPositioned: (LayoutCoordinates) -> Unit,
+    ) -> Unit,
 ) {
     val density = LocalDensity.current
     val immersiveColorEnabled = LocalImmersiveColorEnabled.current
@@ -130,6 +143,7 @@ fun ImmersiveDetailScaffold(
         MaterialTheme.colorScheme.surfaceVariant
     }
     val scrimColor = if (immersiveColorEnabled) backgroundColor.copy(alpha = 0.72f) else backgroundColor
+    val useMorphingCover = LocalUseImmersiveMorphingCover.current
 
     // Read shared transition scopes OUTSIDE BoxWithConstraints (which uses SubcomposeLayout).
     // SubcomposeLayout defers content composition to the layout phase, so any CompositionLocal
@@ -219,8 +233,14 @@ fun ImmersiveDetailScaffold(
         val windowHeightDp = with(density) { LocalWindowInfo.current.containerSize.height.toDp() }
         // Use actual window height (invariant to app nav bar showing/hiding) for stable collapsedOffset.
         val stableScreenHeight = windowHeightDp - statusBarDp - navBarDp
-        val collapsedOffset = stableScreenHeight * 0.65f
+        val collapsedOffset = if (useMorphingCover) (stableScreenHeight * 0.65f) + statusBarDp else stableScreenHeight * 0.65f
         val collapsedOffsetPx = with(density) { collapsedOffset.toPx() }
+        val screenWidth = maxWidth
+
+        var targetThumbnailOffset by remember { mutableStateOf(Offset.Zero) }
+        var targetTextOffset by remember { mutableStateOf(Offset.Zero) }
+        var heroTextHeight by remember { mutableStateOf(0.dp) }
+        var scaffoldCoordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
 
         // Use remember (not rememberSaveable) so pager pages don't restore stale saved state.
         var savedExpanded by remember { mutableStateOf(initiallyExpanded) }
@@ -312,35 +332,42 @@ fun ImmersiveDetailScaffold(
             }
         }
 
-        val topCornerRadiusDp = lerp(28f, 0f, expandFraction).dp
+        val topCornerRadiusDp = if (useMorphingCover) 0.dp else lerp(28f, 0f, expandFraction).dp
         val statusBarPx = with(density) { statusBarDp.toPx() }
 
-        Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
+        val outerBackground = if (useMorphingCover) backgroundColor else MaterialTheme.colorScheme.surface
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(outerBackground)
+                .onGloballyPositioned { scaffoldCoordinates = it }
+        ) {
 
-            // Layer 1: Cover image — shared element that flies from source thumbnail.
-            // coverSharedModifier placed first so sharedBounds captures the element at its
-            // final layout position; geometry modifiers then refine size/offset within that.
-            // crossfade suppressed during the transition to avoid the placeholder→loaded flash.
-            ThumbnailImage(
-                data = coverData,
-                cacheKey = coverKey,
-                crossfade = !inSharedTransition,
-                usePlaceholderKey = false,
-                contentScale = ContentScale.Crop,
-                modifier = if (immersive)
-                    Modifier
-                        .then(coverSharedModifier)
-                        .fillMaxWidth()
-                        .offset { IntOffset(0, -statusBarPx.roundToInt()) }
-                        .height(collapsedOffset + topCornerRadiusDp + statusBarDp)
-                        .graphicsLayer { alpha = 1f - expandFraction }
-                else
-                    Modifier
-                        .then(coverSharedModifier)
-                        .fillMaxWidth()
-                        .height(collapsedOffset + topCornerRadiusDp)
-                        .graphicsLayer { alpha = 1f - expandFraction }
-            )
+            // Layer 1: Cover image display.
+            // New UI 2 (morphing): no full-width image here — the morphing Card overlay below handles it.
+            // New UI (current): full-width image that fades out as the card expands.
+            if (!useMorphingCover) {
+                ThumbnailImage(
+                    data = coverData,
+                    cacheKey = coverKey,
+                    crossfade = !inSharedTransition,
+                    usePlaceholderKey = false,
+                    contentScale = ContentScale.Crop,
+                    modifier = if (immersive)
+                        Modifier
+                            .then(coverSharedModifier)
+                            .fillMaxWidth()
+                            .offset { IntOffset(0, -statusBarPx.roundToInt()) }
+                            .height(collapsedOffset + topCornerRadiusDp + statusBarDp)
+                            .graphicsLayer { alpha = 1f - expandFraction }
+                    else
+                        Modifier
+                            .then(coverSharedModifier)
+                            .fillMaxWidth()
+                            .height(collapsedOffset + topCornerRadiusDp)
+                            .graphicsLayer { alpha = 1f - expandFraction }
+                )
+            }
 
             // Layer 2: Card — rendered in the SharedTransition overlay at z=0.5, above the
             // cover image (z=0 from sharedBounds default). This ensures the card is always
@@ -355,7 +382,7 @@ fun ImmersiveDetailScaffold(
                     .height(screenHeight)
                     .nestedScroll(nestedScrollConnection)
                     .anchoredDraggable(state, Orientation.Vertical)
-                    .shadow(elevation = 6.dp, shape = cardShape)
+                    .shadow(elevation = if (useMorphingCover) 0.dp else 6.dp, shape = cardShape)
                     .clip(cardShape)
             ) {
                 Box(modifier = Modifier.fillMaxSize()) {
@@ -375,20 +402,54 @@ fun ImmersiveDetailScaffold(
                             .matchParentSize()
                             .background(scrimColor),
                     )
-                    Column(modifier = Modifier.fillMaxSize()) {
+                    if (useMorphingCover) {
                         Box(
-                            modifier = Modifier.fillMaxWidth().height(28.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(80.dp)
+                                .align(Alignment.TopCenter)
+                                .background(
+                                    Brush.verticalGradient(
+                                        listOf(backgroundColor, Color.Transparent)
+                                    )
+                                )
+                        )
+                    }
+
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        if (!useMorphingCover) {
                             Box(
-                                modifier = Modifier
-                                    .size(width = 32.dp, height = 4.dp)
-                                    .clip(RoundedCornerShape(2.dp))
-                                    .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
-                            )
+                                modifier = Modifier.fillMaxWidth().height(28.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(width = 32.dp, height = 4.dp)
+                                        .clip(RoundedCornerShape(2.dp))
+                                        .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
+                                )
+                            }
+                        } else {
+                            // Edge-to-edge: card starts at y=0 (screen top). Grow a spacer from 0 → statusBarDp
+                            // as the card expands so content clears the status bar when fully expanded.
+                            Spacer(Modifier.height(lerp(0.dp, statusBarDp, expandFraction)))
                         }
                         Column(modifier = Modifier.fillMaxWidth().weight(1f)) {
-                            cardContent(expandFraction)
+                            val onThumbnailPositioned: (LayoutCoordinates) -> Unit = { coords ->
+                                scaffoldCoordinates?.let { root ->
+                                    val absPos = root.localPositionOf(coords, Offset.Zero)
+                                    // Normalize: subtract the card's current offset so we store the thumbnail's
+                                    // position as it will be when the card is fully expanded (cardOffsetPx = 0).
+                                    targetThumbnailOffset = Offset(absPos.x, absPos.y - cardOffsetPx)
+                                }
+                            }
+                            val onTextPositioned: (LayoutCoordinates) -> Unit = { coords ->
+                                scaffoldCoordinates?.let { root ->
+                                    val absPos = root.localPositionOf(coords, Offset.Zero)
+                                    targetTextOffset = Offset(absPos.x, absPos.y - cardOffsetPx)
+                                }
+                            }
+                            cardContent(expandFraction, onThumbnailPositioned, onTextPositioned)
                         }
                     }
                 }
@@ -418,6 +479,80 @@ fun ImmersiveDetailScaffold(
                 }
             }
 
+            // Layer 2.75: Morphing cover overlay (New UI 2 only) — the Card flies from full-screen
+            // to the thumbnail position as the card expands. Disappears at expandFraction >= 0.99.
+            if (useMorphingCover && expandFraction < 0.99f) {
+                val thumbnailHeight = 110.dp / 0.703f
+                val targetX = with(density) { targetThumbnailOffset.x.toDp() }
+                val targetY = with(density) { targetThumbnailOffset.y.toDp() }
+
+                // UI2 uses edge-to-edge layout (content starts at y=0 behind status bar),
+                // so no negative offset is needed — the cover starts flush with the screen top.
+                val startY = 0.dp
+                val startHeight = collapsedOffset
+
+                val currentWidth = lerp(screenWidth, 110.dp, expandFraction)
+                val currentHeight = lerp(startHeight, thumbnailHeight, expandFraction)
+                val currentX = lerp(0.dp, targetX, expandFraction)
+                val currentY = lerp(startY, targetY, expandFraction)
+
+                val currentTopRadius = lerp(0f, 8f, expandFraction).dp
+                val currentBottomRadius = lerp(0f, 8f, expandFraction).dp
+                val currentElevation = lerp(0f, 2f, expandFraction).dp
+
+                val morphShape = RoundedCornerShape(
+                    topStart = currentTopRadius, topEnd = currentTopRadius,
+                    bottomStart = currentBottomRadius, bottomEnd = currentBottomRadius,
+                )
+                Box(
+                    modifier = Modifier
+                        .offset(x = currentX, y = currentY)
+                        .size(width = currentWidth, height = currentHeight)
+                        .shadow(elevation = currentElevation, shape = morphShape, clip = false)
+                        .clip(morphShape)
+                        .then(coverSharedModifier)
+                ) {
+                    ThumbnailImage(
+                        data = coverData,
+                        cacheKey = coverKey,
+                        crossfade = !inSharedTransition,
+                        usePlaceholderKey = false,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                    // Gradient merges the bottom of the cover into the card below
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .fillMaxHeight(0.65f)
+                            .align(Alignment.BottomCenter)
+                            .background(
+                                Brush.verticalGradient(
+                                    listOf(Color.Transparent, backgroundColor)
+                                )
+                            )
+                    )
+                }
+
+                if (heroTextContent != null) {
+                    val targetTextX = with(density) { targetTextOffset.x.toDp() }
+                    val targetTextY = with(density) { targetTextOffset.y.toDp() }
+
+                    val startTextY = collapsedOffset - heroTextHeight - 24.dp
+                    val currentTextX = lerp(0.dp, targetTextX, expandFraction)
+                    val currentTextY = lerp(startTextY, targetTextY, expandFraction)
+
+                    Box(
+                        modifier = Modifier
+                            .offset(x = currentTextX, y = currentTextY)
+                            .fillMaxWidth()
+                            .onGloballyPositioned { heroTextHeight = with(density) { it.size.height.toDp() } }
+                    ) {
+                        heroTextContent(expandFraction)
+                    }
+                }
+            }
+
             // Layer 3: Top bar
             Box(modifier = Modifier.fillMaxWidth().then(uiEnterExitModifier).statusBarsPadding()) {
                 topBarContent()
@@ -425,13 +560,14 @@ fun ImmersiveDetailScaffold(
         }
 
         // Layer 4: FAB — in overlay at z=1, above everything
+        val extraBottomPadding = LocalTransparentNavBarPadding.current
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .then(fabOverlayModifier)
-                .windowInsetsPadding(WindowInsets.navigationBars)
-                .padding(bottom = 16.dp)
+                .then(if (extraBottomPadding == 0.dp) Modifier.windowInsetsPadding(WindowInsets.navigationBars) else Modifier)
+                .padding(bottom = 16.dp + extraBottomPadding)
         ) {
             fabContent()
         }

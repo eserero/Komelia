@@ -76,6 +76,8 @@ fun ProgressSlider(
     show: Boolean,
     layoutDirection: LayoutDirection,
     modifier: Modifier = Modifier,
+    isBare: Boolean = false,
+    loadThumbnailPreviews: Boolean = true,
 ) {
     PageSpreadProgressSlider(
         pageSpreads = pages.map { listOf(it) },
@@ -83,7 +85,9 @@ fun ProgressSlider(
         onPageNumberChange = onPageNumberChange,
         show = show,
         layoutDirection = layoutDirection,
-        modifier = modifier
+        modifier = modifier,
+        isBare = isBare,
+        loadThumbnailPreviews = loadThumbnailPreviews,
     )
 }
 
@@ -95,6 +99,8 @@ fun PageSpreadProgressSlider(
     show: Boolean,
     layoutDirection: LayoutDirection,
     modifier: Modifier = Modifier,
+    isBare: Boolean = false,
+    loadThumbnailPreviews: Boolean = true,
 ) {
     if (pageSpreads.isEmpty()) return
 
@@ -103,14 +109,15 @@ fun PageSpreadProgressSlider(
 
     Box(
         modifier = modifier.then(
-            Modifier
+            if (isBare) Modifier.fillMaxWidth()
+            else Modifier
                 .fillMaxWidth()
                 .hoverable(interactionSource)
                 .windowInsetsPadding(WindowInsets.navigationBars)
                 .padding(horizontal = 10.dp)
         )
     ) {
-        if (show || isHovered.value) {
+        if (show || isHovered.value || isBare) {
             Column {
                 CompositionLocalProvider(LocalLayoutDirection provides layoutDirection) {
                     Slider(
@@ -119,6 +126,8 @@ fun PageSpreadProgressSlider(
                         onPageNumberChange = onPageNumberChange,
                         layoutDirection = layoutDirection,
                         interactionSource = interactionSource,
+                        isBare = isBare,
+                        loadThumbnailPreviews = loadThumbnailPreviews,
                     )
                 }
             }
@@ -134,6 +143,8 @@ private fun Slider(
     onPageNumberChange: (Int) -> Unit,
     layoutDirection: LayoutDirection,
     interactionSource: MutableInteractionSource,
+    isBare: Boolean,
+    loadThumbnailPreviews: Boolean,
 ) {
     var currentPos by remember(currentSpreadIndex) { mutableStateOf(currentSpreadIndex) }
     val currentSpread = remember(pageSpreads, currentPos) { pageSpreads.getOrElse(currentPos) { pageSpreads.last() } }
@@ -165,7 +176,7 @@ private fun Slider(
     )
 
     Layout(content = {
-        if (showPreview) {
+        if (showPreview && loadThumbnailPreviews) {
             Row {
                 for (pageMetadata in currentSpread) {
                     BookPageThumbnail(
@@ -176,23 +187,26 @@ private fun Slider(
             }
         } else Spacer(Modifier)
 
-        val labelBackground = accentColor?.copy(alpha = 0.8f) ?: MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f)
+        val labelBackground =
+            accentColor?.copy(alpha = 0.8f) ?: MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f)
         val onLabelColor = if (accentColor != null) {
             if (accentColor.luminance() > 0.5f) Color.Black else Color.White
         } else MaterialTheme.colorScheme.onSurfaceVariant
 
-        Text(
-            label,
-            textAlign = TextAlign.Center,
-            color = onLabelColor,
-            modifier = Modifier
-                .background(
-                    color = labelBackground,
-                    shape = RoundedCornerShape(20.dp)
-                )
-                .padding(horizontal = 12.dp, vertical = 4.dp)
-                .defaultMinSize(minWidth = 40.dp)
-        )
+        if (showPreview || !isBare) {
+            Text(
+                label,
+                textAlign = TextAlign.Center,
+                color = onLabelColor,
+                modifier = Modifier
+                    .background(
+                        color = labelBackground,
+                        shape = RoundedCornerShape(20.dp)
+                    )
+                    .padding(horizontal = 12.dp, vertical = 4.dp)
+                    .defaultMinSize(minWidth = 40.dp)
+            )
+        } else Spacer(Modifier)
 
         Slider(
             state = sliderState,
@@ -241,19 +255,34 @@ private fun Slider(
             .roundToInt()
             .coerceIn(0, constraints.maxWidth - labelPlaceable.width)
 
-        layout(constraints.maxWidth, previewPlaceable.height + sliderPlaceable.height + labelPlaceable.height) {
-            previewPlaceable.placeRelative(
-                x = previewOffsetX,
-                y = 0
-            )
-            labelPlaceable.placeRelative(
-                x = labelOffsetX,
-                y = previewPlaceable.height
-            )
-            sliderPlaceable.placeRelative(
-                x = 0,
-                y = previewPlaceable.height + labelPlaceable.height
-            )
+        val totalHeight = if (isBare) sliderPlaceable.height
+        else previewPlaceable.height + sliderPlaceable.height + labelPlaceable.height
+
+        layout(constraints.maxWidth, totalHeight) {
+            if (!isBare) {
+                previewPlaceable.placeRelative(
+                    x = previewOffsetX,
+                    y = 0
+                )
+                labelPlaceable.placeRelative(
+                    x = labelOffsetX,
+                    y = previewPlaceable.height
+                )
+                sliderPlaceable.placeRelative(
+                    x = 0,
+                    y = previewPlaceable.height + labelPlaceable.height
+                )
+            } else {
+                previewPlaceable.placeRelative(
+                    x = previewOffsetX,
+                    y = -previewPlaceable.height - labelPlaceable.height - 10.dp.roundToPx()
+                )
+                labelPlaceable.placeRelative(
+                    x = labelOffsetX,
+                    y = -labelPlaceable.height - 10.dp.roundToPx()
+                )
+                sliderPlaceable.placeRelative(0, 0)
+            }
         }
     }
 }

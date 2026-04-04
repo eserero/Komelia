@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import sh.calvin.reorderable.rememberReorderableLazyGridState
 import snd.komelia.komga.api.model.KomeliaBook
+import snd.komelia.ui.LocalTransparentNavBarPadding
 import snd.komelia.ui.common.cards.BookImageCard
 import snd.komelia.ui.common.cards.DraggableImageCard
 import snd.komelia.ui.common.components.Pagination
@@ -51,6 +52,7 @@ fun BookLazyCardGrid(
 ) {
 
     val coroutineScope = rememberCoroutineScope()
+    val extraBottomPadding = LocalTransparentNavBarPadding.current
     val reorderableLazyGridState = rememberReorderableLazyGridState(
         lazyGridState = gridState,
         onMove = { from, to -> onReorder(from.index, to.index) }
@@ -65,7 +67,7 @@ fun BookLazyCardGrid(
             state = gridState,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
-            contentPadding = PaddingValues(bottom = 30.dp),
+            contentPadding = PaddingValues(bottom = 30.dp + extraBottomPadding),
             modifier = Modifier.padding(horizontal = 10.dp)
         ) {
 

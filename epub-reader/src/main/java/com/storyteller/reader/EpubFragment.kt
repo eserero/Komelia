@@ -76,7 +76,7 @@ class EpubFragment : Fragment {
                         "fonts/OpenDyslexic-Italic.otf",
                         "fonts/Literata_500Medium.ttf"
                     )
-                    shouldApplyInsetsPadding = false
+                    shouldApplyInsetsPadding = lst.shouldApplyInsetsPadding
 
                     addFontFamilyDeclaration(FontFamily("OpenDyslexic")) {
                         addFontFace {

@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -37,13 +38,22 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import io.github.snd_r.komelia.ui.komelia_ui.generated.resources.Inter_SemiBold
+import io.github.snd_r.komelia.ui.komelia_ui.generated.resources.NotoSerif_Bold
+import io.github.snd_r.komelia.ui.komelia_ui.generated.resources.Res
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.Font
 import snd.komelia.komga.api.model.KomeliaBook
+import snd.komelia.ui.LocalFloatingToolbarPadding
 import snd.komelia.ui.LocalPlatform
+import snd.komelia.ui.LocalTransparentNavBarPadding
 import snd.komelia.ui.LocalUseNewLibraryUI
+import snd.komelia.ui.LocalUseNewLibraryUI2
 import snd.komelia.ui.common.cards.BookImageCard
 import snd.komelia.ui.common.components.AppFilterChipDefaults
 import snd.komelia.ui.common.cards.SeriesImageCard
@@ -69,22 +79,12 @@ fun HomeContent(
     val columnState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
     val useNewLibraryUI = LocalUseNewLibraryUI.current
-    Column {
-        Toolbar(
-            filters = filters,
-            currentFilterNumber = activeFilterNumber,
-            onFilterChange = { newFilter ->
-                onFilterChange(newFilter)
-                coroutineScope.launch {
-                    if (useNewLibraryUI && newFilter == 0) columnState.animateScrollToItem(0)
-                    else gridState.animateScrollToItem(0)
-                }
-            },
-        )
+    val useNewUI2 = LocalUseNewLibraryUI2.current
+
+    if (useNewUI2) {
         DisplayContent(
             filters = filters,
             activeFilterNumber = activeFilterNumber,
-
             gridState = gridState,
             columnState = columnState,
             cardWidth = cardWidth,
@@ -93,6 +93,67 @@ fun HomeContent(
             bookMenuActions = bookMenuActions,
             onBookClick = onBookClick,
             onBookReadClick = onBookReadClick,
+            topContent = {
+                Column {
+                    HomeHeaderSection()
+                    Toolbar(
+                        filters = filters,
+                        currentFilterNumber = activeFilterNumber,
+                        onFilterChange = { newFilter ->
+                            onFilterChange(newFilter)
+                            coroutineScope.launch {
+                                if (useNewLibraryUI && newFilter == 0) columnState.animateScrollToItem(0)
+                                else gridState.animateScrollToItem(0)
+                            }
+                        },
+                    )
+                }
+            },
+        )
+    } else {
+        Column {
+            Toolbar(
+                filters = filters,
+                currentFilterNumber = activeFilterNumber,
+                onFilterChange = { newFilter ->
+                    onFilterChange(newFilter)
+                    coroutineScope.launch {
+                        if (useNewLibraryUI && newFilter == 0) columnState.animateScrollToItem(0)
+                        else gridState.animateScrollToItem(0)
+                    }
+                },
+            )
+            DisplayContent(
+                filters = filters,
+                activeFilterNumber = activeFilterNumber,
+                gridState = gridState,
+                columnState = columnState,
+                cardWidth = cardWidth,
+                onSeriesClick = onSeriesClick,
+                seriesMenuActions = seriesMenuActions,
+                bookMenuActions = bookMenuActions,
+                onBookClick = onBookClick,
+                onBookReadClick = onBookReadClick,
+            )
+        }
+    }
+}
+
+@Composable
+private fun HomeHeaderSection() {
+    val notoSerif = FontFamily(Font(Res.font.NotoSerif_Bold, FontWeight.Bold))
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 10.dp, vertical = 12.dp),
+    ) {
+        Text(
+            "Home",
+            style = MaterialTheme.typography.headlineLarge.copy(
+                fontFamily = notoSerif,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = (-0.5).sp,
+            ),
         )
     }
 }
@@ -196,14 +257,20 @@ private fun DisplayContent(
     bookMenuActions: BookMenuActions,
     onBookClick: (KomeliaBook) -> Unit,
     onBookReadClick: (KomeliaBook, Boolean) -> Unit,
+    topContent: (@Composable () -> Unit)? = null,
 ) {
     val useNewLibraryUI = LocalUseNewLibraryUI.current
+    val extraBottomPadding = LocalTransparentNavBarPadding.current
+    val toolbarPadding = LocalFloatingToolbarPadding.current
     if (useNewLibraryUI && activeFilterNumber == 0) {
         LazyColumn(
             state = columnState,
             verticalArrangement = Arrangement.spacedBy(20.dp),
-            contentPadding = PaddingValues(bottom = 15.dp),
+            contentPadding = PaddingValues(top = toolbarPadding, bottom = 15.dp + extraBottomPadding),
         ) {
+            if (topContent != null) {
+                item { topContent() }
+            }
             for (data in filters) {
                 val isEmpty = when (data) {
                     is BookFilterData -> data.books.isEmpty()
@@ -234,8 +301,11 @@ private fun DisplayContent(
             columns = GridCells.Adaptive(cardWidth),
             horizontalArrangement = Arrangement.spacedBy(15.dp),
             verticalArrangement = Arrangement.spacedBy(15.dp),
-            contentPadding = PaddingValues(bottom = 15.dp)
+            contentPadding = PaddingValues(top = toolbarPadding, bottom = 15.dp + extraBottomPadding)
         ) {
+            if (topContent != null) {
+                item(span = { GridItemSpan(maxLineSpan) }) { topContent() }
+            }
             for (data in filters) {
                 if (activeFilterNumber == 0 || data.filter.order == activeFilterNumber) {
                     when (data) {
@@ -262,9 +332,13 @@ private fun DisplayContent(
 
 @Composable
 private fun SectionHeader(label: String) {
+    val inter = FontFamily(Font(Res.font.Inter_SemiBold, FontWeight.SemiBold))
     Text(
         label,
-        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold),
+        style = MaterialTheme.typography.titleLarge.copy(
+            fontFamily = inter,
+            fontWeight = FontWeight.SemiBold
+        ),
         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
     )
 }
@@ -317,9 +391,13 @@ private fun LazyGridScope.BookFilterEntry(
     if (books.isEmpty()) return
 
     item(span = { GridItemSpan(maxLineSpan) }) {
+        val inter = FontFamily(Font(Res.font.Inter_SemiBold, FontWeight.SemiBold))
         Text(
             label,
-            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold),
+            style = MaterialTheme.typography.titleLarge.copy(
+                fontFamily = inter,
+                fontWeight = FontWeight.SemiBold
+            ),
             modifier = Modifier.padding(vertical = 4.dp),
         )
     }
@@ -343,9 +421,13 @@ private fun LazyGridScope.SeriesFilterEntries(
 ) {
     if (series.isEmpty()) return
     item(span = { GridItemSpan(maxLineSpan) }) {
+        val inter = FontFamily(Font(Res.font.Inter_SemiBold, FontWeight.SemiBold))
         Text(
             label,
-            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold),
+            style = MaterialTheme.typography.titleLarge.copy(
+                fontFamily = inter,
+                fontWeight = FontWeight.SemiBold
+            ),
             modifier = Modifier.padding(vertical = 4.dp),
         )
     }

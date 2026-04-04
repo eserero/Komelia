@@ -57,9 +57,11 @@ import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -69,9 +71,11 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import snd.komelia.image.ReduceKernel
 import snd.komelia.image.UpscaleStatus
 import snd.komelia.image.UpsamplingMode
@@ -89,12 +93,17 @@ import snd.komelia.settings.model.ReaderType.PAGED
 import snd.komelia.settings.model.ReaderType.PANELS
 import snd.komelia.ui.LocalAccentColor
 import snd.komelia.ui.LocalStrings
+import snd.komelia.ui.LocalUseNewLibraryUI2
 import snd.komelia.ui.LocalWindowWidth
 import snd.komelia.ui.common.components.AppSliderDefaults
 import snd.komelia.ui.common.components.SwitchWithLabel
 import snd.komelia.ui.common.components.accentInputChipColors
 import snd.komelia.ui.platform.WindowSizeClass.COMPACT
 import snd.komelia.ui.platform.cursorForHand
+import snd.komelia.ui.reader.ReaderControlsCard
+import snd.komelia.ui.reader.image.PageMetadata
+import snd.komelia.ui.reader.image.ReaderState
+import snd.komelia.ui.reader.image.common.ProgressSlider
 import snd.komelia.ui.reader.image.continuous.ContinuousReaderState
 import snd.komelia.ui.reader.image.paged.PagedReaderState
 import snd.komelia.ui.reader.image.panels.PanelsReaderState
@@ -122,6 +131,8 @@ fun BottomSheetSettingsOverlay(
     onStretchToFitChange: (Boolean) -> Unit,
     cropBorders: Boolean,
     onCropBordersChange: (Boolean) -> Unit,
+    loadThumbnailPreviews: Boolean,
+    onLoadThumbnailPreviewsChange: (Boolean) -> Unit,
     zoom: Float,
 
     flashEnabled: Boolean,
@@ -139,92 +150,130 @@ fun BottomSheetSettingsOverlay(
     pagedReaderState: PagedReaderState,
     continuousReaderState: ContinuousReaderState,
     panelsReaderState: PanelsReaderState?,
+    commonReaderState: ReaderState,
     ncnnSettingsState: NcnnSettingsState,
     onBackPress: () -> Unit,
 ) {
 
     val windowWidth = LocalWindowWidth.current
     val accentColor = LocalAccentColor.current
+    val useNewUI2 = LocalUseNewLibraryUI2.current
+    val coroutineScope = rememberCoroutineScope()
     var showSettingsDialog by remember { mutableStateOf(false) }
     val allUpscaleActivities by ncnnSettingsState.globalUpscaleActivities.collectAsState()
 
     Box(modifier = Modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier
-                .background(MaterialTheme.colorScheme.surfaceVariant)
-                .fillMaxWidth()
-                .windowInsetsPadding(
-                    WindowInsets.statusBars
-                        .add(WindowInsets.navigationBars.only(WindowInsetsSides.Horizontal))
-                )
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(
-                    onClick = onBackPress,
-                    modifier = Modifier.size(46.dp)
-                ) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, null)
-                }
-
-                book?.let {
-                    Row(
-                        modifier = Modifier.weight(1f),
-                        verticalAlignment = Alignment.CenterVertically,
+        if (!useNewUI2) {
+            Column(
+                modifier = Modifier
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .fillMaxWidth()
+                    .windowInsetsPadding(
+                        WindowInsets.statusBars
+                            .add(WindowInsets.navigationBars.only(WindowInsetsSides.Horizontal))
+                    )
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(
+                        onClick = onBackPress,
+                        modifier = Modifier.size(46.dp)
                     ) {
-                        Column(
-                            Modifier.weight(1f)
-                                .padding(horizontal = 10.dp)
-                        ) {
-                            val titleStyle =
-                                if (windowWidth == COMPACT) MaterialTheme.typography.titleMedium
-                                else MaterialTheme.typography.titleLarge
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null)
+                    }
 
-                            Text(
-                                it.seriesTitle,
-                                maxLines = 1,
-                                style = titleStyle,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Text(
-                                it.metadata.title,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.basicMarquee(iterations = Int.MAX_VALUE)
-                            )
+                    book?.let {
+                        Row(
+                            modifier = Modifier.weight(1f),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(
+                                Modifier.weight(1f)
+                                    .padding(horizontal = 10.dp)
+                            ) {
+                                val titleStyle =
+                                    if (windowWidth == COMPACT) MaterialTheme.typography.titleMedium
+                                    else MaterialTheme.typography.titleLarge
+
+                                Text(
+                                    it.seriesTitle,
+                                    maxLines = 1,
+                                    style = titleStyle,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    it.metadata.title,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.basicMarquee(iterations = Int.MAX_VALUE)
+                                )
+                            }
                         }
                     }
                 }
+                AnimatedVisibility(visible = allUpscaleActivities.isNotEmpty()) {
+                    UpscaleActivityIndicator(allUpscaleActivities)
+                }
             }
-            AnimatedVisibility(visible = allUpscaleActivities.isNotEmpty()) {
-                UpscaleActivityIndicator(allUpscaleActivities)
+
+            FloatingActionButton(
+                onClick = { showSettingsDialog = true },
+                containerColor = accentColor ?: MaterialTheme.colorScheme.primaryContainer,
+                contentColor = if (accentColor != null) {
+                    if (accentColor.luminance() > 0.5f) Color.Black else Color.White
+                } else MaterialTheme.colorScheme.onPrimaryContainer,
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .windowInsetsPadding(WindowInsets.navigationBars)
+                    .padding(bottom = 80.dp, end = 16.dp)
+            ) {
+                Icon(Icons.Rounded.Tune, null)
+            }
+
+            ReaderFloatingToolbar(
+                readerType = readerType,
+                onReaderTypeChange = onReaderTypeChange,
+                panelsReaderState = panelsReaderState,
+                ncnnSettingsState = ncnnSettingsState,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .windowInsetsPadding(WindowInsets.navigationBars)
+                    .padding(bottom = 80.dp, end = 80.dp),
+            )
+        } else {
+            val bookState by commonReaderState.booksState.collectAsState()
+            val pages = bookState?.currentBookPages ?: emptyList()
+            val currentPageIndex = when (readerType) {
+                PAGED -> pagedReaderState.currentSpreadIndex.collectAsState().value
+                CONTINUOUS -> continuousReaderState.currentBookPageIndex.collectAsState(0).value
+                PANELS -> panelsReaderState?.currentPageIndex?.collectAsState()?.value?.page ?: 0
+            }
+
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                ImageReaderControlsCardNewUI(
+                    pages = pages,
+                    currentPageIndex = currentPageIndex,
+                    onPageNumberChange = {
+                        when (readerType) {
+                            PAGED -> pagedReaderState.onPageChange(it)
+                            CONTINUOUS -> coroutineScope.launch { continuousReaderState.scrollToBookPage(it + 1) }
+                            PANELS -> panelsReaderState?.onPageChange(it)
+                        }
+                    },
+                    loadThumbnailPreviews = loadThumbnailPreviews,
+                    readerType = readerType,
+                    onReaderTypeChange = onReaderTypeChange,
+                    panelsReaderState = panelsReaderState,
+                    ncnnSettingsState = ncnnSettingsState,
+                    onSettingsClick = { showSettingsDialog = true }
+                )
             }
         }
-
-        FloatingActionButton(
-            onClick = { showSettingsDialog = true },
-            containerColor = accentColor ?: MaterialTheme.colorScheme.primaryContainer,
-            contentColor = if (accentColor != null) {
-                if (accentColor.luminance() > 0.5f) Color.Black else Color.White
-            } else MaterialTheme.colorScheme.onPrimaryContainer,
-            shape = RoundedCornerShape(16.dp),
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .windowInsetsPadding(WindowInsets.navigationBars)
-                .padding(bottom = 80.dp, end = 16.dp)
-        ) {
-            Icon(Icons.Rounded.Tune, null)
-        }
-
-        ReaderFloatingToolbar(
-            readerType = readerType,
-            onReaderTypeChange = onReaderTypeChange,
-            panelsReaderState = panelsReaderState,
-            ncnnSettingsState = ncnnSettingsState,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .windowInsetsPadding(WindowInsets.navigationBars)
-                .padding(bottom = 80.dp, end = 80.dp),
-        )
     }
 
     BoxWithConstraints {
@@ -274,7 +323,7 @@ fun BottomSheetSettingsOverlay(
                 Column(
                     Modifier
                         .padding(contentPadding)
-                        .heightIn(max = maxHeight * 0.8f)
+                        .height(maxHeight * (2f / 3f))
                         .fillMaxWidth()
                         .verticalScroll(rememberScrollState())
                         .pointerInput(Unit) { detectTapGestures(onTap = { focusManager.clearFocus() }) }
@@ -313,6 +362,8 @@ fun BottomSheetSettingsOverlay(
                             onStretchToFitChange = onStretchToFitChange,
                             cropBorders = cropBorders,
                             onCropBordersChange = onCropBordersChange,
+                            loadThumbnailPreviews = loadThumbnailPreviews,
+                            onLoadThumbnailPreviewsChange = onLoadThumbnailPreviewsChange,
                             isColorCorrectionsActive = isColorCorrectionsActive,
                             onColorCorrectionClick = onColorCorrectionClick,
                             zoom = zoom,
@@ -642,6 +693,8 @@ private fun BottomSheetImageSettings(
     onStretchToFitChange: (Boolean) -> Unit,
     cropBorders: Boolean,
     onCropBordersChange: (Boolean) -> Unit,
+    loadThumbnailPreviews: Boolean,
+    onLoadThumbnailPreviewsChange: (Boolean) -> Unit,
     isColorCorrectionsActive: Boolean,
     onColorCorrectionClick: () -> Unit,
     zoom: Float,
@@ -672,6 +725,8 @@ private fun BottomSheetImageSettings(
             onStretchToFitChange = onStretchToFitChange,
             cropBorders = cropBorders,
             onCropBordersChange = onCropBordersChange,
+            loadThumbnailPreviews = loadThumbnailPreviews,
+            onLoadThumbnailPreviewsChange = onLoadThumbnailPreviewsChange,
             isColorCorrectionsActive = isColorCorrectionsActive,
             onColorCorrectionClick = onColorCorrectionClick,
             flashEnabled = flashEnabled,
@@ -729,7 +784,7 @@ private fun BottomSheetImageSettings(
 }
 
 @Composable
-private fun UpscaleActivityIndicator(activities: Map<Int, UpscaleStatus>) {
+internal fun UpscaleActivityIndicator(activities: Map<Int, UpscaleStatus>) {
     if (activities.isEmpty()) return
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -814,7 +869,7 @@ private fun ReaderFloatingToolbar(
 }
 
 @Composable
-private fun ReaderModeIconButton(
+internal fun ReaderModeIconButton(
     selected: Boolean,
     onClick: () -> Unit,
     icon: ImageVector,
@@ -839,6 +894,106 @@ private fun ReaderModeIconButton(
                 contentDescription = contentDescription,
                 tint = if (selected) selectedIconTint else MaterialTheme.colorScheme.onSurfaceVariant,
             )
+        }
+    }
+}
+
+@Composable
+fun ImageReaderControlsCardNewUI(
+    pages: List<PageMetadata>,
+    currentPageIndex: Int,
+    onPageNumberChange: (Int) -> Unit,
+    loadThumbnailPreviews: Boolean,
+    readerType: ReaderType,
+    onReaderTypeChange: (ReaderType) -> Unit,
+    panelsReaderState: PanelsReaderState?,
+    ncnnSettingsState: NcnnSettingsState,
+    onSettingsClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val accentColor = LocalAccentColor.current
+    val ncnnSettings by ncnnSettingsState.ncnnUpscalerSettings.collectAsState()
+    val showUpscale = isNcnnSupported()
+
+    ReaderControlsCard(modifier = modifier) {
+        Text(
+            text = "Page ${currentPageIndex + 1} of ${pages.size}",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        ProgressSlider(
+            pages = pages,
+            currentPageIndex = currentPageIndex,
+            onPageNumberChange = onPageNumberChange,
+            loadThumbnailPreviews = loadThumbnailPreviews,
+            show = true,
+            layoutDirection = androidx.compose.ui.unit.LayoutDirection.Ltr, // TODO: handle RTL
+            isBare = true,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                ReaderModeIconButton(
+                    selected = readerType == PAGED,
+                    onClick = { onReaderTypeChange(PAGED) },
+                    icon = Icons.AutoMirrored.Rounded.MenuBook,
+                    contentDescription = "Paged",
+                )
+                ReaderModeIconButton(
+                    selected = readerType == CONTINUOUS,
+                    onClick = { onReaderTypeChange(CONTINUOUS) },
+                    icon = Icons.Rounded.ViewStream,
+                    contentDescription = "Continuous",
+                )
+                if (panelsReaderState != null) {
+                    ReaderModeIconButton(
+                        selected = readerType == PANELS,
+                        onClick = { onReaderTypeChange(PANELS) },
+                        icon = Icons.Rounded.GridView,
+                        contentDescription = "Panels",
+                    )
+                }
+            }
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                if (showUpscale) {
+                    ReaderModeIconButton(
+                        selected = ncnnSettings.enabled,
+                        onClick = { ncnnSettingsState.onSettingsChange(ncnnSettings.copy(enabled = !ncnnSettings.enabled)) },
+                        icon = Icons.Rounded.AutoAwesome,
+                        contentDescription = "Upscaling",
+                    )
+                    VerticalDivider(
+                        modifier = Modifier
+                            .height(24.dp)
+                            .padding(horizontal = 4.dp)
+                    )
+                }
+
+                IconButton(onClick = onSettingsClick) {
+                    Icon(
+                        Icons.Rounded.Tune,
+                        contentDescription = "Settings",
+                        tint = accentColor ?: MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
         }
     }
 }
@@ -906,3 +1061,4 @@ private fun SamplingModeSettings(
         contentPadding = PaddingValues(horizontal = 10.dp)
     )
 }
+

@@ -1,6 +1,8 @@
 package snd.komelia.ui.home
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -11,6 +13,7 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -23,13 +26,22 @@ import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.model.rememberScreenModel
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 import snd.komelia.ui.LoadState
 import snd.komelia.ui.LocalAccentColor
+import snd.komelia.ui.LocalFloatingToolbarPadding
+import snd.komelia.ui.LocalHazeState
 import snd.komelia.ui.LocalKomgaState
 import snd.komelia.ui.LocalOfflineMode
+import snd.komelia.ui.LocalRawStatusBarHeight
 import snd.komelia.ui.LocalReloadEvents
+import snd.komelia.ui.LocalTheme
+import snd.komelia.ui.LocalTransparentNavBarPadding
+import snd.komelia.ui.LocalUseNewLibraryUI2
 import snd.komelia.ui.LocalViewModelFactory
 import snd.komelia.ui.ReloadableScreen
+import snd.komelia.ui.topbar.NewTopAppBar
 import snd.komelia.ui.book.bookScreen
 import snd.komelia.ui.common.components.ErrorContent
 import snd.komelia.ui.home.edit.FilterEditScreen
@@ -68,54 +80,77 @@ class HomeScreen(private val libraryId: KomgaLibraryId? = null) : ReloadableScre
         }
 
         val accentColor = LocalAccentColor.current
-        ScreenPullToRefreshBox(screenState = vm.state, onRefresh = vm::reload) {
-            when (val state = vm.state.collectAsState().value) {
-                is LoadState.Error -> ErrorContent(
-                    message = state.exception.message ?: "Unknown Error",
-                    onReload = vm::reload
-                )
-
-                else ->
-                    HomeContent(
-                        filters = vm.currentFilters.collectAsState().value,
-                        activeFilterNumber = vm.activeFilterNumber.collectAsState().value,
-                        onFilterChange = vm::onFilterChange,
-
-                        cardWidth = vm.cardWidth.collectAsState().value,
-                        onSeriesClick = { navigator push seriesScreen(it) },
-                        seriesMenuActions = vm.seriesMenuActions(),
-                        bookMenuActions = vm.bookMenuActions(),
-                        onBookClick = { navigator push bookScreen(it) },
-                        onBookReadClick = { book, markProgress ->
-                            navigator.parent?.push(
-                                readerScreen(
-                                    book = book,
-                                    markReadProgress = markProgress,
-                                    onExit = { lastReadBook ->
-                                        if (lastReadBook.id != book.id) {
-                                            vm.reload()
-                                        }
-                                    }
-                                )
+        val useNewUI2 = LocalUseNewLibraryUI2.current
+        val theme = LocalTheme.current
+        val barHeight = 45.dp
+        val statusBarHeight = if (theme.transparentBars) LocalRawStatusBarHeight.current else 0.dp
+        val floatingPadding = if (useNewUI2) barHeight + statusBarHeight else 0.dp
+        val screenHazeState = if (useNewUI2 && theme.transparentBars) rememberHazeState() else null
+        CompositionLocalProvider(
+            LocalFloatingToolbarPadding provides floatingPadding,
+            LocalHazeState provides screenHazeState,
+        ) {
+            Box(Modifier.fillMaxSize()) {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .then(if (screenHazeState != null) Modifier.hazeSource(screenHazeState) else Modifier)
+                ) {
+                    ScreenPullToRefreshBox(screenState = vm.state, onRefresh = vm::reload) {
+                        when (val state = vm.state.collectAsState().value) {
+                            is LoadState.Error -> ErrorContent(
+                                message = state.exception.message ?: "Unknown Error",
+                                onReload = vm::reload
                             )
-                        },
-                    )
 
-            }
+                            else ->
+                                HomeContent(
+                                    filters = vm.currentFilters.collectAsState().value,
+                                    activeFilterNumber = vm.activeFilterNumber.collectAsState().value,
+                                    onFilterChange = vm::onFilterChange,
 
-            FloatingActionButton(
-                onClick = { navigator.replaceAll(FilterEditScreen(vm.currentFilters.value)) },
-                containerColor = accentColor ?: MaterialTheme.colorScheme.primaryContainer,
-                contentColor = if (accentColor != null) {
-                    if (accentColor.luminance() > 0.5f) Color.Black else Color.White
-                } else MaterialTheme.colorScheme.onPrimaryContainer,
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .windowInsetsPadding(WindowInsets.navigationBars)
-                    .padding(bottom = 16.dp, end = 16.dp)
-            ) {
-                Icon(Icons.Rounded.Edit, null)
+                                    cardWidth = vm.cardWidth.collectAsState().value,
+                                    onSeriesClick = { navigator push seriesScreen(it) },
+                                    seriesMenuActions = vm.seriesMenuActions(),
+                                    bookMenuActions = vm.bookMenuActions(),
+                                    onBookClick = { navigator push bookScreen(it) },
+                                    onBookReadClick = { book, markProgress ->
+                                        navigator.parent?.push(
+                                            readerScreen(
+                                                book = book,
+                                                markReadProgress = markProgress,
+                                                onExit = { lastReadBook ->
+                                                    if (lastReadBook.id != book.id) {
+                                                        vm.reload()
+                                                    }
+                                                }
+                                            )
+                                        )
+                                    },
+                                )
+
+                        }
+
+                        val extraBottomPadding = LocalTransparentNavBarPadding.current
+                        FloatingActionButton(
+                            onClick = { navigator.replaceAll(FilterEditScreen(vm.currentFilters.value)) },
+                            containerColor = accentColor ?: MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = if (accentColor != null) {
+                                if (accentColor.luminance() > 0.5f) Color.Black else Color.White
+                            } else MaterialTheme.colorScheme.onPrimaryContainer,
+                            shape = RoundedCornerShape(16.dp),
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .then(if (extraBottomPadding == 0.dp) Modifier.windowInsetsPadding(WindowInsets.navigationBars) else Modifier)
+                                .padding(bottom = 16.dp + extraBottomPadding, end = 16.dp)
+                        ) {
+                            Icon(Icons.Rounded.Edit, null)
+                        }
+                    }
+                }
+                if (useNewUI2) {
+                    NewTopAppBar()
+                }
             }
         }
     }

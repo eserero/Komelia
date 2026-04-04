@@ -62,6 +62,9 @@ private val accentPresets: List<Pair<Color?, String>> = listOf(
     Color(0xFF3B82F6.toInt()) to "Blue",
     Color(0xFF14B8A6.toInt()) to "Teal",
     Color(0xFF8B5CF6.toInt()) to "Purple",
+    Color(0xFF6A1CF6.toInt()) to "Modern Purple",
+    Color(0xFFBA9EFF.toInt()) to "Modern Lavender",
+    Color(0xFF9720AB.toInt()) to "Modern Magenta",
     Color(0xFFEC4899.toInt()) to "Pink",
     Color(0xFFF97316.toInt()) to "Orange",
     Color(0xFF22C55E.toInt()) to "Green",
@@ -89,6 +92,10 @@ fun AppearanceSettingsContent(
     onHideParenthesesInNamesChange: (Boolean) -> Unit,
     cardLayoutOverlayBackground: Boolean,
     onCardLayoutOverlayBackgroundChange: (Boolean) -> Unit,
+    useNewLibraryUI2: Boolean,
+    onUseNewLibraryUI2Change: (Boolean) -> Unit,
+    useImmersiveMorphingCover: Boolean,
+    onUseImmersiveMorphingCoverChange: (Boolean) -> Unit,
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -162,6 +169,24 @@ fun AppearanceSettingsContent(
                 onCheckedChange = onShowImmersiveNavBarChange,
                 label = { Text("Show navigation bar in immersive screens") },
                 supportingText = { Text("Display the bottom navigation bar on series, book, and oneshot screens") },
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+            )
+
+            SwitchWithLabel(
+                checked = useNewLibraryUI2,
+                onCheckedChange = onUseNewLibraryUI2Change,
+                label = { Text("New UI 2") },
+                supportingText = { Text("Modern top app bar and updated item cards") },
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+            )
+
+            SwitchWithLabel(
+                checked = useImmersiveMorphingCover,
+                onCheckedChange = onUseImmersiveMorphingCoverChange,
+                label = { Text("Morphing Immersive Cover") },
+                supportingText = { Text("Morphing cover image that flies to thumbnail on expand") },
                 modifier = Modifier.fillMaxWidth(),
                 contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
             )

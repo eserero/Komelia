@@ -154,6 +154,12 @@ class SettingsRepositoryWrapper(
     override suspend fun putShowImmersiveNavBar(enabled: Boolean) =
         wrapper.transform { it.copy(showImmersiveNavBar = enabled) }
 
+    override fun getUseNewLibraryUI2(): Flow<Boolean> =
+        wrapper.state.map { it.useNewLibraryUI2 }.distinctUntilChanged()
+
+    override suspend fun putUseNewLibraryUI2(enabled: Boolean) =
+        wrapper.transform { it.copy(useNewLibraryUI2 = enabled) }
+
     override fun getLastSelectedLibraryId(): Flow<KomgaLibraryId?> {
         return wrapper.state.map { it.lastSelectedLibraryId?.let { id -> KomgaLibraryId(id) } }.distinctUntilChanged()
     }
@@ -181,5 +187,18 @@ class SettingsRepositoryWrapper(
     override suspend fun putCardLayoutOverlayBackground(enabled: Boolean) {
         wrapper.transform { it.copy(cardLayoutOverlayBackground = enabled) }
     }
+
+    override fun getShowContinueReading(): Flow<Boolean> =
+        wrapper.state.map { it.showContinueReading }.distinctUntilChanged()
+
+    override suspend fun putShowContinueReading(enabled: Boolean) {
+        wrapper.transform { it.copy(showContinueReading = enabled) }
+    }
+
+    override fun getUseImmersiveMorphingCover(): Flow<Boolean> =
+        wrapper.state.map { it.useImmersiveMorphingCover }.distinctUntilChanged()
+
+    override suspend fun putUseImmersiveMorphingCover(enabled: Boolean) =
+        wrapper.transform { it.copy(useImmersiveMorphingCover = enabled) }
 
 }

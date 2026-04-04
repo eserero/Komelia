@@ -76,6 +76,7 @@ class ReaderState(
     val readerType = MutableStateFlow(ReaderType.PAGED)
     val imageStretchToFit = MutableStateFlow(true)
     val cropBorders = MutableStateFlow(false)
+    val loadThumbnailPreviews = MutableStateFlow(true)
     val readProgressPage = MutableStateFlow(1)
 
     init {
@@ -118,6 +119,7 @@ class ReaderState(
 
         imageStretchToFit.value = readerSettingsRepository.getStretchToFit().first()
         cropBorders.value = readerSettingsRepository.getCropBorders().first()
+        loadThumbnailPreviews.value = readerSettingsRepository.getLoadThumbnailPreviews().first()
         flashOnPageChange.value = readerSettingsRepository.getFlashOnPageChange().first()
         flashDuration.value = readerSettingsRepository.getFlashDuration().first()
         flashEveryNPages.value = readerSettingsRepository.getFlashEveryNPages().first()
@@ -283,6 +285,11 @@ class ReaderState(
     fun onCropBordersChange(trim: Boolean) {
         cropBorders.value = trim
         stateScope.launch { readerSettingsRepository.putCropBorders(trim) }
+    }
+
+    fun onLoadThumbnailPreviewsChange(load: Boolean) {
+        loadThumbnailPreviews.value = load
+        stateScope.launch { readerSettingsRepository.putLoadThumbnailPreviews(load) }
     }
 
     fun onFlashEnabledChange(enabled: Boolean) {

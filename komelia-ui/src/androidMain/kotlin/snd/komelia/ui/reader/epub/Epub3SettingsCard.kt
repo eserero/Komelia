@@ -31,7 +31,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.PrimaryTabRow
+import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
@@ -47,6 +47,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
@@ -78,8 +79,8 @@ fun Epub3SettingsCard(
 
     Surface(
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 6.dp,
+        color = MaterialTheme.colorScheme.background,
+        tonalElevation = 0.dp,
         modifier = modifier
             .offset { IntOffset(0, dragOffsetY.roundToInt().coerceAtLeast(0)) },
     ) {
@@ -108,7 +109,10 @@ fun Epub3SettingsCard(
             }
 
             // Tab row — sticky, not scrollable
-            PrimaryTabRow(selectedTabIndex = selectedTab) {
+            SecondaryTabRow(
+                selectedTabIndex = selectedTab,
+                containerColor = Color.Transparent,
+            ) {
                 Tab(
                     selected = selectedTab == 0,
                     onClick = { selectedTab = 0 },
@@ -241,6 +245,29 @@ private fun AppearanceTab(
             value = settings.pageMargins.toFloat(),
             onValueChange = { onSettingsChange(settings.copy(pageMargins = it.toDouble())) },
             valueRange = 0.5f..2.0f,
+            accentColor = accentColor,
+        )
+
+        val screenHeight = LocalConfiguration.current.screenHeightDp.toFloat()
+        val maxMargin = screenHeight * 0.2f
+
+        // Top margin slider
+        SliderRow(
+            label = "Top margin",
+            valueLabel = "${settings.topMargin.toInt()}dp",
+            value = settings.topMargin,
+            onValueChange = { onSettingsChange(settings.copy(topMargin = it)) },
+            valueRange = 0f..maxMargin,
+            accentColor = accentColor,
+        )
+
+        // Bottom margin slider
+        SliderRow(
+            label = "Bottom margin",
+            valueLabel = "${settings.bottomMargin.toInt()}dp",
+            value = settings.bottomMargin,
+            onValueChange = { onSettingsChange(settings.copy(bottomMargin = it)) },
+            valueRange = 0f..maxMargin,
             accentColor = accentColor,
         )
 

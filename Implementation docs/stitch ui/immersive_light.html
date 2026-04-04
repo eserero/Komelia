@@ -1,0 +1,369 @@
+<!DOCTYPE html><html class="light" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport">
+<title>Aether Pulse - Series Overview</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries">
+    const header = document.getElementById('sticky-header');
+    const heroImg = document.getElementById('hero-img-container');
+    const heroContent = document.getElementById('hero-content');
+    const heroTitle = document.getElementById('hero-title');
+    const premiumTag = document.getElementById('premium-tag');
+    const heroTags = document.getElementById('hero-tags');
+    const resumeBtn = document.getElementById('resume-btn');
+    const heroOverlay = document.getElementById('hero-overlay');
+    const backIcon = document.getElementById('back-icon');
+    const moreIcon = document.getElementById('more-icon');
+
+    window.addEventListener('scroll', () => {
+        const scrollY = window.scrollY;
+
+        if (scrollY > 50) {
+            // Collapse sequence
+            header.classList.replace('header-expanded', 'header-collapsed');
+            heroImg.classList.replace('img-expanded', 'img-collapsed');
+            heroContent.classList.replace('content-expanded', 'content-collapsed');
+            
+            heroTitle.classList.replace('title-expanded', 'title-collapsed');
+            heroTags.classList.replace('tags-expanded', 'tags-collapsed');
+            resumeBtn.classList.replace('btn-expanded', 'btn-collapsed');
+            
+            premiumTag.style.opacity = '0';
+            heroOverlay.style.opacity = '0';
+            
+            // Adjust bar icons for light background
+            backIcon.classList.replace('text-[#2e2f2c]', 'text-[#6200EE]');
+            moreIcon.classList.replace('text-[#2e2f2c]', 'text-[#6200EE]');
+        } else {
+            // Expand sequence
+            header.classList.replace('header-collapsed', 'header-expanded');
+            heroImg.classList.replace('img-collapsed', 'img-expanded');
+            heroContent.classList.replace('content-collapsed', 'content-expanded');
+            
+            heroTitle.classList.replace('title-collapsed', 'title-expanded');
+            heroTags.classList.replace('tags-collapsed', 'tags-expanded');
+            resumeBtn.classList.replace('btn-collapsed', 'btn-expanded');
+            
+            premiumTag.style.opacity = '0.8';
+            heroOverlay.style.opacity = '1';
+
+            // Reset icons
+            backIcon.classList.replace('text-[#6200EE]', 'text-[#2e2f2c]');
+            moreIcon.classList.replace('text-[#6200EE]', 'text-[#2e2f2c]');
+        }
+    });
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Noto+Serif:ital,wght@0,700;1,700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "background": "#f8f6f1",
+              "on-background": "#2e2f2c",
+              "primary": "#6200EE",
+              "on-primary": "#ffffff",
+              "on-surface-variant": "#2e2f2c99",
+              "surface-container": "#eae8e3",
+              "surface-container-highest": "#e2e0db",
+              "outline": "#2e2f2c20",
+            },
+            fontFamily: {
+              "headline": ["Noto Serif"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8f6f1; color: #2e2f2c; margin: 0; padding: 0; }
+        .font-serif { font-family: 'Noto Serif', serif; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        
+        /* Transition Logic */
+        :root {
+            --header-height: 240px;
+            --thumbnail-width: 100px;
+            --thumbnail-aspect: 1.5;
+        }
+
+        #sticky-header {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .header-expanded {
+            height: 618px;
+        }
+
+        .header-collapsed {
+            height: var(--header-height);
+            background: rgba(248, 246, 241, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(46, 47, 44, 0.1);
+        }
+
+        #hero-img-container {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .img-expanded {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 0;
+        }
+
+        .img-collapsed {
+            position: absolute;
+            top: 80px;
+            left: 24px;
+            width: var(--thumbnail-width);
+            height: calc(var(--thumbnail-width) * var(--thumbnail-aspect));
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 15px -3px rgba(46, 47, 44, 0.2);
+        }
+
+        #hero-content {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .content-expanded {
+            bottom: 0;
+            left: 0;
+            padding: 2rem;
+            width: 100%;
+        }
+
+        .content-collapsed {
+            bottom: 12px;
+            left: calc(var(--thumbnail-width) + 40px);
+            padding: 0;
+            width: calc(100% - var(--thumbnail-width) - 64px);
+        }
+
+        .title-expanded { font-size: 3rem; line-height: 1; color: #ffffff; text-shadow: 0 2px 10px rgba(0,0,0,0.3); }
+        .title-collapsed { font-size: 1.25rem; line-height: 1.2; color: #2e2f2c; }
+
+        .tags-expanded { opacity: 1; transform: translateY(0); }
+        .tags-collapsed { opacity: 0.8; transform: scale(0.8) translateX(-10%); transform-origin: left top; margin-top: 4px;}
+
+        .btn-expanded { margin-top: 1.5rem; width: 100%; padding: 1.25rem; }
+        .btn-collapsed { margin-top: 0.5rem; width: fit-content; padding: 0.5rem 1rem; font-size: 0.75rem; }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-background text-on-background selection:bg-primary/30 antialiased overflow-x-hidden">
+<!-- Top App Bar - Using COMPONENTS_7 style -->
+<header class="fixed top-0 w-full z-[100] flex justify-between items-center px-6 h-16 pointer-events-none">
+<button class="w-10 h-10 flex items-center justify-center rounded-full bg-white/20 backdrop-blur-md pointer-events-auto active:scale-95 transition-transform" style="">
+<span class="material-symbols-outlined text-[#2e2f2c]" data-icon="arrow_back" id="back-icon" style="">arrow_back</span>
+</button>
+<div class="flex-1"></div>
+<button class="w-10 h-10 flex items-center justify-center rounded-full bg-white/20 backdrop-blur-md pointer-events-auto active:scale-95 transition-transform" style="">
+<span class="material-symbols-outlined text-[#2e2f2c]" data-icon="more_vert" id="more-icon" style="">more_vert</span>
+</button>
+</header>
+<!-- Sticky Header Wrapper -->
+<div class="fixed top-0 left-0 w-full z-[90] header-expanded overflow-hidden" id="sticky-header">
+<!-- Hero Image Container -->
+<div class="img-expanded overflow-hidden" id="hero-img-container">
+<img alt="Aether Pulse Hero" class="w-full h-full object-cover" src="https://prodimage.images-bn.com/pimages/9780439706407_p0_v3_s1200x630.jpg" style="">
+<div class="absolute inset-0 bg-gradient-to-t from-[#f8f6f1] via-transparent to-transparent transition-opacity duration-300" id="hero-overlay"></div>
+</div>
+<!-- Hero Title Content -->
+<div class="absolute content-expanded" id="hero-content">
+<div class="space-y-1" id="hero-title-group">
+<p class="text-white font-medium tracking-[0.2em] uppercase text-[10px] transition-opacity opacity-80" id="premium-tag" style="">Premium Series</p>
+<h2 class="title-expanded font-serif font-bold tracking-tight uppercase transition-all duration-300" id="hero-title" style="">AETHER PULSE</h2>
+</div>
+<div class="flex flex-wrap gap-2 pt-2 tags-expanded transition-all duration-300" id="hero-tags">
+<span class="px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-[10px] font-semibold text-white uppercase tracking-wider" style="">Cyberpunk</span>
+<span class="px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-[10px] font-semibold text-white uppercase tracking-wider" style="">Space Opera</span>
+</div>
+<div class="transition-all duration-300" id="resume-btn-container">
+<button class="bg-[#6200EE] text-white font-bold rounded-full shadow-xl flex items-center justify-center gap-2 active:scale-95 transition-all btn-expanded" id="resume-btn" style="">
+<span class="material-symbols-outlined text-[20px]" data-icon="play_arrow" style="font-variation-settings: &quot;FILL&quot; 1;">play_arrow</span>
+<span class="" style="">RESUME READING</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Main Content (Scrollable) -->
+<main class="relative z-10 pt-[618px] pb-32">
+<!-- Metadata Section -->
+<section class="px-8 mt-8 space-y-6">
+<div class="grid grid-cols-1 gap-2 border-l-2 border-[#6200EE]/20 pl-6 py-2">
+<div class="flex items-center gap-2">
+<span class="text-xs font-bold uppercase tracking-widest text-[#2e2f2c]/60" style="">Writer</span>
+<span class="text-sm font-medium text-[#2e2f2c]" style="">Sarah Miller</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-xs font-bold uppercase tracking-widest text-[#2e2f2c]/60" style="">Artist</span>
+<span class="text-sm font-medium text-[#2e2f2c]" style="">David Chen</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-xs font-bold uppercase tracking-widest text-[#2e2f2c]/60" style="">Colorist</span>
+<span class="text-sm font-medium text-[#2e2f2c]" style="">Emily Sato</span>
+</div>
+</div>
+<p class="text-[#2e2f2c]/80 leading-relaxed text-sm" style="">
+            In the year 2384, the Aether Pulse changed everything. Jax and Kael must navigate the neon-drenched underworld of Neo-Shinjuku to recover the last fragments of the Core before the Syndicate unleashes digital armageddon.
+        </p>
+</section>
+<!-- Collected Issues Grid -->
+<section class="mt-12 px-8">
+<div class="flex items-end justify-between mb-8">
+<h3 class="font-serif text-3xl font-bold text-[#2e2f2c]" style="">Collected Issues</h3>
+<span class="text-[#6200EE] text-xs font-bold uppercase tracking-widest" style="">24 Issues</span>
+</div>
+<div class="grid grid-cols-3 gap-x-4 gap-y-10">
+<!-- Issue 1 -->
+<div class="space-y-3">
+<div class="relative aspect-[2/3] rounded-lg overflow-hidden bg-[#eae8e3]">
+<img alt="Issue 1" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDd38vW04bvMzMmv16YIhFCGSj6g4CJgJ81Zd2jPAdMnLGZsp66Wr2G1QAh6cIpmrSlImg9352bhEF0VDd6RPhCitvORpBZIusLyWzUN7y3GRClGAFeQLOMFVfABiVbCQGeYq5AhBo3o2f6F8Dknhc2qGxf4_VCkcyoRWhANfJKWVJ3GSK8AeowjMxp2nWKWpfotnvxmGNV8d6JRDM6CENiUkYC1vPdNsRlZHJ84rij-YXyztKKsu53Q3WO-aL6Vrkm0mq_oA00N0A" style="">
+<div class="absolute top-2 right-2">
+<div class="w-6 h-6 bg-[#6200EE] text-white rounded-full flex items-center justify-center shadow-md">
+<span class="material-symbols-outlined text-[14px]" data-icon="check" style="font-variation-settings: &quot;FILL&quot; 1;">check</span>
+</div>
+</div>
+</div>
+<div class="px-1">
+<p class="text-[10px] text-[#2e2f2c]/60 font-bold uppercase tracking-tighter" style="">Issue #1</p>
+<p class="text-[11px] font-medium text-[#2e2f2c] truncate" style="">The Pulse</p>
+</div>
+</div>
+<!-- Issue 2 -->
+<div class="space-y-3">
+<div class="relative aspect-[2/3] rounded-lg overflow-hidden bg-[#eae8e3]">
+<img alt="Issue 2" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA7wgFeTVqH2XLGP0LCrexKAgJRXDg_W8eFQJhMxw9v_FLIx6-Z3pQMtJNlVOAGfosW5wPpWSmj9pflDRnZFBZq-A00jzaYk1TeWyEStIdFMfKA1gGL_EtqypIbK29HJ1NpE3R3qCihZTZj8HCTi7KL5t5kG2Um1tZXMbVJhUIlMbRDHCCxOkV5ZajQbWbDmbYe-C2d8Ybl_xfEk6KePIFKdl1OgvQ9jmjAuyVWqiejiRk8y0U-_L_5-juvjAPQeI1L9MSjsArYhVg" style="">
+<div class="absolute top-2 right-2">
+<div class="w-6 h-6 bg-[#6200EE] text-white rounded-full flex items-center justify-center shadow-md">
+<span class="material-symbols-outlined text-[14px]" data-icon="check" style="font-variation-settings: &quot;FILL&quot; 1;">check</span>
+</div>
+</div>
+</div>
+<div class="px-1">
+<p class="text-[10px] text-[#2e2f2c]/60 font-bold uppercase tracking-tighter" style="">Issue #2</p>
+<p class="text-[11px] font-medium text-[#2e2f2c] truncate" style="">Digital Rain</p>
+</div>
+</div>
+<!-- Issue 3 -->
+<div class="space-y-3">
+<div class="relative aspect-[2/3] rounded-lg overflow-hidden bg-[#eae8e3]">
+<img alt="Issue 3" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDyxMKRg9WpgZgf3-iLZLDfqHkqi8JS72O5XoAFCH4ohfQ_954Bf96YEIMmJhzqZPY4JwA-m-ZUg7TM8vlmFbIIz0uPkrC_2UU6z-FvLqGP0vwwJhObYQyAJK271wmdkCF4RsF9eHh_7aQhIslhbXW2_NlrcJbsVf7DQo5u9RaaJUS3Hr2fz-a43FmfbgCkj-V4x2ER43j3uZ_MNE52Hy4MXFLlQhbPSRyb8ClmR-TusU8i5cjj3jv1D15SU1tqKMLW5ahhLMWvU_k" style="">
+<div class="absolute top-2 right-2">
+<div class="w-6 h-6 bg-white/80 backdrop-blur-md text-[#2e2f2c] rounded-full flex items-center justify-center shadow-sm border border-[#2e2f2c]/10">
+<span class="material-symbols-outlined text-[14px]" data-icon="cloud_download" style="">cloud_download</span>
+</div>
+</div>
+</div>
+<div class="px-1">
+<p class="text-[10px] text-[#2e2f2c]/60 font-bold uppercase tracking-tighter" style="">Issue #3</p>
+<p class="text-[11px] font-medium text-[#2e2f2c] truncate" style="">Core Failure</p>
+</div>
+</div>
+<!-- Issue 4 -->
+<div class="space-y-3">
+<div class="relative aspect-[2/3] rounded-lg overflow-hidden bg-[#eae8e3]">
+<img alt="Issue 4" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuATiW2d5EEgCi2HQC3BiK4KbqUDQjIA6LT6uEDnggebL-13M2nmp5XmYkb-aJu4w71luhUM27RHrJr-O2_wHfvyJUzzmv9LK1ihgxbEHrn4KrtthMi9fYfufbz-4KUX7oFA8WJijsmzsno5ABk49_-8btcWXN4W5r2tTdAnR61fACDSShsFzIIpgY6-04GwfpNTrw848Nv46FspyGaywDntv3b4nqlBEMLxdtOcycNHA_BTVhu_SusszrbRUIzz0ARhXsWeAubYfHU" style="">
+<div class="absolute top-2 right-2">
+<div class="w-6 h-6 bg-white/80 backdrop-blur-md text-[#2e2f2c] rounded-full flex items-center justify-center shadow-sm border border-[#2e2f2c]/10">
+<span class="material-symbols-outlined text-[14px]" data-icon="cloud_download" style="">cloud_download</span>
+</div>
+</div>
+</div>
+<div class="px-1">
+<p class="text-[10px] text-[#2e2f2c]/60 font-bold uppercase tracking-tighter" style="">Issue #4</p>
+<p class="text-[11px] font-medium text-[#2e2f2c] truncate" style="">The Ghost</p>
+</div>
+</div>
+<!-- Issue 5 -->
+<div class="space-y-3">
+<div class="relative aspect-[2/3] rounded-lg overflow-hidden bg-[#eae8e3] opacity-50">
+<img alt="Issue 5" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCMr3VdkF65qUPGJzr2aOWWwTnJteIv40sh6QtABm-8uozQvreoQRllw8qmrB_eLlC49edUiE_h8F_wS24c-q4Yv74qRn08cGYWt4iwoenU3yRww95bZGKZkckzS-jW97h-j89bqYkIPmfj7TZnbvDpt8GXYeYAYrbFlxZzSe7dfCmKsvBb8wnxoKzgirqzmfZT_S7SAXA8vO-mbA11sYVd08mDwKjmCuPbrF8DMzqYfJ_kUgqC5j-N9kFdSmcXekCo_JA6xvPKl7E" style="">
+</div>
+<div class="px-1">
+<p class="text-[10px] text-[#2e2f2c]/60 font-bold uppercase tracking-tighter" style="">Issue #5</p>
+<p class="text-[11px] font-medium text-[#2e2f2c] truncate italic" style="">Coming Soon</p>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Navigation Shell - Using COMPONENTS_7 style -->
+<nav class="fixed bottom-0 w-full z-[100] rounded-t-xl bg-[#f8f6f1]/70 backdrop-blur-2xl shadow-[0_-8px_24px_rgba(46,47,44,0.04)] border-t border-[#eae8e3]/30 flex justify-around items-center h-20 px-4 pb-safe">
+<a class="flex flex-col items-center justify-center bg-[#6a1cf6]/10 text-[#6a1cf6] rounded-xl px-4 py-1 transition-all active:translate-y-[-2px]" href="#" style="">
+<span class="material-symbols-outlined" data-icon="auto_stories" style="font-variation-settings: &quot;FILL&quot; 1;">auto_stories</span>
+<span class="font-['Work_Sans'] text-[10px] font-medium uppercase tracking-widest" style="">Library</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#2e2f2c]/50 hover:text-[#6a1cf6] transition-colors" href="#" style="">
+<span class="material-symbols-outlined" data-icon="explore" style="">explore</span>
+<span class="font-['Work_Sans'] text-[10px] font-medium uppercase tracking-widest" style="">Discover</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#2e2f2c]/50 hover:text-[#6a1cf6] transition-colors" href="#" style="">
+<span class="material-symbols-outlined" data-icon="menu_book" style="">menu_book</span>
+<span class="font-['Work_Sans'] text-[10px] font-medium uppercase tracking-widest" style="">Reading</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#2e2f2c]/50 hover:text-[#6a1cf6] transition-colors" href="#" style="">
+<span class="material-symbols-outlined" data-icon="person" style="">person</span>
+<span class="font-['Work_Sans'] text-[10px] font-medium uppercase tracking-widest" style="">Profile</span>
+</a>
+</nav>
+<script>
+    const header = document.getElementById('sticky-header');
+    const heroImg = document.getElementById('hero-img-container');
+    const heroContent = document.getElementById('hero-content');
+    const heroTitle = document.getElementById('hero-title');
+    const premiumTag = document.getElementById('premium-tag');
+    const heroTags = document.getElementById('hero-tags');
+    const resumeBtn = document.getElementById('resume-btn');
+    const heroOverlay = document.getElementById('hero-overlay');
+    const backIcon = document.getElementById('back-icon');
+    const moreIcon = document.getElementById('more-icon');
+
+    window.addEventListener('scroll', () => {
+        const scrollY = window.scrollY;
+
+        if (scrollY > 50) {
+            // Collapse sequence
+            header.classList.replace('header-expanded', 'header-collapsed');
+            heroImg.classList.replace('img-expanded', 'img-collapsed');
+            heroContent.classList.replace('content-expanded', 'content-collapsed');
+            
+            heroTitle.classList.replace('title-expanded', 'title-collapsed');
+            heroTags.classList.replace('tags-expanded', 'tags-collapsed');
+            resumeBtn.classList.replace('btn-expanded', 'btn-collapsed');
+            
+            premiumTag.style.opacity = '0';
+            heroOverlay.style.opacity = '0';
+            
+            // Adjust bar icons for light background
+            backIcon.classList.replace('text-[#2e2f2c]', 'text-[#6200EE]');
+            moreIcon.classList.replace('text-[#2e2f2c]', 'text-[#6200EE]');
+        } else {
+            // Expand sequence
+            header.classList.replace('header-collapsed', 'header-expanded');
+            heroImg.classList.replace('img-collapsed', 'img-expanded');
+            heroContent.classList.replace('content-collapsed', 'content-expanded');
+            
+            heroTitle.classList.replace('title-collapsed', 'title-expanded');
+            heroTags.classList.replace('tags-collapsed', 'tags-expanded');
+            resumeBtn.classList.replace('btn-collapsed', 'btn-expanded');
+            
+            premiumTag.style.opacity = '0.8';
+            heroOverlay.style.opacity = '1';
+
+            // Reset icons
+            backIcon.classList.replace('text-[#6200EE]', 'text-[#2e2f2c]');
+            moreIcon.classList.replace('text-[#6200EE]', 'text-[#2e2f2c]');
+        }
+    });
+</script>
+</body></html>

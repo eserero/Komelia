@@ -45,6 +45,8 @@ fun CommonImageSettings(
     onStretchToFitChange: (Boolean) -> Unit,
     cropBorders: Boolean,
     onCropBordersChange: (Boolean) -> Unit,
+    loadThumbnailPreviews: Boolean,
+    onLoadThumbnailPreviewsChange: (Boolean) -> Unit,
 
     isColorCorrectionsActive: Boolean,
     onColorCorrectionClick: () -> Unit,
@@ -77,6 +79,14 @@ fun CommonImageSettings(
                 checked = cropBorders,
                 onCheckedChange = onCropBordersChange,
                 label = { Text("Crop borders") },
+                contentPadding = PaddingValues(horizontal = 10.dp)
+            )
+
+            SwitchWithLabel(
+                checked = loadThumbnailPreviews,
+                onCheckedChange = onLoadThumbnailPreviewsChange,
+                label = { Text("Load small previews") },
+                supportingText = { Text("Shows a thumbnail while dragging the navigation slider") },
                 contentPadding = PaddingValues(horizontal = 10.dp)
             )
         }

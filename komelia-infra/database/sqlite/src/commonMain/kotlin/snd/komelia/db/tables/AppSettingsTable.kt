@@ -33,6 +33,9 @@ object AppSettingsTable : Table("AppSettings") {
     val keepReaderScreenOn = bool("keep_reader_screen_on").default(false)
     val cardLayoutOverlayBackground = bool("card_layout_overlay_background").default(true)
     val showImmersiveNavBar = bool("show_immersive_nav_bar").default(false)
+    val useNewLibraryUI2 = bool("use_new_library_ui_2").default(false)
+    val showContinueReading = bool("show_continue_reading").default(true)
+    val useImmersiveMorphingCover = bool("use_immersive_morphing_cover").default(false)
 
     override val primaryKey = PrimaryKey(version)
     }

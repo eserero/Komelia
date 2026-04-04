@@ -9,6 +9,7 @@ import snd.komelia.settings.model.AppTheme
 enum class Theme(
     val colorScheme: ColorScheme,
     val type: ThemeType,
+    val transparentBars: Boolean = false,
 ) {
     DARK(
         darkColorScheme(
@@ -86,6 +87,108 @@ enum class Theme(
         ThemeType.LIGHT
     ),
 
+    LIGHT_MODERN(
+        lightColorScheme(
+            primary = Color(0xFF6A1CF6.toInt()),
+            onPrimary = Color(0xFFF7F0FF.toInt()),
+            primaryContainer = Color(0xFFAC8EFF.toInt()),
+            onPrimaryContainer = Color(0xFF2A0070.toInt()),
+
+            secondary = Color(0xFF5C5B5B.toInt()),
+            onSecondary = Color(0xFFF5F2F1.toInt()),
+            secondaryContainer = Color(0xFFE5E2E1.toInt()),
+            onSecondaryContainer = Color(0xFF525151.toInt()),
+
+            tertiary = Color(0xFF9720AB.toInt()),
+            onTertiary = Color(0xFFFEEEFB.toInt()),
+            tertiaryContainer = Color(0xFFF288FF.toInt()),
+            onTertiaryContainer = Color(0xFF570066.toInt()),
+
+            background = Color(0xFFF8F6F1.toInt()),
+            onBackground = Color(0xFF2E2F2C.toInt()),
+
+            surface = Color(0xFFF8F6F1.toInt()),
+            onSurface = Color(0xFF2E2F2C.toInt()),
+
+            surfaceVariant = Color(0xFFDEDDD7.toInt()),
+            onSurfaceVariant = Color(0xFF5C5C58.toInt()),
+
+            surfaceContainerLowest = Color(0xFFFFFFFF.toInt()),
+            surfaceContainerLow = Color(0xFFF2F1EB.toInt()),
+            surfaceContainer = Color(0xFFEAE8E3.toInt()),
+            surfaceContainerHigh = Color(0xFFE4E2DD.toInt()),
+            surfaceContainerHighest = Color(0xFFDEDDD7.toInt()),
+
+            surfaceDim = Color(0xFFD5D5CE.toInt()),
+            surfaceBright = Color(0xFFF8F6F1.toInt()),
+
+            outline = Color(0xFF777773.toInt()),
+            outlineVariant = Color(0xFFAEADA9.toInt()),
+
+            error = Color(0xFFB41340.toInt()),
+            onError = Color(0xFFFFEFEF.toInt()),
+            errorContainer = Color(0xFFF74B6D.toInt()),
+            onErrorContainer = Color(0xFF510017.toInt()),
+
+            inversePrimary = Color(0xFF9D79FF.toInt()),
+            inverseSurface = Color(0xFF0E0E0C.toInt()),
+            inverseOnSurface = Color(0xFF9E9D99.toInt()),
+        ),
+        ThemeType.LIGHT,
+        transparentBars = true
+    ),
+
+    DARK_MODERN(
+        darkColorScheme(
+            primary = Color(0xFFBA9EFF.toInt()),
+            onPrimary = Color(0xFF39008C.toInt()),
+            primaryContainer = Color(0xFFAE8DFF.toInt()),
+            onPrimaryContainer = Color(0xFF2B006E.toInt()),
+
+            secondary = Color(0xFF9492FF.toInt()),
+            onSecondary = Color(0xFF120076.toInt()),
+            secondaryContainer = Color(0xFF3323CC.toInt()),
+            onSecondaryContainer = Color(0xFFCECBFF.toInt()),
+
+            tertiary = Color(0xFFFF97B8.toInt()),
+            onTertiary = Color(0xFF6A0936.toInt()),
+            tertiaryContainer = Color(0xFFFC81AB.toInt()),
+            onTertiaryContainer = Color(0xFF59002B.toInt()),
+
+            background = Color(0xFF0E0E0E.toInt()),
+            onBackground = Color(0xFFFFFFFF.toInt()),
+
+            surface = Color(0xFF0E0E0E.toInt()),
+            onSurface = Color(0xFFFFFFFF.toInt()),
+
+            surfaceVariant = Color(0xFF262626.toInt()),
+            onSurfaceVariant = Color(0xFFADAAAA.toInt()),
+
+            surfaceContainerLowest = Color(0xFF000000.toInt()),
+            surfaceContainerLow = Color(0xFF131313.toInt()),
+            surfaceContainer = Color(0xFF1A1A1A.toInt()),
+            surfaceContainerHigh = Color(0xFF20201F.toInt()),
+            surfaceContainerHighest = Color(0xFF262626.toInt()),
+
+            surfaceDim = Color(0xFF0E0E0E.toInt()),
+            surfaceBright = Color(0xFF2C2C2C.toInt()),
+
+            outline = Color(0xFF767575.toInt()),
+            outlineVariant = Color(0xFF484847.toInt()),
+
+            error = Color(0xFFFF6E84.toInt()),
+            onError = Color(0xFF490013.toInt()),
+            errorContainer = Color(0xFFA70138.toInt()),
+            onErrorContainer = Color(0xFFFFB2B9.toInt()),
+
+            inversePrimary = Color(0xFF6E3BD7.toInt()),
+            inverseSurface = Color(0xFFFCF9F8.toInt()),
+            inverseOnSurface = Color(0xFF565555.toInt()),
+        ),
+        ThemeType.DARK,
+        transparentBars = true
+    ),
+
     DARKER(
         darkColorScheme(
             primary = Color.White,
@@ -123,6 +226,13 @@ enum class Theme(
         ),
         ThemeType.DARK
     );
+
+    // Semi-transparent surface color used for bars in Modern themes.
+    // 80% opacity for the top app bar, 60% for the bottom nav bar.
+    val topBarContainerColor: Color
+        get() = if (transparentBars) colorScheme.surface.copy(alpha = 0.8f) else colorScheme.surfaceVariant
+    val navBarContainerColor: Color
+        get() = if (transparentBars) colorScheme.surface.copy(alpha = 0.6f) else colorScheme.surfaceVariant
 
     enum class ThemeType {
         LIGHT,

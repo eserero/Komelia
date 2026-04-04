@@ -9,8 +9,6 @@ import com.storyteller.reader.OverlayPar
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -76,7 +74,6 @@ class Epub3ReaderState(
     val positions = MutableStateFlow<List<Locator>>(emptyList())
     val currentLocator = MutableStateFlow<Locator?>(null)
     private var epubView: EpubView? = null
-    private var pendingControlsToggleJob: Job? = null
     private val navigator = MutableStateFlow<Navigator?>(null)
     private val bookUuid: String get() = this.bookId.value.value
 
@@ -146,7 +143,6 @@ class Epub3ReaderState(
 
     override suspend fun initialize(navigator: Navigator) {
         this.navigator.value = navigator
-        if (platformType == PlatformType.MOBILE) windowState.setFullscreen(true)
         if (state.value !is LoadState.Uninitialized) return
 
         logger.debug { "[epub3-init] starting for bookId=${bookId.value.value}" }
@@ -267,15 +263,16 @@ class Epub3ReaderState(
             }
 
             override fun onMiddleTouch() {
-                pendingControlsToggleJob?.cancel()
-                pendingControlsToggleJob = coroutineScope.launch {
-                    delay(400L)   // JS double-tap window is 350ms; 400ms gives headroom
-                    toggleControls()
+                if (showSettings.value || showToc.value || showControls.value) {
+                    showSettings.value = false
+                    showToc.value = false
+                    showControls.value = false
+                } else {
+                    showControls.value = true
                 }
             }
 
             override fun onDoubleTouch(locator: Locator) {
-                pendingControlsToggleJob?.cancel()
                 // F2: double-tap → seek audio to that paragraph and play
                 mediaOverlayController.value?.handleDoubleTap(locator)
             }
