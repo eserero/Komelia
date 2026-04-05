@@ -60,6 +60,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.snd_r.komelia.ui.komelia_ui.generated.resources.NotoSerif_Bold
@@ -212,45 +213,67 @@ class LibraryScreen(
 
                     val showContinueReading = vm.showContinueReading.collectAsState().value
                     val newUI2BeforeContent = @Composable {
-                        Column {
-                            LibraryHeaderSection(
-                                library = library,
-                                totalCount = totalCount,
-                                countLabel = countLabel,
-                                pageSize = pageSize,
-                                onPageSizeChange = onPageSizeChange,
-                                sortOrder = if (vm.currentTab == SERIES) vm.seriesTabState.filterState.state.collectAsState().value.sortOrder else null,
-                                onSortChange = if (vm.currentTab == SERIES) vm.seriesTabState.filterState::onSortOrderChange else null
-                            )
-                            LibraryTabChips(
-                                currentTab = vm.currentTab,
-                                collectionsCount = vm.collectionsCount,
-                                readListsCount = vm.readListsCount,
-                                showContinueReading = showContinueReading,
-                                onReadingClick = vm::toggleContinueReading,
-                                onBrowseClick = vm::toBrowseTab,
-                                onCollectionsClick = vm::toCollectionsTab,
-                                onReadListsClick = vm::toReadListsTab,
-                            )
-                            if (showContinueReading) {
-                                ContinueReadingSection(
-                                    books = vm.keepReadingBooks,
-                                    bookMenuActions = vm.seriesTabState.bookMenuActions(),
-                                    onBookClick = { navigator.push(bookScreen(it)) },
-                                    onBookReadClick = { book, mark ->
-                                        navigator.push(
-                                            readerScreen(
-                                                book = book,
-                                                markReadProgress = mark,
-                                                onExit = { lastReadBook ->
-                                                    if (lastReadBook.id != book.id) {
-                                                        vm.reload()
-                                                    }
-                                                }
-                                            )
-                                        )
+                        val gridPadding = if (useNewUI2) 10.dp else 20.dp
+                        val density = LocalDensity.current
+                        Surface(
+                            modifier = Modifier
+                                .layout { measurable, constraints ->
+                                    val insetPx = with(density) { gridPadding.roundToPx() }
+                                    val placeable = measurable.measure(
+                                        constraints.copy(maxWidth = constraints.maxWidth + insetPx * 2)
+                                    )
+                                    layout(constraints.maxWidth, placeable.height) {
+                                        placeable.place(-insetPx, 0)
                                     }
+                                }
+                                .fillMaxWidth(),
+                            shape = RectangleShape,
+                            color = MaterialTheme.colorScheme.background,
+                        ) {
+                            Column {
+                                LibraryHeaderSection(
+                                    library = library,
+                                    totalCount = totalCount,
+                                    countLabel = countLabel,
+                                    pageSize = pageSize,
+                                    onPageSizeChange = onPageSizeChange,
+                                    sortOrder = if (vm.currentTab == SERIES) vm.seriesTabState.filterState.state.collectAsState().value.sortOrder else null,
+                                    onSortChange = if (vm.currentTab == SERIES) vm.seriesTabState.filterState::onSortOrderChange else null,
+                                    modifier = Modifier.padding(horizontal = gridPadding)
                                 )
+                                LibraryTabChips(
+                                    currentTab = vm.currentTab,
+                                    collectionsCount = vm.collectionsCount,
+                                    readListsCount = vm.readListsCount,
+                                    showContinueReading = showContinueReading,
+                                    onReadingClick = vm::toggleContinueReading,
+                                    onBrowseClick = vm::toBrowseTab,
+                                    onCollectionsClick = vm::toCollectionsTab,
+                                    onReadListsClick = vm::toReadListsTab,
+                                    contentPadding = PaddingValues(horizontal = gridPadding)
+                                )
+                                if (showContinueReading) {
+                                    ContinueReadingSection(
+                                        books = vm.keepReadingBooks,
+                                        bookMenuActions = vm.seriesTabState.bookMenuActions(),
+                                        onBookClick = { navigator.push(bookScreen(it)) },
+                                        onBookReadClick = { book, mark ->
+                                            navigator.push(
+                                                readerScreen(
+                                                    book = book,
+                                                    markReadProgress = mark,
+                                                    onExit = { lastReadBook ->
+                                                        if (lastReadBook.id != book.id) {
+                                                            vm.reload()
+                                                        }
+                                                    }
+                                                )
+                                            )
+                                        },
+                                        gridPadding = gridPadding
+                                    )
+                                }
+                                Spacer(Modifier.height(10.dp))
                             }
                         }
                     }
@@ -268,6 +291,8 @@ class LibraryScreen(
                         val barHeight = 45.dp
                         val statusBarHeight = if (theme.transparentBars) LocalRawStatusBarHeight.current else 0.dp
                         val screenHazeState = if (theme.transparentBars) rememberHazeState() else null
+                        val containerColor = if (theme.type == Theme.ThemeType.DARK) Color(43, 43, 43)
+                        else MaterialTheme.colorScheme.surfaceVariant
                         CompositionLocalProvider(
                             LocalFloatingToolbarPadding provides barHeight + statusBarHeight,
                             LocalHazeState provides screenHazeState,
@@ -276,6 +301,7 @@ class LibraryScreen(
                                 Box(
                                     Modifier
                                         .fillMaxSize()
+                                        .background(containerColor)
                                         .then(if (screenHazeState != null) Modifier.hazeSource(screenHazeState) else Modifier)
                                 ) {
                                     tabContent()
@@ -436,53 +462,31 @@ private fun ContinueReadingSection(
     bookMenuActions: BookMenuActions,
     onBookClick: (KomeliaBook) -> Unit,
     onBookReadClick: (KomeliaBook, Boolean) -> Unit,
+    gridPadding: Dp,
 ) {
     if (books.isEmpty()) return
-    val theme = LocalTheme.current
-    val containerColor = if (theme.type == Theme.ThemeType.DARK) Color(43, 43, 43)
-    else MaterialTheme.colorScheme.surfaceVariant
 
-    val gridPadding = 10.dp
-    val density = LocalDensity.current
-
-    Surface(
-        modifier = Modifier
-            .layout { measurable, constraints ->
-                val insetPx = with(density) { gridPadding.roundToPx() }
-                val placeable = measurable.measure(
-                    constraints.copy(maxWidth = constraints.maxWidth + insetPx * 2)
-                )
-                layout(constraints.maxWidth, placeable.height) {
-                    placeable.place(-insetPx, 0)
-                }
-            }
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        shape = RectangleShape,
-        color = containerColor,
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(vertical = 12.dp)
+        Text(
+            "Continue Reading",
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+            modifier = Modifier.padding(start = gridPadding, end = gridPadding, bottom = 12.dp)
+        )
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = gridPadding),
+            horizontalArrangement = Arrangement.spacedBy(7.dp)
         ) {
-            Text(
-                "Continue Reading",
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                modifier = Modifier.padding(start = gridPadding, end = gridPadding, bottom = 12.dp)
-            )
-            LazyRow(
-                contentPadding = PaddingValues(horizontal = gridPadding),
-                horizontalArrangement = Arrangement.spacedBy(7.dp)
-            ) {
-                items(books, key = { it.id.value }) { book ->
-                    BookImageCard(
-                        book = book,
-                        onBookReadClick = { onBookReadClick(book, it) },
-                        onBookClick = { onBookClick(book) },
-                        bookMenuActions = bookMenuActions,
-                        showSeriesTitle = true,
-                        modifier = Modifier.width(120.dp),
-                    )
-                }
+            items(books, key = { it.id.value }) { book ->
+                BookImageCard(
+                    book = book,
+                    onBookReadClick = { onBookReadClick(book, it) },
+                    onBookClick = { onBookClick(book) },
+                    bookMenuActions = bookMenuActions,
+                    showSeriesTitle = true,
+                    modifier = Modifier.width(120.dp),
+                )
             }
         }
     }
@@ -497,10 +501,11 @@ private fun LibraryHeaderSection(
     onPageSizeChange: (Int) -> Unit,
     sortOrder: LibrarySeriesTabState.SeriesSort? = null,
     onSortChange: ((LibrarySeriesTabState.SeriesSort) -> Unit)? = null,
+    modifier: Modifier = Modifier,
 ) {
     val notoSerif = FontFamily(Font(Res.font.NotoSerif_Bold, FontWeight.Bold))
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(vertical = 12.dp),
     ) {
@@ -548,11 +553,12 @@ private fun LibraryTabChips(
     onBrowseClick: () -> Unit,
     onCollectionsClick: () -> Unit,
     onReadListsClick: () -> Unit,
+    contentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
     val chipColors = AppFilterChipDefaults.filterChipColors()
     LazyRow(
         modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-        contentPadding = PaddingValues(horizontal = 0.dp),
+        contentPadding = contentPadding,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         if (collectionsCount > 0 || readListsCount > 0) {
