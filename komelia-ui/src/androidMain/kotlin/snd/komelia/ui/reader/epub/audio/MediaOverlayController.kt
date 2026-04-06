@@ -60,18 +60,21 @@ class MediaOverlayController(
     private var lastHighlightedClip: OverlayPar? = null
     private var pendingUserLocator: Locator? = null   // page the user navigated to while paused
     private var pageTurnJob: Job? = null              // scheduled mid-clip page flip
+    private var lastScheduledClip: OverlayPar? = null // clip of currently running pageTurnJob
 
     private val player: AudiobookPlayer = AudiobookPlayer(
         context = context,
         coroutineScope = coroutineScope,
         listener = object : Listener {
             override fun onClipChanged(overlayPar: OverlayPar) {
+                logger.info { "[EPUB-DIAG] [AUDIO-MOVE] Audio playing clip: ${overlayPar.audioResource} at ${overlayPar.start}s -> Target Text: ${overlayPar.locator.href}" }
                 logger.info {
                     "[komelia-epub] AUDIO-CLIP: clip=${overlayPar.locator.href} " +
                     "fragment=${overlayPar.locator.locations.fragments.firstOrNull()} " +
                     "audioResource=${overlayPar.audioResource}"
                 }
                 pageTurnJob?.cancel()
+                lastScheduledClip = null
                 lastHighlightedClip = overlayPar
                 if (!_isPlaying.value) return
                 val view = epubView ?: return
@@ -103,6 +106,7 @@ class MediaOverlayController(
                     }
                 } else {
                     pageTurnJob?.cancel()
+                    lastScheduledClip = null
                     epubView?.clearHighlightFragment()
                     elapsedTimeJob?.cancel()
                 }
@@ -127,7 +131,7 @@ class MediaOverlayController(
     )
 
     @OptIn(InternalReadiumApi::class)
-    suspend fun initialize(clips: List<OverlayPar>) {
+    suspend fun initialize(clips: List<OverlayPar>, initialLocator: Locator?) {
         if (clips.isEmpty()) return
 
         logger.debug { "[epub3-audio] initialize: start, clips=${clips.size}" }
@@ -175,8 +179,16 @@ class MediaOverlayController(
         if (tracks.isNotEmpty()) {
             loadedTracks = tracks
             _totalDurationSeconds.value = tracks.sumOf { it.duration }
-            logger.debug { "[epub3-audio] initialize: calling loadTracks" }
-            player.loadTracks(tracks)
+
+            val initialClip = initialLocator?.let { findClipForLocator(it) }
+            val initialIndex = initialClip?.let { clip ->
+                tracks.indexOfFirst { it.relativeUri == clip.audioResource }.coerceAtLeast(0)
+            } ?: 0
+            val initialPosition = initialClip?.start ?: 0.0
+
+            logger.debug { "[epub3-audio] initialize: calling loadTracks with initialIndex=$initialIndex initialPosition=$initialPosition" }
+            player.loadTracks(tracks, initialIndex, initialPosition)
+            logger.info { "[EPUB-DIAG] [AUDIO-READY] ClipsLoaded: ${clips.size} | TracksCreated: ${loadedTracks.size}" }
             logger.debug { "[epub3-audio] initialize: loadTracks returned" }
         }
     }
@@ -248,8 +260,12 @@ class MediaOverlayController(
             "isPlaying=${_isPlaying.value} " +
             "pendingUserLocator=${pendingUserLocator?.href}"
         }
+        pageTurnJob?.cancel()
+        lastScheduledClip = null
+
         // Removed: 500ms audio-driven suppression guard (no feedback loop path exists)
         if (!_isPlaying.value) {
+            logger.info { "[EPUB-DIAG] [AUDIO-IGNORE] Reason: PAUSED | Action: Stored in pendingUserLocator -> ${locator.href}" }
             // Paused: remember where to start, don't highlight
             pendingUserLocator = locator
             logger.info { "[komelia-epub] AUDIO-USER-LOC: stored as pendingUserLocator (paused)" }
@@ -277,9 +293,11 @@ class MediaOverlayController(
                 // New page's first clip is immediately adjacent — might be a spanning paragraph.
                 // Check if the current fragment overflows (not entirely on screen).
                 val fragmentId = currentClip.locator.locations.fragments.firstOrNull()
+                logger.info { "[EPUB-DIAG] [SPAN-CHECK] CurrentIdx: $currentIdx | NewIdx: $newIdx | Fragment: $fragmentId" }
                 if (fragmentId != null) {
                     epubView?.checkIsEntirelyOnScreen(fragmentId) { isOnScreen ->
                         if (!isOnScreen) {
+                            logger.info { "[EPUB-DIAG] [AUDIO-IGNORE] Reason: SPANNING PARAGRAPH | Fragment: $fragmentId is not fully on screen." }
                             // Spanning paragraph — user just paged through the overflow. Don't seek.
                             audioNavigatingAt = System.currentTimeMillis()
                             return@checkIsEntirelyOnScreen
@@ -295,11 +313,14 @@ class MediaOverlayController(
     }
 
     private fun doSeekToLocator(locator: Locator) {
-        val clip = findClipForLocator(locator) ?: return
+        val clip = findClipForLocator(locator)
+        logger.info { "[EPUB-DIAG] [AUDIO-LOOKUP] TargetLocator: ${locator.href} | ClipFound: ${clip != null} | StartTime: ${clip?.start}" }
+        if (clip == null) return
         player.seekTo(clip.audioResource, clip.start, skipEmit = true)
     }
 
     private fun schedulePageTurnIfNeeded(clip: OverlayPar) {
+        if (clip == lastScheduledClip) return
         logger.info {
             "[komelia-epub] AUDIO-PAGE-TURN: scheduling for clip=${clip.locator.href} " +
             "fragment=${clip.locator.locations.fragments.firstOrNull()}"
@@ -311,6 +332,7 @@ class MediaOverlayController(
         val fragmentId = clip.locator.locations.fragments.firstOrNull() ?: return
         val clipDuration = (clip.end - clip.start).coerceAtLeast(0.1)
 
+        lastScheduledClip = clip
         epubView?.getFragmentVisibilityRatio(fragmentId) { ratio ->
             logger.info { "[komelia-epub] AUDIO-PAGE-TURN: ratio=$ratio for fragment=$fragmentId" }
             if (ratio >= 1.0) return@getFragmentVisibilityRatio   // fully visible, nothing to do

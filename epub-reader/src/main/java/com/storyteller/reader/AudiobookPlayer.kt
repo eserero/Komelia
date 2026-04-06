@@ -491,7 +491,12 @@ class AudiobookPlayer(
     private var lastPaused: Instant? = null
 
     @androidx.annotation.OptIn(UnstableApi::class)
-    suspend fun loadTracks(tracks: List<Track>) {
+    suspend fun loadTracks(
+        tracks: List<Track>,
+        initialIndex: Int = 0,
+        initialPosition: Double = 0.0
+    ) {
+        android.util.Log.i("epub3-diag", "[EPUB-DIAG] [PLAYER-RESET] Calling unload() - clearing existing ExoPlayer session.")
         val sessionToken =
             SessionToken(context, ComponentName(context, PlaybackService::class.java))
 
@@ -532,7 +537,7 @@ class AudiobookPlayer(
                 relativeUriToClips = relativeUriToClipsMutable
 
                 val relativeUriToIndexMutable = mutableMapOf<String, Int>()
-                tracks.forEachIndexed { index, track ->
+                val mediaItems = tracks.mapIndexed { index, track ->
                     val metadata = MediaMetadata.Builder().apply {
                         setTrackNumber(index + 1)
                         setTotalTrackCount(tracks.size)
@@ -545,18 +550,16 @@ class AudiobookPlayer(
                         setExtras(Bundle().apply { putString("bookUuid", bookUuid) })
                     }.build()
 
-                    val mediaItem =
-                        MediaItem.Builder().apply {
-                            setMediaId(track.relativeUri)
-                            setUri(track.uri)
-                            setMimeType(track.mimeType)
-                            setMediaMetadata(metadata)
-                        }.build()
-
-                    controller.addMediaItem(mediaItem)
                     relativeUriToIndexMutable[track.relativeUri] = index
+                    MediaItem.Builder().apply {
+                        setMediaId(track.relativeUri)
+                        setUri(track.uri)
+                        setMimeType(track.mimeType)
+                        setMediaMetadata(metadata)
+                    }.build()
                 }
                 relativeUriToIndex = relativeUriToIndexMutable
+                controller.setMediaItems(mediaItems, initialIndex, (initialPosition * 1000).roundToLong())
 
                 val rt = Runtime.getRuntime()
                 val preUsed = (rt.totalMemory() - rt.freeMemory()) / 1_048_576

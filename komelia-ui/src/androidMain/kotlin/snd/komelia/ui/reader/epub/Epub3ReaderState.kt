@@ -102,6 +102,7 @@ class Epub3ReaderState(
             "currentLocator_before=${currentLocator.value?.href}"
         }
         epubView?.go(locator)
+        mediaOverlayController.value?.handleUserLocatorChange(locator)
         // onLocatorChange will fire after go() and call handleUserLocatorChange,
         // exactly like swipe navigation — the locator from EpubView has proper
         // position data, not a TOC anchor fragment.
@@ -187,6 +188,7 @@ class Epub3ReaderState(
                     )
                 }
             }
+            logger.info { "[EPUB-DIAG] [INIT] BookID: ${bookId.value.value} | SavedLocator: ${savedLocator?.href}#${savedLocator?.locations?.fragments?.firstOrNull()}" }
 
             logger.debug { "[epub3-init] succeeded" }
             state.value = LoadState.Success(Unit)
@@ -206,7 +208,7 @@ class Epub3ReaderState(
                     logger.debug { "[epub3-init] initializing media overlay controller in background (${clips.size} clips)" }
                     runCatching {
                         val controller = MediaOverlayController(context, coroutineScope, bookUuid, extractedDir)
-                        controller.initialize(clips)
+                        controller.initialize(clips, savedLocator)
                         controller.applyAudioSettings(settings.value)
                         mediaOverlayController.value = controller
                         epubView?.let { view ->
@@ -226,13 +228,16 @@ class Epub3ReaderState(
     }
 
     fun onEpubViewCreated(view: EpubView) {
+        logger.info { "[EPUB-DIAG] [VIEW-READY] SavedLocator: ${savedLocator?.href} | ControllerReady: ${mediaOverlayController.value != null}" }
         logger.info { "[komelia-epub] INIT: savedLocator=${savedLocator?.href} currentLocator=${currentLocator.value?.href}" }
         view.listener = object : EpubViewListener {
             override fun onRawLocatorChange(locator: Locator) {
+                logger.info { "[EPUB-DIAG] [RAW-LOCATOR-CB] incoming=${locator.href}#${locator.locations.fragments.firstOrNull()}" }
                 currentLocator.value = locator
             }
 
             override fun onLocatorChange(locator: Locator) {
+                logger.info { "[EPUB-DIAG] [TEXT-MOVE] NewLocator: ${locator.href}#${locator.locations.fragments.firstOrNull()} | ControllerReady: ${mediaOverlayController.value != null}" }
                 logger.info {
                     "[komelia-epub] LOCATOR-CB: incoming=${locator.href} title=${locator.title} " +
                     "currentLocator=${currentLocator.value?.href}"
