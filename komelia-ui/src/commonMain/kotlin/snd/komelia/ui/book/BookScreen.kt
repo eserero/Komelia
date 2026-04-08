@@ -86,7 +86,9 @@ class BookScreen(
             ImmersiveBookContent(
                 book = book,
                 siblingBooks = siblings,
+                library = vm.library,
                 accentColor = LocalAccentColor.current,
+                onLibraryClick = { navigator.push(LibraryScreen(it.id)) },
                 bookMenuActions = vm.bookMenuActions,
                 onBackClick = { onBackPress(navigator, book.seriesId) },
                 onReadBook = { selectedBook, markReadProgress ->

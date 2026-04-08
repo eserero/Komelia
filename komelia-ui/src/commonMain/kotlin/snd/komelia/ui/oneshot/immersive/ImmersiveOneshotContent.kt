@@ -12,6 +12,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
@@ -40,6 +42,8 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PrimaryTabRow
+import androidx.compose.material3.SuggestionChip
+import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
@@ -215,16 +219,16 @@ fun ImmersiveOneshotContent(
             initiallyExpanded = initiallyExpanded,
             onExpandChange = onExpandChange,
             publisherLogo = publisherLogo,
-            heroTextContent = if (useMorphingCover) {
-                { expandFraction ->
-                    snd.komelia.ui.common.immersive.ImmersiveHeroText(
-                        seriesTitle = title,
-                        authorYear = authorYearText,
-                        expandFraction = expandFraction,
-                        accentColor = accentColor,
-                    )
-                }
-            } else null,
+            thumbnailWidth = cardWidth,
+            heroTextContent = { expandFraction ->
+                snd.komelia.ui.common.immersive.ImmersiveHeroText(
+                    seriesTitle = title,
+                    authorYear = authorYearText,
+                    expandFraction = expandFraction,
+                    accentColor = accentColor,
+                    onSeriesClick = null,
+                )
+            },
             topBarContent = {},   // Fixed overlay handles this
             fabContent = {},      // Fixed overlay handles this
             cardContent = { expandFraction, onThumbnailPositioned, onTextPositioned ->
@@ -370,9 +374,9 @@ private fun OneshotCardContent(
     authorYearText: String,
 ) {
     val useMorphingCover = LocalUseImmersiveMorphingCover.current
-    val thumbnailOffset = (126.dp * expandFraction).coerceAtLeast(0.dp)
+    val thumbnailOffset = ((cardWidth + 16.dp) * expandFraction).coerceAtLeast(0.dp)
     val thumbnailTopGap = if (useMorphingCover) 48.dp else 20.dp
-    val thumbnailHeight = 110.dp / 0.703f // ≈ 156.5 dp
+    val thumbnailHeight = cardWidth / 0.703f // ≈ 156.5 dp
 
     val navBarBottom = with(LocalDensity.current) {
         WindowInsets.navigationBars.getBottom(this).toDp()
@@ -383,15 +387,6 @@ private fun OneshotCardContent(
         horizontalArrangement = Arrangement.spacedBy(0.dp),
         contentPadding = PaddingValues(bottom = navBarBottom + 80.dp),
     ) {
-        // Collapsed stats line (fades out as card expands)
-        item(span = { GridItemSpan(maxLineSpan) }) {
-            val alpha = (1f - expandFraction * 2f).coerceIn(0f, 1f)
-            if (alpha > 0.01f)
-                BookStatsLine(book, Modifier
-                    .padding(start = 16.dp, end = 16.dp, top = 4.dp)
-                    .graphicsLayer { this.alpha = alpha })
-        }
-
         // Header: book title + writers (year)
         item {
             Box(
@@ -423,7 +418,7 @@ private fun OneshotCardContent(
                 if (useMorphingCover) {
                     Box(
                         modifier = Modifier
-                            .size(width = 110.dp, height = thumbnailHeight)
+                            .size(width = cardWidth, height = thumbnailHeight)
                             .onGloballyPositioned { onThumbnailPositioned(it) }
                             .graphicsLayer { alpha = if (expandFraction > 0.99f) 1f else 0f }
                     ) {
@@ -433,23 +428,8 @@ private fun OneshotCardContent(
                             crossfade = false,
                             contentScale = ContentScale.Crop,
                             modifier = Modifier
-                                .size(width = 110.dp, height = thumbnailHeight)
+                                .size(width = cardWidth, height = thumbnailHeight)
                                 .clip(RoundedCornerShape(8.dp))
-                        )
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .padding(start = 126.dp)
-                            .onGloballyPositioned { onTextPositioned(it) }
-                            .graphicsLayer { alpha = if (expandFraction > 0.99f) 1f else 0f }
-                    ) {
-                        snd.komelia.ui.common.immersive.ImmersiveHeroText(
-                            seriesTitle = title,
-                            authorYear = authorYearText,
-                            expandFraction = 1f,
-                            accentColor = accentColor,
-                            modifier = Modifier.padding(horizontal = 0.dp)
                         )
                     }
                 } else if (expandFraction > 0.01f) {
@@ -463,30 +443,29 @@ private fun OneshotCardContent(
                             crossfade = false,
                             contentScale = ContentScale.Crop,
                             modifier = Modifier
-                                .size(width = 110.dp, height = thumbnailHeight)
+                                .size(width = cardWidth, height = thumbnailHeight)
                                 .clip(RoundedCornerShape(8.dp))
                         )
                     }
                 }
 
-                if (!useMorphingCover) {
-                    Column(modifier = Modifier.padding(start = thumbnailOffset)) {
-                        // Book title (headlineSmall, bold)
-                        Text(
-                            text = title,
-                            style = MaterialTheme.typography.headlineSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                            ),
-                        )
-                        // Writers (year) — labelSmall
-                        if (authorYearText.isNotEmpty()) {
-                            Text(
-                                text = authorYearText,
-                                style = MaterialTheme.typography.labelSmall,
-                                modifier = Modifier.padding(top = 2.dp),
-                            )
+                Box(
+                    modifier = Modifier
+                        .padding(start = thumbnailOffset)
+                        .onGloballyPositioned { onTextPositioned(it) }
+                        .graphicsLayer {
+                            if (useMorphingCover) alpha = if (expandFraction > 0.99f) 1f else 0f
                         }
-                    }
+                ) {
+                    snd.komelia.ui.common.immersive.ImmersiveHeroText(
+                        seriesTitle = title,
+                        authorYear = authorYearText,
+                        expandFraction = 1f,
+                        accentColor = accentColor,
+                        onSeriesClick = null,
+                        horizontalPadding = 0.dp,
+                        modifier = Modifier.padding(horizontal = 0.dp)
+                    )
                 }
 
                 if (publisherLogo != null && expandFraction > 0.01f) {
@@ -505,13 +484,9 @@ private fun OneshotCardContent(
             }
         }
 
-        // Expanded stats line (fades in as card expands)
+        // Stats line
         item(span = { GridItemSpan(maxLineSpan) }) {
-            val alpha = (expandFraction * 2f - 1f).coerceIn(0f, 1f)
-            if (alpha > 0.01f)
-                BookStatsLine(book, Modifier
-                    .padding(horizontal = 16.dp, vertical = 4.dp)
-                    .graphicsLayer { this.alpha = alpha })
+            BookStatsLine(book, Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
         }
 
         // SeriesDescriptionRow (library, status, age rating, etc.)
@@ -527,6 +502,9 @@ private fun OneshotCardContent(
                 deleted = series.deleted || library.unavailable,
                 alternateTitles = series.metadata.alternateTitles,
                 onFilterClick = onFilterClick,
+                totalPagesCount = book.media.pagesCount,
+                pagesLeftCount = book.readProgress?.let { if (it.completed) null else book.media.pagesCount - it.page },
+                accentColor = accentColor,
                 showReleaseYear = false,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
             )
@@ -651,26 +629,20 @@ private fun OneshotImmersiveTabRow(
 
 @Composable
 private fun BookStatsLine(book: KomeliaBook, modifier: Modifier = Modifier) {
-    val pagesCount = book.media.pagesCount
     val segments = remember(book) {
         buildList {
-            add("$pagesCount page${if (pagesCount == 1) "" else "s"}")
-            book.metadata.releaseDate?.let { add(it.toString()) }
+            book.metadata.releaseDate?.let { add("Publication date: $it") }
             book.readProgress?.let { progress ->
-                if (!progress.completed) {
-                    val pagesLeft = pagesCount - progress.page
-                    val pct = (progress.page.toFloat() / pagesCount * 100).roundToInt()
-                    add("$pct%, $pagesLeft page${if (pagesLeft == 1) "" else "s"} left")
-                }
-                add(progress.readDate
+                val accessed = progress.readDate
                     .toLocalDateTime(TimeZone.currentSystemDefault())
-                    .format(localDateTimeFormat))
+                    .format(localDateTimeFormat)
+                add("last accessed: $accessed")
             }
         }
     }
     if (segments.isEmpty()) return
     Text(
-        text = segments.joinToString(" | "),
+        text = segments.joinToString(" ! "),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = modifier,

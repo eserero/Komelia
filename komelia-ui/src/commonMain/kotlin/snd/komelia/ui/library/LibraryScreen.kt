@@ -270,7 +270,8 @@ class LibraryScreen(
                                                 )
                                             )
                                         },
-                                        gridPadding = gridPadding
+                                        gridPadding = gridPadding,
+                                        cardWidth = vm.cardWidth.collectAsState().value
                                     )
                                 }
                                 Spacer(Modifier.height(10.dp))
@@ -463,6 +464,7 @@ private fun ContinueReadingSection(
     onBookClick: (KomeliaBook) -> Unit,
     onBookReadClick: (KomeliaBook, Boolean) -> Unit,
     gridPadding: Dp,
+    cardWidth: Dp,
 ) {
     if (books.isEmpty()) return
 
@@ -485,7 +487,7 @@ private fun ContinueReadingSection(
                     onBookClick = { onBookClick(book) },
                     bookMenuActions = bookMenuActions,
                     showSeriesTitle = true,
-                    modifier = Modifier.width(120.dp),
+                    modifier = Modifier.width(cardWidth),
                 )
             }
         }

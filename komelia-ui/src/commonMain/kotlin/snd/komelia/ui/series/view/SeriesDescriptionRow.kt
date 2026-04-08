@@ -21,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.text.font.FontWeight
@@ -53,6 +54,11 @@ fun SeriesDescriptionRow(
     deleted: Boolean,
     alternateTitles: List<KomgaAlternativeTitle>,
     onFilterClick: (SeriesScreenFilter) -> Unit,
+    totalBooksCount: Int? = null,
+    totalBookCount: Int? = null,
+    totalPagesCount: Int? = null,
+    pagesLeftCount: Int? = null,
+    accentColor: Color? = null,
     showReleaseYear: Boolean = true,
     modifier: Modifier
 ) {
@@ -130,6 +136,40 @@ fun SeriesDescriptionRow(
                     border = null,
                     colors = SuggestionChipDefaults.suggestionChipColors(
                         containerColor = MaterialTheme.colorScheme.errorContainer
+                    )
+                )
+            }
+
+            totalBooksCount?.let { booksCount ->
+                val booksLabel = buildString {
+                    append(booksCount)
+                    if (totalBookCount != null) append(" / $totalBookCount")
+                    if (booksCount > 1 || totalBookCount?.let { it > 1 } == true) append(" books")
+                    else append(" book")
+                }
+                SuggestionChip(
+                    onClick = {},
+                    label = { Text(booksLabel) },
+                )
+            }
+
+            totalPagesCount?.let { pagesCount ->
+                SuggestionChip(
+                    onClick = {},
+                    label = { Text("$pagesCount Pages") },
+                )
+            }
+
+            pagesLeftCount?.let { pagesLeft ->
+                SuggestionChip(
+                    onClick = {},
+                    label = { Text("$pagesLeft pages left") },
+                    colors = SuggestionChipDefaults.suggestionChipColors(
+                        labelColor = accentColor ?: MaterialTheme.colorScheme.onSurfaceVariant
+                    ),
+                    border = SuggestionChipDefaults.suggestionChipBorder(
+                        enabled = true,
+                        borderColor = accentColor ?: MaterialTheme.colorScheme.outline
                     )
                 )
             }

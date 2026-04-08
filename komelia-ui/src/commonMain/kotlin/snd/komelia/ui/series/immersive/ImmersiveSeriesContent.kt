@@ -213,16 +213,16 @@ fun ImmersiveSeriesContent(
         initiallyExpanded = initiallyExpanded,
         onExpandChange = onExpandChange,
         publisherLogo = publisherLogo,
-        heroTextContent = if (useMorphingCover) {
-            { expandFraction ->
-                snd.komelia.ui.common.immersive.ImmersiveHeroText(
-                    seriesTitle = title,
-                    authorYear = authorYearText,
-                    expandFraction = expandFraction,
-                    accentColor = accentColor,
-                )
-            }
-        } else null,
+        thumbnailWidth = gridMinWidth,
+        heroTextContent = { expandFraction ->
+            snd.komelia.ui.common.immersive.ImmersiveHeroText(
+                seriesTitle = title,
+                authorYear = authorYearText,
+                expandFraction = expandFraction,
+                accentColor = accentColor,
+                onSeriesClick = null,
+            )
+        },
         topBarContent = {
             if (selectionMode) {
                 BulkActionsContainer(
@@ -293,11 +293,11 @@ fun ImmersiveSeriesContent(
             )
         },
         cardContent = { expandFraction, onThumbnailPositioned, onTextPositioned ->
-            val thumbnailOffset = (126.dp * expandFraction).coerceAtLeast(0.dp)
+            val thumbnailOffset = ((gridMinWidth + 16.dp) * expandFraction).coerceAtLeast(0.dp)
 
             // Thumbnail metrics — must match ImmersiveDetailScaffold Layer 3
             val thumbnailTopGap = if (useMorphingCover) 48.dp else 20.dp
-            val thumbnailHeight = 110.dp / 0.703f // ≈ 156.5 dp
+            val thumbnailHeight = gridMinWidth / 0.703f // ≈ 156.5 dp
 
             val navBarBottom = with(LocalDensity.current) {
                 WindowInsets.navigationBars.getBottom(this).toDp()
@@ -342,7 +342,7 @@ fun ImmersiveSeriesContent(
                         if (useMorphingCover) {
                             Box(
                                 modifier = Modifier
-                                    .size(width = 110.dp, height = thumbnailHeight)
+                                    .size(width = gridMinWidth, height = thumbnailHeight)
                                     .onGloballyPositioned { onThumbnailPositioned(it) }
                                     .graphicsLayer { alpha = if (expandFraction > 0.99f) 1f else 0f }
                             ) {
@@ -352,23 +352,8 @@ fun ImmersiveSeriesContent(
                                     crossfade = false,
                                     contentScale = ContentScale.Crop,
                                     modifier = Modifier
-                                        .size(width = 110.dp, height = thumbnailHeight)
+                                        .size(width = gridMinWidth, height = thumbnailHeight)
                                         .clip(RoundedCornerShape(8.dp))
-                                )
-                            }
-
-                            Box(
-                                modifier = Modifier
-                                    .padding(start = 126.dp)
-                                    .onGloballyPositioned { onTextPositioned(it) }
-                                    .graphicsLayer { alpha = if (expandFraction > 0.99f) 1f else 0f }
-                            ) {
-                                snd.komelia.ui.common.immersive.ImmersiveHeroText(
-                                    seriesTitle = title,
-                                    authorYear = authorYearText,
-                                    expandFraction = 1f,
-                                    accentColor = accentColor,
-                                    modifier = Modifier.padding(horizontal = 0.dp)
                                 )
                             }
                         } else if (expandFraction > 0.01f) {
@@ -382,30 +367,31 @@ fun ImmersiveSeriesContent(
                                     crossfade = false,
                                     contentScale = ContentScale.Crop,
                                     modifier = Modifier
-                                        .size(width = 110.dp, height = thumbnailHeight)
+                                        .size(width = gridMinWidth, height = thumbnailHeight)
                                         .clip(RoundedCornerShape(8.dp))
                                 )
                             }
                         }
 
-                        if (!useMorphingCover) {
-                            Column(modifier = Modifier.padding(start = thumbnailOffset)) {
-                                Text(
-                                    text = title,
-                                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                                )
-                                if (authorYearText.isNotEmpty()) {
-                                    Text(
-                                        text = authorYearText,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        modifier = Modifier.padding(top = 2.dp),
-                                    )
+                        Box(
+                            modifier = Modifier
+                                .padding(start = thumbnailOffset)
+                                .onGloballyPositioned { onTextPositioned(it) }
+                                .graphicsLayer {
+                                    if (useMorphingCover) alpha = if (expandFraction > 0.99f) 1f else 0f
                                 }
-                            }
-                        }
+                        ) {
+                            snd.komelia.ui.common.immersive.ImmersiveHeroText(
+                                seriesTitle = title,
+                                authorYear = authorYearText,
+                                expandFraction = 1f,
+                                accentColor = accentColor,
+                                onSeriesClick = null,
+                                horizontalPadding = 0.dp,
+                                modifier = Modifier.padding(horizontal = 0.dp)
+                            )                        }
 
-                        if (publisherLogo != null && expandFraction > 0.01f) {
-                            val logoHeight = thumbnailHeight * 0.25f
+                        if (publisherLogo != null && expandFraction > 0.01f) {                            val logoHeight = thumbnailHeight * 0.25f
                             Image(
                                 bitmap = publisherLogo,
                                 contentDescription = null,
@@ -434,6 +420,10 @@ fun ImmersiveSeriesContent(
                             deleted = series.deleted || library.unavailable,
                             alternateTitles = series.metadata.alternateTitles,
                             onFilterClick = onFilterClick,
+                            totalBooksCount = series.booksCount,
+                            totalBookCount = series.metadata.totalBookCount,
+                            totalPagesCount = booksData.books.sumOf { it.media.pagesCount },
+                            accentColor = accentColor,
                             showReleaseYear = false,
                             modifier = Modifier.padding(horizontal = 16.dp),
                         )

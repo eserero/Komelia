@@ -66,6 +66,7 @@ import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
@@ -127,6 +128,7 @@ fun ImmersiveDetailScaffold(
     topBarContent: @Composable () -> Unit,
     fabContent: @Composable () -> Unit,
     heroTextContent: (@Composable (expandFraction: Float) -> Unit)? = null,
+    thumbnailWidth: Dp = 110.dp,
     cardContent: @Composable ColumnScope.(
         expandFraction: Float,
         onThumbnailPositioned: (LayoutCoordinates) -> Unit,
@@ -429,6 +431,7 @@ fun ImmersiveDetailScaffold(
                                         .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
                                 )
                             }
+                            Spacer(Modifier.height(lerp(0.dp, statusBarDp, expandFraction)))
                         } else {
                             // Edge-to-edge: card starts at y=0 (screen top). Grow a spacer from 0 → statusBarDp
                             // as the card expands so content clears the status bar when fully expanded.
@@ -482,7 +485,7 @@ fun ImmersiveDetailScaffold(
             // Layer 2.75: Morphing cover overlay (New UI 2 only) — the Card flies from full-screen
             // to the thumbnail position as the card expands. Disappears at expandFraction >= 0.99.
             if (useMorphingCover && expandFraction < 0.99f) {
-                val thumbnailHeight = 110.dp / 0.703f
+                val thumbnailHeight = thumbnailWidth / 0.703f
                 val targetX = with(density) { targetThumbnailOffset.x.toDp() }
                 val targetY = with(density) { targetThumbnailOffset.y.toDp() }
 
@@ -491,7 +494,7 @@ fun ImmersiveDetailScaffold(
                 val startY = 0.dp
                 val startHeight = collapsedOffset
 
-                val currentWidth = lerp(screenWidth, 110.dp, expandFraction)
+                val currentWidth = lerp(screenWidth, thumbnailWidth, expandFraction)
                 val currentHeight = lerp(startHeight, thumbnailHeight, expandFraction)
                 val currentX = lerp(0.dp, targetX, expandFraction)
                 val currentY = lerp(startY, targetY, expandFraction)

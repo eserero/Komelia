@@ -4,7 +4,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -15,16 +14,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
-import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.lerp as lerpColor
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.lerp
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.lerp
+import androidx.compose.ui.unit.lerp as lerpDp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.util.lerp
+import androidx.compose.ui.unit.lerp as lerpTextUnit
 
 @Composable
 fun ImmersiveHeroText(
@@ -34,6 +33,7 @@ fun ImmersiveHeroText(
     expandFraction: Float,
     accentColor: Color? = null,
     onSeriesClick: (() -> Unit)? = null,
+    horizontalPadding: Dp = 16.dp,
     modifier: Modifier = Modifier,
 ) {
     val onSurface = MaterialTheme.colorScheme.onSurface
@@ -48,15 +48,15 @@ fun ImmersiveHeroText(
         blurRadius = 8f
     ) else Shadow.None
 
-    val titleColor = lerp(onSurface, onSurface, expandFraction)
-    val authorColor = lerp(resolvedAccentColor, onSurfaceVariant, expandFraction)
-    val chapterColor = lerp(onSurface, onSurfaceVariant, expandFraction)
+    val titleColor = lerpColor(onSurface, onSurface, expandFraction)
+    val authorColor = lerpColor(resolvedAccentColor, onSurfaceVariant, expandFraction)
+    val chapterColor = lerpColor(onSurface, onSurfaceVariant, expandFraction)
 
     var titleMultiplier by remember(seriesTitle) { mutableFloatStateOf(1f) }
     var chapterMultiplier by remember(chapterTitle) { mutableFloatStateOf(1f) }
 
     Column(
-        modifier = modifier.padding(horizontal = 16.dp),
+        modifier = modifier.padding(horizontal = horizontalPadding),
         verticalArrangement = Arrangement.Bottom
     ) {
         // Author & Year
@@ -66,7 +66,7 @@ fun ImmersiveHeroText(
             style = MaterialTheme.typography.labelMedium.copy(
                 letterSpacing = 2.sp,
                 shadow = shadow,
-                fontSize = lerp(11.sp, 12.sp, expandFraction)
+                fontSize = lerpTextUnit(11.sp, 12.sp, expandFraction)
             ),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
@@ -80,8 +80,8 @@ fun ImmersiveHeroText(
                 fontFamily = FontFamily.Serif,
                 fontWeight = FontWeight.Bold,
                 shadow = shadow,
-                fontSize = lerp(32.sp * titleMultiplier, 20.sp * titleMultiplier, expandFraction),
-                lineHeight = lerp(36.sp * titleMultiplier, 24.sp * titleMultiplier, expandFraction)
+                fontSize = lerpTextUnit(32.sp * titleMultiplier, 20.sp * titleMultiplier, expandFraction),
+                lineHeight = lerpTextUnit(36.sp * titleMultiplier, 24.sp * titleMultiplier, expandFraction)
             ),
             maxLines = if (isCollapsed) 2 else 3,
             overflow = TextOverflow.Ellipsis,
@@ -91,7 +91,7 @@ fun ImmersiveHeroText(
                 }
             },
             modifier = Modifier
-                .padding(vertical = lerp(4.dp, 0.dp, expandFraction))
+                .padding(vertical = lerpDp(4.dp, 0.dp, expandFraction))
                 .then(if (onSeriesClick != null) Modifier.clickable(onClick = onSeriesClick) else Modifier)
         )
 
@@ -103,7 +103,7 @@ fun ImmersiveHeroText(
                 style = MaterialTheme.typography.labelLarge.copy(
                     letterSpacing = 1.5.sp,
                     shadow = shadow,
-                    fontSize = lerp(14.sp * chapterMultiplier, 12.sp * chapterMultiplier, expandFraction)
+                    fontSize = lerpTextUnit(14.sp * chapterMultiplier, 12.sp * chapterMultiplier, expandFraction)
                 ),
                 maxLines = if (isCollapsed) 1 else 2,
                 overflow = TextOverflow.Ellipsis,
