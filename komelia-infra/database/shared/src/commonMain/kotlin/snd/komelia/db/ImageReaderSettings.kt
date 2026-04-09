@@ -44,11 +44,11 @@ data class ImageReaderSettings(
     val ortUpscalerDeviceId: Int = 0,
     val ortUpscalerTileSize: Int = 512,
 
-    val panelsFullPageDisplayMode: PanelsFullPageDisplayMode = PanelsFullPageDisplayMode.NONE,
+    val panelsFullPageDisplayMode: PanelsFullPageDisplayMode = PanelsFullPageDisplayMode.BOTH,
     val pagedReaderTapToZoom: Boolean = true,
-    val panelReaderTapToZoom: Boolean = true,
-    val pagedReaderAdaptiveBackground: Boolean = false,
-    val panelReaderAdaptiveBackground: Boolean = false,
+    val panelReaderTapToZoom: Boolean = false,
+    val pagedReaderAdaptiveBackground: Boolean = true,
+    val panelReaderAdaptiveBackground: Boolean = true,
     val tapNavigationMode: ReaderTapNavigationMode = ReaderTapNavigationMode.LEFT_RIGHT,
     val panelDetectionUrl: String = PANEL_DETECTION_DEFAULT_GITHUB_URL,
 ) {

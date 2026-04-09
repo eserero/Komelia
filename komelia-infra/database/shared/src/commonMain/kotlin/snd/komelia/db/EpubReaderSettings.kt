@@ -9,7 +9,7 @@ import snd.komelia.settings.model.TtsuReaderSettings
 
 @Serializable
 data class EpubReaderSettings(
-    val readerType: EpubReaderType = EpubReaderType.TTSU_EPUB,
+    val readerType: EpubReaderType = EpubReaderType.EPUB3_READER,
     val komgaReaderSettings: JsonObject = buildJsonObject { },
     val ttsuReaderSettings: TtsuReaderSettings = TtsuReaderSettings(),
     val epub3NativeSettings: Epub3NativeSettings = Epub3NativeSettings(),

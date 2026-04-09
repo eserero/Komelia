@@ -45,11 +45,11 @@ object ImageReaderSettingsTable : Table("ImageReaderSettings") {
     val ortUpscalerUserModelPath = text("onnx_runtime_model_path").nullable()
     val panelDetectionUrl = text("panel_detection_url").default("https://github.com/eserero/Komelia/releases/download/model/rf-detr-med.onnx.zip")
 
-    val panelsFullPageDisplayMode = text("panels_full_page_display_mode").default("NONE")
+    val panelsFullPageDisplayMode = text("panels_full_page_display_mode").default("BOTH")
     val pagedReaderTapToZoom = bool("paged_reader_tap_to_zoom").default(true)
-    val panelReaderTapToZoom = bool("panel_reader_tap_to_zoom").default(true)
-    val pagedReaderAdaptiveBackground = bool("paged_reader_adaptive_background").default(false)
-    val panelReaderAdaptiveBackground = bool("panel_reader_adaptive_background").default(false)
+    val panelReaderTapToZoom = bool("panel_reader_tap_to_zoom").default(false)
+    val pagedReaderAdaptiveBackground = bool("paged_reader_adaptive_background").default(true)
+    val panelReaderAdaptiveBackground = bool("panel_reader_adaptive_background").default(true)
     val tapNavigationMode = text("tap_navigation_mode").default("LEFT_RIGHT")
 
     override val primaryKey = PrimaryKey(bookId)
