@@ -550,6 +550,7 @@ fun ImmersiveDetailScaffold(
                             .offset(x = currentTextX, y = currentTextY)
                             .fillMaxWidth()
                             .onGloballyPositioned { heroTextHeight = with(density) { it.size.height.toDp() } }
+                            .graphicsLayer(alpha = if (heroTextHeight > 0.dp) 1f else 0f)
                     ) {
                         heroTextContent(expandFraction)
                     }
