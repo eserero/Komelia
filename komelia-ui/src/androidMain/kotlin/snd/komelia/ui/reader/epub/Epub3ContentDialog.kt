@@ -16,18 +16,25 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
@@ -46,6 +53,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -77,18 +88,22 @@ private fun expandAncestors(links: List<Link>, targetHref: Url, expandedState: M
 fun Epub3ContentDialog(
     toc: List<Link>,
     bookmarks: List<EpubBookmark>,
+    searchQuery: String,
+    searchResults: List<Locator>,
+    isSearching: Boolean,
     currentHref: Url?,
     currentLocator: Locator?,
     onNavigateLink: (Link) -> Unit,
     onNavigateLocator: (Locator) -> Unit,
     onDeleteBookmark: (EpubBookmark) -> Unit,
+    onSearch: (String) -> Unit,
     onDismiss: () -> Unit,
     initialTab: Int = 0,
     modifier: Modifier = Modifier,
 ) {
     var dragOffsetY by remember { mutableStateOf(0f) }
     val maxHeight = (LocalConfiguration.current.screenHeightDp * 2f / 3f).dp
-    val pagerState = rememberPagerState(initialPage = initialTab, pageCount = { 2 })
+    val pagerState = rememberPagerState(initialPage = initialTab, pageCount = { 3 })
     val coroutineScope = rememberCoroutineScope()
     val theme = snd.komelia.ui.LocalTheme.current
     val surfaceColor = if (theme.type == snd.komelia.ui.Theme.ThemeType.DARK) Color(43, 43, 43)
@@ -142,6 +157,11 @@ fun Epub3ContentDialog(
                     onClick = { coroutineScope.launch { pagerState.animateScrollToPage(1) } },
                     text = { Text("Bookmarks") },
                 )
+                Tab(
+                    selected = pagerState.currentPage == 2,
+                    onClick = { coroutineScope.launch { pagerState.animateScrollToPage(2) } },
+                    text = { Text("Search") },
+                )
             }
 
             HorizontalPager(
@@ -152,6 +172,7 @@ fun Epub3ContentDialog(
                 when (page) {
                     0 -> ContentsTab(toc, currentHref, onNavigateLink)
                     1 -> BookmarksTab(bookmarks, onNavigateLocator, onDeleteBookmark)
+                    2 -> SearchTab(searchQuery, searchResults, isSearching, onSearch, onNavigateLocator)
                 }
             }
         }
@@ -360,5 +381,125 @@ private fun BookmarkRow(
         IconButton(onClick = onDelete) {
             Icon(Icons.Default.Delete, contentDescription = "Delete bookmark")
         }
+    }
+}
+
+@Composable
+private fun SearchTab(
+    searchQuery: String,
+    searchResults: List<Locator>,
+    isSearching: Boolean,
+    onSearch: (String) -> Unit,
+    onNavigate: (Locator) -> Unit,
+) {
+    var query by remember { mutableStateOf(searchQuery) }
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        OutlinedTextField(
+            value = query,
+            onValueChange = { query = it },
+            placeholder = { Text("Search") },
+            shape = CircleShape,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+            keyboardActions = KeyboardActions(onSearch = { onSearch(query) }),
+            trailingIcon = {
+                IconButton(onClick = { onSearch(query) }) {
+                    Icon(Icons.Default.Search, contentDescription = "Search")
+                }
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        )
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "${searchResults.size} Results",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            if (isSearching) {
+                CircularProgressIndicator(
+                    modifier = Modifier
+                        .padding(start = 16.dp)
+                        .size(20.dp),
+                    strokeWidth = 2.dp
+                )
+            }
+        }
+
+        if (searchResults.isNotEmpty()) {
+            LazyColumn(modifier = Modifier.fillMaxWidth()) {
+                itemsIndexed(searchResults) { index, locator ->
+                    if (index > 0) HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                    SearchResultRow(index, locator, onNavigate)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SearchResultRow(
+    index: Int,
+    locator: Locator,
+    onNavigate: (Locator) -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onNavigate(locator) }
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+    ) {
+        val chapterTitle = locator.title ?: "Chapter Unknown"
+        Text(
+            text = "${index + 1}. $chapterTitle",
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+
+        val position = locator.locations.position
+        val progression = locator.locations.progression
+        val locationText = if (position != null) "Location: $position"
+        else if (progression != null) "Location: ${(progression * 100).toInt()}%"
+        else "Location: Unknown"
+
+        Text(
+            text = locationText,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 2.dp, bottom = 6.dp)
+        )
+
+        val before = locator.text.before ?: ""
+        val highlight = locator.text.highlight ?: ""
+        val after = locator.text.after ?: ""
+
+        val accentColor = LocalAccentColor.current ?: MaterialTheme.colorScheme.primary
+        val annotatedText = buildAnnotatedString {
+            append(before)
+            val startIndex = length
+            append(highlight)
+            addStyle(
+                style = SpanStyle(color = accentColor, fontWeight = FontWeight.Bold),
+                start = startIndex,
+                end = length
+            )
+            append(after)
+        }
+
+        Text(
+            text = annotatedText,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }

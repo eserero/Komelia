@@ -379,9 +379,16 @@ actual fun Epub3ReaderContent(state: EpubReaderState) {
                     exit = slideOutVertically(targetOffsetY = { it }),
                     modifier = Modifier.align(Alignment.BottomCenter)
                 ) {
+                    val searchQuery by epub3State.searchQuery.collectAsState()
+                    val searchResults by epub3State.searchResults.collectAsState()
+                    val isSearching by epub3State.isSearching.collectAsState()
+
                     Epub3ContentDialog(
                         toc = toc,
                         bookmarks = bookmarks,
+                        searchQuery = searchQuery,
+                        searchResults = searchResults,
+                        isSearching = isSearching,
                         currentHref = currentLocator?.href,
                         currentLocator = currentLocator,
                         onNavigateLink = { link ->
@@ -393,6 +400,7 @@ actual fun Epub3ReaderContent(state: EpubReaderState) {
                             epub3State.showContentDialog.value = false
                         },
                         onDeleteBookmark = { epub3State.deleteBookmark(it) },
+                        onSearch = { epub3State.performSearch(it) },
                         onDismiss = { epub3State.showContentDialog.value = false },
                         initialTab = epub3State.initialContentTab
                     )

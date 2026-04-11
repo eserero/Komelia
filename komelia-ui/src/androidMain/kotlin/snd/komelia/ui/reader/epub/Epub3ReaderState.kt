@@ -54,6 +54,9 @@ import snd.komelia.bookmarks.EpubBookmarkRepository
 import org.json.JSONObject
 import java.util.UUID
 
+import org.readium.r2.shared.publication.services.search.search
+import org.readium.r2.shared.util.Try
+
 private val logger = KotlinLogging.logger {}
 
 class Epub3ReaderState(
@@ -81,6 +84,9 @@ class Epub3ReaderState(
     val showSettings = MutableStateFlow(false)
     val showContentDialog = MutableStateFlow(false)
     var initialContentTab = 0
+    val searchQuery = MutableStateFlow("")
+    val searchResults = MutableStateFlow<List<Locator>>(emptyList())
+    val isSearching = MutableStateFlow(false)
     val bookmarks = MutableStateFlow<List<EpubBookmark>>(emptyList())
     val tableOfContents = MutableStateFlow<List<Link>>(emptyList())
     val settings = MutableStateFlow(Epub3NativeSettings())
@@ -108,6 +114,51 @@ class Epub3ReaderState(
     fun openContentDialog(tab: Int) {
         initialContentTab = tab
         showContentDialog.value = true
+    }
+
+    fun performSearch(query: String) {
+        searchQuery.value = query
+        if (query.isBlank()) {
+            searchResults.value = emptyList()
+            return
+        }
+        isSearching.value = true
+        coroutineScope.launch(Dispatchers.IO) {
+            try {
+                val publication = com.storyteller.reader.BookService.getPublication(bookUuid)
+                if (publication == null) {
+                    isSearching.value = false
+                    return@launch
+                }
+                
+                val iterator = publication.search(query)
+                if (iterator == null) {
+                    searchResults.value = emptyList()
+                    isSearching.value = false
+                    return@launch
+                }
+                
+                val results = mutableListOf<Locator>()
+                while (true) {
+                    val pageTry = iterator.next()
+                    val page = (pageTry as? Try.Success)?.value ?: break
+                    val locators = page.locators
+                    if (locators.isEmpty()) break
+                    results.addAll(locators)
+                }
+                searchResults.value = results
+            } catch (e: Exception) {
+                logger.error(e) { "Failed to perform search" }
+                searchResults.value = emptyList()
+            } finally {
+                isSearching.value = false
+            }
+        }
+    }
+
+    fun clearSearch() {
+        searchQuery.value = ""
+        searchResults.value = emptyList()
     }
 
     fun toggleBookmark(locator: Locator) {

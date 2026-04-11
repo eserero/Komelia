@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BookmarkAdd
 import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -71,9 +72,10 @@ fun Epub3ControlsCardNewUI(
 ) {
     val positions by state.positions.collectAsState()
     val currentLocator by state.currentLocator.collectAsState()
+    val bookmarks by state.bookmarks.collectAsState()
     val toc by state.tableOfContents.collectAsState()
     val accentColor = LocalAccentColor.current
-    val isBookmarked = state.isBookmarked(currentLocator)
+    val isBookmarked = remember(currentLocator, bookmarks) { state.isBookmarked(currentLocator) }
 
     ReaderControlsCard(modifier = modifier.onSizeChanged { onCardHeightChanged(it.height) }) {
         if (positions.isNotEmpty()) {
@@ -160,6 +162,10 @@ fun Epub3ControlsCardNewUI(
                     .padding(horizontal = 8.dp)
             )
 
+            IconButton(onClick = { state.openContentDialog(2) }) {
+                Icon(Icons.Default.Search, contentDescription = "Search", tint = accentColor ?: MaterialTheme.colorScheme.primary)
+            }
+
             IconButton(onClick = onSettingsClick) {
                 Icon(Icons.Default.Tune, contentDescription = "Reader settings", tint = accentColor ?: MaterialTheme.colorScheme.primary)
             }
@@ -199,8 +205,9 @@ fun Epub3ControlsCard(
 ) {
     val positions by state.positions.collectAsState()
     val currentLocator by state.currentLocator.collectAsState()
+    val bookmarks by state.bookmarks.collectAsState()
     val toc by state.tableOfContents.collectAsState()
-    val isBookmarked = state.isBookmarked(currentLocator)
+    val isBookmarked = remember(currentLocator, bookmarks) { state.isBookmarked(currentLocator) }
     val accentColor = LocalAccentColor.current
 
     var dragOffsetY by remember { mutableStateOf(0f) }
@@ -290,6 +297,10 @@ fun Epub3ControlsCard(
             ) {
                 IconButton(onClick = onSettingsClick) {
                     Icon(Icons.Default.Tune, contentDescription = "Reader settings", tint = accentColor ?: MaterialTheme.colorScheme.primary)
+                }
+                
+                IconButton(onClick = { state.openContentDialog(2) }) {
+                    Icon(Icons.Default.Search, contentDescription = "Search", tint = accentColor ?: MaterialTheme.colorScheme.primary)
                 }
                 
                 VerticalDivider(
