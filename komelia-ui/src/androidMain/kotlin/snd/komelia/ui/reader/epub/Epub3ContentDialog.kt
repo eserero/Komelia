@@ -88,6 +88,7 @@ private fun expandAncestors(links: List<Link>, targetHref: Url, expandedState: M
 fun Epub3ContentDialog(
     toc: List<Link>,
     bookmarks: List<EpubBookmark>,
+    positions: List<Locator>,
     searchQuery: String,
     searchResults: List<Locator>,
     isSearching: Boolean,
@@ -172,7 +173,7 @@ fun Epub3ContentDialog(
                 when (page) {
                     0 -> ContentsTab(toc, currentHref, onNavigateLink)
                     1 -> BookmarksTab(bookmarks, onNavigateLocator, onDeleteBookmark)
-                    2 -> SearchTab(searchQuery, searchResults, isSearching, onSearch, onNavigateLocator)
+                    2 -> SearchTab(searchQuery, searchResults, positions, isSearching, onSearch, onNavigateLocator)
                 }
             }
         }
@@ -388,6 +389,7 @@ private fun BookmarkRow(
 private fun SearchTab(
     searchQuery: String,
     searchResults: List<Locator>,
+    positions: List<Locator>,
     isSearching: Boolean,
     onSearch: (String) -> Unit,
     onNavigate: (Locator) -> Unit,
@@ -437,7 +439,7 @@ private fun SearchTab(
             LazyColumn(modifier = Modifier.fillMaxWidth()) {
                 itemsIndexed(searchResults) { index, locator ->
                     if (index > 0) HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
-                    SearchResultRow(index, locator, onNavigate)
+                    SearchResultRow(index, locator, positions, onNavigate)
                 }
             }
         }
@@ -448,6 +450,7 @@ private fun SearchTab(
 private fun SearchResultRow(
     index: Int,
     locator: Locator,
+    positions: List<Locator>,
     onNavigate: (Locator) -> Unit,
 ) {
     Column(
@@ -464,10 +467,8 @@ private fun SearchResultRow(
             color = MaterialTheme.colorScheme.onSurface
         )
 
-        val position = locator.locations.position
-        val progression = locator.locations.progression
-        val locationText = if (position != null) "Location: $position"
-        else if (progression != null) "Location: ${(progression * 100).toInt()}%"
+        val positionIndex = locatorToPositionIndex(positions, locator)
+        val locationText = if (positions.isNotEmpty()) "Location: ${positionIndex + 1} of ${positions.size}"
         else "Location: Unknown"
 
         Text(
@@ -477,13 +478,16 @@ private fun SearchResultRow(
             modifier = Modifier.padding(top = 2.dp, bottom = 6.dp)
         )
 
-        val before = locator.text.before ?: ""
-        val highlight = locator.text.highlight ?: ""
-        val after = locator.text.after ?: ""
+        val before = (locator.text.before ?: "").replace(Regex("\\s+"), " ")
+        val highlight = (locator.text.highlight ?: "").replace(Regex("\\s+"), " ")
+        val after = (locator.text.after ?: "").replace(Regex("\\s+"), " ")
+
+        val truncatedBefore = if (before.length > 50) "..." + before.takeLast(50) else before
+        val truncatedAfter = if (after.length > 50) after.take(50) + "..." else after
 
         val accentColor = LocalAccentColor.current ?: MaterialTheme.colorScheme.primary
         val annotatedText = buildAnnotatedString {
-            append(before)
+            append(truncatedBefore)
             val startIndex = length
             append(highlight)
             addStyle(
@@ -491,7 +495,7 @@ private fun SearchResultRow(
                 start = startIndex,
                 end = length
             )
-            append(after)
+            append(truncatedAfter)
         }
 
         Text(

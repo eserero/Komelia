@@ -386,6 +386,7 @@ actual fun Epub3ReaderContent(state: EpubReaderState) {
                     Epub3ContentDialog(
                         toc = toc,
                         bookmarks = bookmarks,
+                        positions = positions,
                         searchQuery = searchQuery,
                         searchResults = searchResults,
                         isSearching = isSearching,
