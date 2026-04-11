@@ -169,11 +169,15 @@ fun AudioFullScreenPlayer(
                                 .blur(radius = 40.dp, edgeTreatment = BlurredEdgeTreatment.Rectangle),
                         )
                     }
-                    Box(
-                        modifier = Modifier
-                            .matchParentSize()
-                            .background(backgroundColor.copy(alpha = 0.72f)),
-                    )
+                    if (immersiveColorEnabled) {
+                        Box(
+                            modifier = Modifier
+                                .matchParentSize()
+                                .background(backgroundColor.copy(alpha = 0.72f)),
+                        )
+                    } else {
+                        NonImmersiveAudioBackground(Modifier.matchParentSize())
+                    }
                 Column(
                     modifier = Modifier
                         .navigationBarsPadding()

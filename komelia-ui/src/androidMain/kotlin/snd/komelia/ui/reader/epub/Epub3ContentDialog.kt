@@ -172,7 +172,7 @@ fun Epub3ContentDialog(
             ) { page ->
                 when (page) {
                     0 -> ContentsTab(toc, currentHref, onNavigateLink)
-                    1 -> BookmarksTab(bookmarks, onNavigateLocator, onDeleteBookmark)
+                    1 -> BookmarksTab(bookmarks, positions, onNavigateLocator, onDeleteBookmark)
                     2 -> SearchTab(searchQuery, searchResults, positions, isSearching, onSearch, onNavigateLocator)
                 }
             }
@@ -216,11 +216,15 @@ private fun ContentsTab(
             )
         }
     } else {
+        val dividerColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
         LazyColumn(
             state = lazyListState,
         ) {
             itemsIndexed(toc) { index, link ->
-                if (index > 0) HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                if (index > 0) HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    color = dividerColor
+                )
                 TocRow(
                     link = link,
                     depth = 0,
@@ -254,10 +258,10 @@ private fun TocRow(
     val buttonColors = if (isCurrentChapter) {
         ButtonDefaults.textButtonColors(
             containerColor = accentColor.copy(alpha = 0.15f),
-            contentColor = accentColor,
+            contentColor = MaterialTheme.colorScheme.onSurface,
         )
     } else {
-        ButtonDefaults.textButtonColors()
+        ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSurface)
     }
 
     if (hasChildren) {
@@ -284,6 +288,7 @@ private fun TocRow(
                 Icon(
                     imageVector = if (isExpanded) Icons.Default.ExpandMore else Icons.Default.ChevronRight,
                     contentDescription = if (isExpanded) "Collapse" else "Expand",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -319,6 +324,7 @@ private fun TocRow(
 @Composable
 private fun BookmarksTab(
     bookmarks: List<EpubBookmark>,
+    positions: List<Locator>,
     onNavigate: (Locator) -> Unit,
     onDeleteBookmark: (EpubBookmark) -> Unit,
 ) {
@@ -331,11 +337,16 @@ private fun BookmarksTab(
             )
         }
     } else {
+        val dividerColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
         LazyColumn {
             itemsIndexed(bookmarks) { index, bookmark ->
-                if (index > 0) HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                if (index > 0) HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    color = dividerColor
+                )
                 BookmarkRow(
                     bookmark = bookmark,
+                    positions = positions,
                     onNavigate = onNavigate,
                     onDelete = { onDeleteBookmark(bookmark) }
                 )
@@ -344,13 +355,17 @@ private fun BookmarksTab(
     }
 }
 
+
 @Composable
 private fun BookmarkRow(
     bookmark: EpubBookmark,
+    positions: List<Locator>,
     onNavigate: (Locator) -> Unit,
     onDelete: () -> Unit,
 ) {
-    val locator = runCatching { Locator.fromJSON(JSONObject(bookmark.locatorJson)) }.getOrNull()
+    val locator = remember(bookmark.locatorJson) {
+        runCatching { Locator.fromJSON(JSONObject(bookmark.locatorJson)) }.getOrNull()
+    }
 
     Row(
         modifier = Modifier
@@ -360,22 +375,23 @@ private fun BookmarkRow(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            val position = locator?.locations?.position ?: locator?.locations?.progression?.let { (it * 100).toInt() } ?: 0
+            val chapterTitle = locator?.title ?: "Chapter Unknown"
             Text(
-                text = "Bookmark $position",
-                style = MaterialTheme.typography.bodyLarge,
+                text = chapterTitle,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
             )
 
-            val rawTitle = locator?.title ?: locator?.href?.toString()?.substringAfterLast('/') ?: "Chapter"
-            val snippet = rawTitle.split(Regex("\\s+")).take(10).joinToString(" ")
-            
+            val positionIndex = if (locator != null) locatorToPositionIndex(positions, locator) else -1
+            val locationText = if (positions.isNotEmpty() && positionIndex != -1) "Location: ${positionIndex + 1} of ${positions.size}"
+            else "Location: Unknown"
+
             Text(
-                text = snippet,
-                style = MaterialTheme.typography.bodyMedium,
+                text = locationText,
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
+                modifier = Modifier.padding(top = 2.dp)
             )
         }
 
@@ -436,9 +452,13 @@ private fun SearchTab(
         }
 
         if (searchResults.isNotEmpty()) {
+            val dividerColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
             LazyColumn(modifier = Modifier.fillMaxWidth()) {
                 itemsIndexed(searchResults) { index, locator ->
-                    if (index > 0) HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                    if (index > 0) HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        color = dividerColor
+                    )
                     SearchResultRow(index, locator, positions, onNavigate)
                 }
             }

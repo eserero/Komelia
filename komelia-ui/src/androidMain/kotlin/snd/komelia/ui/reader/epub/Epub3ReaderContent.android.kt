@@ -92,15 +92,26 @@ actual fun Epub3ReaderContent(state: EpubReaderState) {
     val theme = LocalTheme.current
     val readerHazeState = if (theme.transparentBars) rememberHazeState() else null
 
-    CompositionLocalProvider(LocalHazeState provides readerHazeState) {
+    // Hoist showControls so we can gate hazeSource on it (see comment below).
+    val showControls by remember(epub3State) {
+        epub3State?.showControls ?: MutableStateFlow(true)
+    }.collectAsState()
+
+    // Provide null hazeState when fullscreen (controls hidden) so overlays use solid surface
+    // instead of an unsourced blur. hazeSource is also gated on showControls for the same reason.
+    CompositionLocalProvider(LocalHazeState provides if (showControls) readerHazeState else null) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(themeBgColor)
         ) {
+            // hazeSource is only active when controls are visible (non-fullscreen).
+            // hazeEffect + WebView in fullscreen causes continuous WebView invalidation/flicker.
+            // When controls are hidden the mini player's hazeEffect blurs the solid background
+            // instead of live page content — visually indistinguishable since they match.
             Box(
                 Modifier.fillMaxSize().then(
-                    if (readerHazeState != null) Modifier.hazeSource(readerHazeState) else Modifier
+                    if (readerHazeState != null && showControls) Modifier.hazeSource(readerHazeState) else Modifier
                 )
             ) {
                 Spacer(Modifier.fillMaxSize().background(themeBgColor))
@@ -117,8 +128,6 @@ actual fun Epub3ReaderContent(state: EpubReaderState) {
             }
 
             if (epub3State != null) {
-                val showControls by epub3State.showControls.collectAsState()
-
                 if (LocalPlatform.current == MOBILE) {
                     val windowState = LocalWindowState.current
                     DisposableEffect(showControls) {
