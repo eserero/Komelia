@@ -194,6 +194,8 @@ class EpubView(
         if (finalProps.bookUuid != oldProps?.bookUuid || finalProps.customFonts != oldProps.customFonts) {
             destroyNavigator()
             initializeNavigator()
+        } else if (navigator == null) {
+            initializeNavigator()
         }
 
         if (finalProps.locator != navigator?.currentLocator && finalProps.locator != null) {
@@ -372,7 +374,7 @@ class EpubView(
         if (locator.href != navigator?.currentLocator?.value?.href) {
             changingResource = true
         }
-        navigator!!.go(locator, true)
+        navigator?.go(locator, true)
     }
 
     override fun onDecorationActivated(event: DecorableNavigator.OnActivatedEvent): Boolean {

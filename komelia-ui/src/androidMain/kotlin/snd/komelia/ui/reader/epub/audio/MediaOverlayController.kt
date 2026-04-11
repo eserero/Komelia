@@ -204,6 +204,17 @@ class MediaOverlayController(
 
     fun attachView(view: EpubView) {
         epubView = view
+        if (_isPlaying.value) {
+            // Use getCurrentClip() for the actual playback position — more accurate than
+            // lastHighlightedClip which may lag if a track boundary was just crossed and
+            // the first clip message of the new track hasn't fired yet.
+            val clip = player.getCurrentClip() ?: lastHighlightedClip ?: return
+            audioNavigatingAt = System.currentTimeMillis()
+            view.pendingProps.isPlaying = true
+            view.pendingProps.locator = clip.locator
+            view.finalizeProps()
+            schedulePageTurnIfNeeded(clip)
+        }
     }
 
     fun seekToNextClip() {
