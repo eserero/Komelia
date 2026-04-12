@@ -1,71 +1,113 @@
 # Komelia - Komga media client
 
-## Fork Overview
-This is a specialized fork of [Komelia](https://github.com/Gaysuist/Komelia) focused on providing a premier **Android experience** through deep Material 3 integration, high-performance GPU upscaling, and a modernized UI tailored for mobile devices.
+## What's New in this Fork
+This is a fork of [Komelia](https://github.com/Gaysuist/Komelia) focused on improving the Android experience. It contains all the good in Komelia and adding new UX and many new features like completly new epub3 reader supporting immersive reading (based on storyteller), many new features in the comic reader (in app AI upscaling, additional navigation options, improved panel mode etc.)
 
-### Summary of New Features
-
-#### Library Screen
-*   **Material 3**: Standardized M3 `TopAppBar` with cleaner menu location and a hamburger menu to choose the library. Floating FAB to open the filter dialog.
+### New UX and Themes
+*   **Material 3**: Standardized M3 `TopAppBar` with cleaner menu location and a hamburger menu to choose the library. Floating FAB to open the filter dialog. Standardize Navigation Bar.
 *   **Smaller Thumbnails**: allowing smaller thumbnails in the setting screen (choose 110) which shows 3 thumbnail per row instead of only two. Thumbnails are also nicer with some options to choose from (text below thumbnail, transparent background for text)
-*   **Improved Filtering UI**: Improve and cleanup of some of the fields - specifically dialog-based author filter as it was not easy to work with it on mobile.
-*   **Library Navigation and Persistence**: clicking on the Library navigation button Automatically remembers the last library you were - so you dont need to choose the library every time.
-*   **Segmented Navigation**: Modern M3 `SingleChoiceSegmentedButtonRow` for seamless switching between Series, Collections, and Read Lists.
+*   **New Dark and Light Themes**: clearer colors, supporting "Haze" effect (transparency with blur) for toolbars and some of the floating elements.
+
+### Library Screen
+*   **New screen design**: cleaner headers, easier sorting access and new UX elements. 
 *   **"Keep Reading" Strip**: A new horizontal quick-access strip in the series list for your recently read books per library.
+*   **Improved Filtering UI**: Improve and cleanup of some of the search elements and fixed some bugs
+*   **Library Navigation and Persistence**: clicking on the Library navigation button Automatically remembers the last library you were - so you dont need to choose the library every time.
 
+| Library Light Theme | Library Dark Theme | Library with Continue Reading |
+| :---: | :---: | :---: |
+| <img src="screenshots/New UI 2/Library Screen Light Modern Theme.jpg" width="250"> | <img src="screenshots/New UI 2/Library Screen Dark Modern theme.jpg" width="250"> | <img src="screenshots/New UI 2/Library Screen Light modern theme with Continue reading.jpg" width="250"> |
 
-#### Home Screen
-*   **Modernized Navigation**: Section management and settings moved to a Floating Action Button at the bottom-right for easy one-handed use.
+### Home Screen
+*   **New screen design**: similar to the library screen, Section management and settings moved to a Floating Action Button at the bottom-right for easy one-handed use.
 *   **Horizontal Layout**: Organized content into horizontal rows (Keep Reading, On Deck, etc.) for a compact and discoverable dashboard. This is similar to how komga web show it.
 
-#### Search
-*   **Interactive Search Bar**: Full M3 `SearchBar` implementation with smooth animations, native back-navigation, and clear-text support.
-*   **Consistent Toggles**: Search filters now use `SecondaryTabRow` selectors for a unified UI language.
+### Search
+*   **Updated screen design**: similar to library and home screens with Full M3 `SearchBar` implementation with smooth animations, native back-navigation, and clear-text support.
 
-#### Immersive Detail Screens (Book, Series, Oneshot)
+### Immersive Detail Screens (Book, Series, Oneshot)
 *   **Immersive Screen**: Full-bleed cover images extending behind information card for a modern, cinematic feel. ability to swipe left right to move between books, floating buttons to easily read and download.
 *   **Publisher Icons**: Showing publisher icon in the immersive screen (if there is a match).
 *   **Adaptive Card Color**: Detail card backgrounds dynamically sample and apply dominant colors and blurred texture from the cover artwork. Controlled in the settings.
 *   **Elevated Card UI**: Material 3 elevated specifications with standard typography and smooth shared-element transitions from the library list.
 
-#### Image/Comic Reader
+| Immersive Series (Collapsed) | Immersive Series (Expanded) | Immersive Series (Alt) |
+| :---: | :---: | :---: |
+| <img src="screenshots/New UI 2/Immersive Series Screen Collapsed.jpg" width="250"> | <img src="screenshots/New UI 2/Immersive Series Screen Expanded.jpg" width="250"> | <img src="screenshots/New UI 2/Immersive Series Screen Collapsed 2.jpg" width="250"> |
+
+| Immersive Series (Alt Expanded) | Immersive Book View | Immersive Book (Expanded) |
+| :---: | :---: | :---: |
+| <img src="screenshots/New UI 2/Immersive Series Screen Expanded 2.jpg" width="250"> | <img src="screenshots/New UI 2/Immersive Book view.jpg" width="250"> | <img src="screenshots/New UI 2/Immersive Book with expanded button.jpg" width="250"> |
+
+### Image/Comic Reader
+*   **New Controls UX**: Aligned with the new epub reader and matching the new dark/light teams and immersive card color
 *   **Adaptive Backgrounds**: "Blooming" gradient backgrounds that sample edge colors in real-time for both Paged and Panel modes.
 *   **High-Performance GPU Upscaling**: Integrated NCNN-powered upscaling (Waifu2x, RealCUGAN, RealSR, Real-ESRGAN) specifically optimized for Android GPU hardware. upscaling is really good but may require some time to complete depending on your mobile cpu/gpu. there are page upscaling indicators showing you what is goingn on.
 *   **Swiping Navigation in Page Mode**: swiping now work and allow you to move forward/backward pages smoothly.
-*   **Improved Panel Navigation**: Smooth pan-and-zoom animations to eliminate transition jars. Ability to show the full screen before and/or after the panels for context, fixed several issues when changing from portrait to landscape.
-*   **Modern Controls**: Floating progress slider (May 2025 M3 spec), dedicated settings FAB and shortcuts in floating menu
+*   **Improved Panel Navigation**: Smooth pan-and-zoom animations. Ability to show the full screen before and/or after the panels for context, fixed several issues when changing from portrait to landscape.
 *   **Save Current Image**: long-press quick-save to Downloads
 *   **Double Tap to Zoom**: ability to configure double-tap to zoom for panel and page modes (make tap navigation a bit slower)
-*   **Additional Tap to Navigate Options**: tap left to back and right to forward, tap right to forward and left to back, tap top side to back and lower side to forward, tap lower side to back and top to forward.
-*   **Always On**: setting to prevent the screen to turn off when in the reader.
+*   **Additional Navigation Options**: tap left to back and right to forward, tap right to forward and left to back, tap top side to back and lower side to forward, tap lower side to back and top to forward.
+*   **Always On**: setting to prevent the screen to turn off when in the reader. (in the image reader setting page)
 
-#### Epub Reader with support for Epub 3 audio layer
-*   **New Epub Viewer**: Completely new epub viewer that can be toggled in settings. based on Storyteller and Redium Kotlin Tookit - support epubs with audio layer to a combined text + Audio reading. 
-*   **Completly new controls**: completly new reading controls, settings and navigation screens and gestures (swipe left/right to move about, scroll based reading etc.)
-*   **Media player**: integrated media player navigation, move chapters, segments and choose sentenses to play, Including an integrated "audio book" interface
+**Adaptive Backgrounds**
+| Light Theme | Dark Theme | Controls Hidden |
+| :---: | :---: | :---: |
+| <img src="screenshots/New UI 2/Comic Reader - Adaptive Background with Light Modern Theme.jpg" width="250"> | <img src="screenshots/New UI 2/Comic Reader - Adaptive Background with Dark Modern Theme.jpg" width="250"> | <img src="screenshots/New UI 2/Comic Reader - Adaptive Background without controls.jpg" width="250"> |
 
+**GPU Upscaling Comparison**
+| Without Upscaling | With Upscaling |
+| :---: | :---: |
+| <img src="screenshots/New UI 2/Comic Reader - Adaptive backgrouund without upscaling.jpg" width="250"> | <img src="screenshots/New UI 2/Comic Reader - adaptive background with upscaling.jpg" width="250"> |
 
-#### Settings Page
+| Without Upscaling (Controls) | With Upscaling (Controls) |
+| :---: | :---: |
+| <img src="screenshots/New UI 2/Comic Reader - Comic page with controls without upscaling.jpg" width="250"> | <img src="screenshots/New UI 2/Comic Reader - Comic page with controls with upscaling.jpg" width="250"> |
+
+| Without Upscaling (B&W) | With Upscaling (B&W) |
+| :---: | :---: |
+| <img src="screenshots/New UI 2/Comic Reader - Comic page with controls without upscaling B&W.jpg" width="250"> | <img src="screenshots/New UI 2/Comic Reader - Comic page with controls with upscaling B&W.jpg" width="250"> |
+
+### Epub Reader with support for Epub 3 audio layer
+*   **New Epub Viewer**: Completely new epub viewer that can be toggled in settings. based on Storyteller and Redium Kotlin Tookit - support epubs with audio layer to a combined text + Audio reading (You can easily create such books using storyteller
+*   **Completly new controls**: completly new reading controls matching the new comic reader controls, new settings, ability to swipe to turn pages (swipe left/right to move about, scroll based reading etc.)
+*   **Bookmark and Search**: new implementation of chapter, bookmarking and search
+*   **Media player**: integrated media player navigation, move chapters, segments and double tap to choose sentenses to play, Including a mini player and integrated full screen "audio book" interface
+
+**Controls and Audio Player**
+| Light Theme | Dark Theme | Mini Player |
+| :---: | :---: | :---: |
+| <img src="screenshots/New UI 2/Epub3 reader with control panel and mini audio player Light Theme.jpg" width="250"> | <img src="screenshots/New UI 2/Epub3 reader with control panel and mini audio player Dark Theme.jpg" width="250"> | <img src="screenshots/New UI 2/Epub3 reader with mini audio controls.jpg" width="250"> |
+
+**Expanded Audio Player**
+| Light Theme | Dark Theme |
+| :---: | :---: |
+| <img src="screenshots/New UI 2/Epu3 reader expanded audio player light theme.jpg" width="250"> | <img src="screenshots/New UI 2/Epu3 reader expanded audio player Dark theme.jpg" width="250"> |
+
+**Reader Features**
+| Table of Contents | Bookmarks | Search |
+| :---: | :---: | :---: |
+| <img src="screenshots/New UI 2/Epub3 reader Table of Content.jpg" width="250"> | <img src="screenshots/New UI 2/Epub3 reader Bookmarks.jpg" width="250"> | <img src="screenshots/New UI 2/Epub3 reader Search.jpg" width="250"> |
+
+### Settings Page
 *   **Nicer Navigation page**: Refactored menu structure for a more moden m3 look.
 *   **New Visual Toggles**: Immersive color strength sliders, unified app-wide accent color presets, and a master toggle for the "New Library UI".
 *   **Deep Customization**: Per-mode toggles for tap-to-zoom, configurable tap navigation zones with visual diagrams, and granular adaptive background settings.
 
-<details>
-  <summary>Immersive Screenshots</summary>
-   <img src="/screenshots/Immersive%2001.jpeg" alt="Komelia" width="270">  
-   <img src="/screenshots/Immersive%2002.jpeg" alt="Komelia" width="270">  
-   <img src="/screenshots/Immersive%2003.jpeg" alt="Komelia" width="270">  
-   <img src="/screenshots/Immersive%2004.jpeg" alt="Komelia" width="270">  
-   <img src="/screenshots/Immersive%2005.jpeg" alt="Komelia" width="270">  
-   <img src="/screenshots/Immersive%2006.jpeg" alt="Komelia" width="270">  
-   <img src="/screenshots/Immersive%2007.jpeg" alt="Komelia" width="270">  
-   <img src="/screenshots/Immersive%2008.jpeg" alt="Komelia" width="270">  
-   <img src="/screenshots/Immersive%2009.jpeg" alt="Komelia" width="270">  
-   <img src="/screenshots/Immersive%2010.jpeg" alt="Komelia" width="270">  
-   <img src="/screenshots/Immersive%2011.jpeg" alt="Komelia" width="270">  
-   <img src="/screenshots/Immersive%2012.jpeg" alt="Komelia" width="270">  
-   <img src="/screenshots/Immersive%2013.jpeg" alt="Komelia" width="270">  
-</details>
+**Comic Reader Settings**
+| Reading Modes | Image Settings | Navigation |
+| :---: | :---: | :---: |
+| <img src="screenshots/New UI 2/Comic Reader Settings - Reading Modes.jpg" width="250"> | <img src="screenshots/New UI 2/Comic Reader Settings - Image Settings.jpg" width="250"> | <img src="screenshots/New UI 2/Comic Reader Settings -  Navigation.jpg" width="250"> |
+
+**Epub Reader Settings**
+| Appearance | Fonts | Audio |
+| :---: | :---: | :---: |
+| <img src="screenshots/New UI 2/Epub3 reader settings - Appearance.jpg" width="250"> | <img src="screenshots/New UI 2/Epub3 reader settings - Fonts.jpg" width="250"> | <img src="screenshots/New UI 2/Epub3 reader settings - audio.jpg" width="250"> |
+
+### General improvements
+*   **Prefer local files**: If the files are downloaded, they will be used instead of downloading from the server - this is very helpfull for large comics or epub files with audio - which can get pretty large. This is working even in online mode although the app will still go to the server to fetch metadata.
+
+
 
 
 ---
