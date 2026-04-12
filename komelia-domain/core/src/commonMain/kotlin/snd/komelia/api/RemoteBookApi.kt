@@ -6,6 +6,7 @@ import io.ktor.utils.io.core.*
 import snd.komelia.komga.api.KomgaBookApi
 import snd.komelia.komga.api.model.KomeliaBook
 import snd.komelia.offline.book.repository.OfflineBookRepository
+import snd.komelia.offline.localFilePath
 import snd.komga.client.book.KomgaBook
 import snd.komga.client.book.KomgaBookClient
 import snd.komga.client.book.KomgaBookId
@@ -220,6 +221,10 @@ class RemoteBookApi(
 
     override suspend fun getDownloadedSeriesIds(seriesIds: List<KomgaSeriesId>): Set<KomgaSeriesId> {
         return offlineBookRepository.findAllBySeriesIds(seriesIds).map { it.seriesId }.toSet()
+    }
+
+    override suspend fun getBookLocalFilePath(bookId: KomgaBookId): String? {
+        return offlineBookRepository.find(bookId)?.fileDownloadPath?.localFilePath()
     }
 
     private suspend fun getKomeliaBook(book: KomgaBook): KomeliaBook {

@@ -3,7 +3,7 @@ package snd.komelia.offline
 import io.github.vinceglb.filekit.PlatformFile
 import io.github.vinceglb.filekit.readBytes
 
-internal actual fun PlatformFile.localFilePath(): String? = null
+actual fun PlatformFile.localFilePath(): String? = null
 
 internal actual suspend fun PlatformFile.readChunked(chunkSize: Int, onChunk: suspend (ByteArray) -> Unit) {
     val bytes = this.readBytes()

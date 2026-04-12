@@ -4,7 +4,7 @@ import io.github.vinceglb.filekit.PlatformFile
 import io.github.vinceglb.filekit.path
 import java.io.File
 
-internal actual fun PlatformFile.localFilePath(): String? = this.path
+actual fun PlatformFile.localFilePath(): String? = this.path
 
 internal actual suspend fun PlatformFile.readChunked(chunkSize: Int, onChunk: suspend (ByteArray) -> Unit) {
     File(this.path).inputStream().use { stream ->

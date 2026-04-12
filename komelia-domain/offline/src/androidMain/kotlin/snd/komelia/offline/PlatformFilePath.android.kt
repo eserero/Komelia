@@ -5,7 +5,7 @@ import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.PlatformFile
 import io.github.vinceglb.filekit.context
 
-internal actual fun PlatformFile.localFilePath(): String? =
+actual fun PlatformFile.localFilePath(): String? =
     when (val f = this.androidFile) {
         is AndroidFile.FileWrapper -> runCatching { f.file.path }.getOrNull()
         is AndroidFile.UriWrapper -> null  // SAF URIs are not direct filesystem paths
