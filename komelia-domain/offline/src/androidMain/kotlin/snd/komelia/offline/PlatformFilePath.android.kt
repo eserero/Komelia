@@ -11,7 +11,7 @@ actual fun PlatformFile.localFilePath(): String? =
         is AndroidFile.UriWrapper -> null  // SAF URIs are not direct filesystem paths
     }
 
-internal actual suspend fun PlatformFile.readChunked(chunkSize: Int, onChunk: suspend (ByteArray) -> Unit) {
+actual suspend fun PlatformFile.readChunked(chunkSize: Int, onChunk: suspend (ByteArray) -> Unit) {
     val stream = when (val f = this.androidFile) {
         is AndroidFile.FileWrapper -> f.file.inputStream()
         is AndroidFile.UriWrapper -> FileKit.context.contentResolver.openInputStream(f.uri)

@@ -78,6 +78,21 @@ class Epub3ReaderState(
 
     override val state = MutableStateFlow<LoadState<Unit>>(LoadState.Uninitialized)
     override val book = MutableStateFlow(book)
+    override val loadingSteps = MutableStateFlow<List<EpubLoadingStep>>(emptyList())
+
+    private val mutableSteps = mutableListOf<EpubLoadingStep>()
+
+    private fun startStep(label: String) {
+        mutableSteps.add(EpubLoadingStep(label, EpubLoadingStepStatus.InProgress))
+        loadingSteps.value = mutableSteps.toList()
+    }
+
+    private fun completeLastStep() {
+        if (mutableSteps.isNotEmpty()) {
+            mutableSteps[mutableSteps.lastIndex] = mutableSteps.last().copy(status = EpubLoadingStepStatus.Complete)
+            loadingSteps.value = mutableSteps.toList()
+        }
+    }
 
     val bookId = MutableStateFlow(bookId)
     val showControls = MutableStateFlow(false)
@@ -342,7 +357,9 @@ class Epub3ReaderState(
         notifications.runCatchingToNotifications {
             if (book.value == null) {
                 logger.debug { "[epub3-init] fetching book metadata" }
+                startStep("Fetching book info")
                 book.value = bookApi.getOne(bookId.value)
+                completeLastStep()
             }
 
             logger.debug { "[epub3-init] preparing epub directory" }
@@ -362,9 +379,11 @@ class Epub3ReaderState(
             userFonts.value = allFonts
 
             logger.debug { "[epub3-init] opening publication" }
+            startStep("Opening")
             withContext(Dispatchers.IO) {
                 BookService.openPublication(bookUuid, extractedDir.toURI().toURL(), clips = null)
             }
+            completeLastStep()
             logger.debug { "[epub3-init] publication opened" }
             tableOfContents.value = BookService.getPublication(bookUuid)?.tableOfContents ?: emptyList()
 
@@ -534,29 +553,44 @@ class Epub3ReaderState(
      * Downloads the EPUB zip (if not already cached) and extracts it to
      * `context.cacheDir/epub3/<bookUuid>/`.
      */
-    private suspend fun prepareEpubDirectory(): File = withContext(Dispatchers.IO) {
+    private suspend fun prepareEpubDirectory(): File {
         val extractedDir = File(context.cacheDir, "epub3/$bookUuid").also { it.mkdirs() }
-        if (extractedDir.list().isNullOrEmpty()) {
+        if (!extractedDir.list().isNullOrEmpty()) {
+            startStep("Loading from cache")
+            completeLastStep()
+        } else {
             val localPath = bookApi.getBookLocalFilePath(bookId.value)
             if (localPath != null) {
                 // Offline: extract directly from already-local file — zero heap allocation
-                BookService.extractArchive(
-                    URL("file://$localPath"),
-                    extractedDir.toURI().toURL()
-                )
-            } else {
-                // Remote: stream to temp file in 64 KB chunks
-                val zipFile = File(context.cacheDir, "epub3/$bookUuid.epub")
-                zipFile.outputStream().buffered().use { out ->
-                    bookApi.downloadBookRawFile(bookId.value) { chunk -> out.write(chunk) }
+                startStep("Loading from local file")
+                withContext(Dispatchers.IO) {
+                    BookService.extractArchive(
+                        URL("file://$localPath"),
+                        extractedDir.toURI().toURL()
+                    )
                 }
-                BookService.extractArchive(
-                    URL("file://${zipFile.absolutePath}"),
-                    extractedDir.toURI().toURL()
-                )
-                zipFile.delete()
+                completeLastStep()
+            } else {
+                val isLocal = bookApi.hasLocalFile(bookId.value)
+                startStep(if (isLocal) "Loading from local file" else "Downloading from server")
+                val zipFile = File(context.cacheDir, "epub3/$bookUuid.epub")
+                withContext(Dispatchers.IO) {
+                    zipFile.outputStream().buffered().use { out ->
+                        bookApi.downloadBookRawFile(bookId.value) { chunk -> out.write(chunk) }
+                    }
+                }
+                completeLastStep()
+                startStep("Extracting")
+                withContext(Dispatchers.IO) {
+                    BookService.extractArchive(
+                        URL("file://${zipFile.absolutePath}"),
+                        extractedDir.toURI().toURL()
+                    )
+                    zipFile.delete()
+                }
+                completeLastStep()
             }
         }
-        extractedDir
+        return extractedDir
     }
 }

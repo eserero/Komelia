@@ -4,4 +4,4 @@ import io.github.vinceglb.filekit.PlatformFile
 
 expect fun PlatformFile.localFilePath(): String?
 
-internal expect suspend fun PlatformFile.readChunked(chunkSize: Int, onChunk: suspend (ByteArray) -> Unit)
+expect suspend fun PlatformFile.readChunked(chunkSize: Int, onChunk: suspend (ByteArray) -> Unit)

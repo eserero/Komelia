@@ -58,6 +58,7 @@ class KomgaEpubReaderState(
 ) : EpubReaderState {
     override val state = MutableStateFlow<LoadState<Unit>>(Uninitialized)
     override val book = MutableStateFlow(book)
+    override val loadingSteps = MutableStateFlow(emptyList<EpubLoadingStep>())
 
     val bookId = MutableStateFlow(bookId)
     private val webview = MutableStateFlow<KomeliaWebview?>(null)

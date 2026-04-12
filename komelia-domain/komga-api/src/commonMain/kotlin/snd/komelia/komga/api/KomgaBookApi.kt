@@ -83,6 +83,9 @@ interface KomgaBookApi {
     // Returns local filesystem path if already on-device; null means must download
     suspend fun getBookLocalFilePath(bookId: KomgaBookId): String? = null
 
+    // Returns true if the book is available locally (filesystem path or SAF URI)
+    suspend fun hasLocalFile(bookId: KomgaBookId): Boolean = false
+
     // Returns the subset of seriesIds that have at least one downloaded book
     suspend fun getDownloadedSeriesIds(seriesIds: List<KomgaSeriesId>): Set<KomgaSeriesId> = emptySet()
 }

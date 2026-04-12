@@ -5,7 +5,7 @@ import io.github.vinceglb.filekit.readBytes
 
 actual fun PlatformFile.localFilePath(): String? = null
 
-internal actual suspend fun PlatformFile.readChunked(chunkSize: Int, onChunk: suspend (ByteArray) -> Unit) {
+actual suspend fun PlatformFile.readChunked(chunkSize: Int, onChunk: suspend (ByteArray) -> Unit) {
     val bytes = this.readBytes()
     var offset = 0
     while (offset < bytes.size) {

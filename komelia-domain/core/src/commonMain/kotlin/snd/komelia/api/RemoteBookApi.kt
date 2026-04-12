@@ -7,6 +7,7 @@ import snd.komelia.komga.api.KomgaBookApi
 import snd.komelia.komga.api.model.KomeliaBook
 import snd.komelia.offline.book.repository.OfflineBookRepository
 import snd.komelia.offline.localFilePath
+import snd.komelia.offline.readChunked
 import snd.komga.client.book.KomgaBook
 import snd.komga.client.book.KomgaBookClient
 import snd.komga.client.book.KomgaBookId
@@ -210,6 +211,11 @@ class RemoteBookApi(
     }
 
     override suspend fun downloadBookRawFile(bookId: KomgaBookId, onChunk: suspend (ByteArray) -> Unit) {
+        val localFile = offlineBookRepository.find(bookId)?.fileDownloadPath
+        if (localFile != null) {
+            localFile.readChunked(EPUB_BUFFER_SIZE, onChunk)
+            return
+        }
         bookClient.getBookFile(bookId) { response ->
             val channel = response.bodyAsChannel()
             while (!channel.isClosedForRead) {
@@ -225,6 +231,10 @@ class RemoteBookApi(
 
     override suspend fun getBookLocalFilePath(bookId: KomgaBookId): String? {
         return offlineBookRepository.find(bookId)?.fileDownloadPath?.localFilePath()
+    }
+
+    override suspend fun hasLocalFile(bookId: KomgaBookId): Boolean {
+        return offlineBookRepository.find(bookId) != null
     }
 
     private suspend fun getKomeliaBook(book: KomgaBook): KomeliaBook {

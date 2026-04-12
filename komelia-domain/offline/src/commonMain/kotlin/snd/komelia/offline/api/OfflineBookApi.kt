@@ -343,6 +343,8 @@ class OfflineBookApi(
         }.getOrNull()
     }
 
+    override suspend fun hasLocalFile(bookId: KomgaBookId): Boolean = true
+
     private fun OfflineThumbnailBook.toKomgaBookThumbnail() = KomgaBookThumbnail(
         id = this.id,
         bookId = this.bookId,

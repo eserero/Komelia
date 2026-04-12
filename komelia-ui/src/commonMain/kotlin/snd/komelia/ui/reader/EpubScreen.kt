@@ -4,12 +4,15 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.remember
 import cafe.adriel.voyager.core.model.rememberScreenModel
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
+import kotlinx.coroutines.flow.MutableStateFlow
 import snd.komelia.komga.api.model.KomeliaBook
+import snd.komelia.settings.model.EpubReaderType
 import snd.komelia.ui.BookSiblingsContext
 import snd.komelia.ui.LoadState
 import snd.komelia.ui.LocalViewModelFactory
@@ -18,12 +21,12 @@ import snd.komelia.ui.MainScreen
 import snd.komelia.ui.book.BookScreen
 import snd.komelia.ui.book.bookScreen
 import snd.komelia.ui.common.components.ErrorContent
-import snd.komelia.ui.common.components.LoadingMaxSizeIndicator
 import snd.komelia.ui.platform.PlatformTitleBar
 import snd.komelia.ui.platform.canIntegrateWithSystemBar
 import snd.komelia.ui.reader.epub.Epub3ReaderContent
 import snd.komelia.ui.reader.epub.EpubContent
-import snd.komelia.settings.model.EpubReaderType
+import snd.komelia.ui.reader.epub.EpubLoadingScreen
+import snd.komelia.ui.reader.epub.EpubLoadingStep
 import snd.komga.client.book.KomgaBookId
 import snd.komga.client.book.MediaProfile
 import kotlin.jvm.Transient
@@ -72,6 +75,14 @@ class EpubScreen(
 
         val state = vm.state.collectAsState().value
         val readerType = vm.readerType.collectAsState().value
+
+        // Collect loading state upfront so it's available during the Loading branch.
+        val pendingState = vm.pendingReaderState.collectAsState().value
+        val loadingSteps = remember(pendingState) {
+            pendingState?.loadingSteps ?: MutableStateFlow(emptyList<EpubLoadingStep>())
+        }.collectAsState().value
+        val loadingBookTitle = pendingState?.book?.value?.metadata?.title
+
         Column {
             PlatformTitleBar(applyInsets = false) {
                 if (canIntegrateWithSystemBar()) {
@@ -86,7 +97,9 @@ class EpubScreen(
                 }
             }
             when (state) {
-                LoadState.Loading, LoadState.Uninitialized -> LoadingMaxSizeIndicator()
+                LoadState.Loading, LoadState.Uninitialized ->
+                    EpubLoadingScreen(steps = loadingSteps, bookTitle = loadingBookTitle)
+
                 is LoadState.Error -> ErrorContent(
                     message = "${state.exception::class.simpleName}: ${state.exception.message ?: state.exception.stackTraceToString()}",
                     onExit = {

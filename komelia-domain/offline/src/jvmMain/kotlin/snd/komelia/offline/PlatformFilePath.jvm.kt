@@ -6,7 +6,7 @@ import java.io.File
 
 actual fun PlatformFile.localFilePath(): String? = this.path
 
-internal actual suspend fun PlatformFile.readChunked(chunkSize: Int, onChunk: suspend (ByteArray) -> Unit) {
+actual suspend fun PlatformFile.readChunked(chunkSize: Int, onChunk: suspend (ByteArray) -> Unit) {
     File(this.path).inputStream().use { stream ->
         val buffer = ByteArray(chunkSize)
         var n: Int

@@ -16,6 +16,7 @@ import snd.komelia.komga.api.model.KomeliaBook
 import snd.komelia.settings.CommonSettingsRepository
 import snd.komelia.settings.EpubReaderSettingsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import snd.komelia.settings.model.EpubReaderType
 import snd.komelia.settings.model.EpubReaderType.EPUB3_READER
 import snd.komelia.settings.model.EpubReaderType.KOMGA_EPUB
@@ -46,6 +47,9 @@ class EpubReaderViewModel(
 ) : StateScreenModel<LoadState<EpubReaderState>>(LoadState.Uninitialized) {
 
     val readerType = MutableStateFlow<EpubReaderType?>(null)
+
+    private val _pendingReaderState = MutableStateFlow<EpubReaderState?>(null)
+    val pendingReaderState = _pendingReaderState.asStateFlow()
 
     suspend fun initialize(navigator: Navigator) {
         if (settingsRepository.getKeepReaderScreenOn().first()) {
@@ -128,7 +132,9 @@ class EpubReaderViewModel(
                             bookSiblingsContext = bookSiblingsContext,
                             onExit = onExit,
                         )
+                        _pendingReaderState.value = epub3State
                         epub3State.initialize(navigator)
+                        _pendingReaderState.value = null
                         when (val res = epub3State.state.value) {
                             is LoadState.Error -> mutableState.value = LoadState.Error(res.exception)
                             is LoadState.Success<Unit> -> mutableState.value = LoadState.Success(epub3State)
@@ -148,6 +154,7 @@ class EpubReaderViewModel(
 interface EpubReaderState {
     val state: StateFlow<LoadState<Unit>>
     val book: StateFlow<KomeliaBook?>
+    val loadingSteps: StateFlow<List<EpubLoadingStep>>
     val onExit: (KomeliaBook) -> Unit
     suspend fun initialize(navigator: Navigator)
     fun onWebviewCreated(webview: KomeliaWebview)
