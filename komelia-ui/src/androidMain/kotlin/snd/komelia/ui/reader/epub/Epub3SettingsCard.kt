@@ -1,5 +1,8 @@
 package snd.komelia.ui.reader.epub
 
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -43,7 +46,6 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -54,7 +56,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.filled.Add
@@ -93,7 +94,8 @@ fun Epub3SettingsCard(
     modifier: Modifier = Modifier,
 ) {
     var dragOffsetY by remember { mutableStateOf(0f) }
-    var selectedTab by remember { mutableIntStateOf(0) }
+    val pagerState = rememberPagerState(initialPage = 0, pageCount = { 3 })
+    val coroutineScope = rememberCoroutineScope()
     val theme = snd.komelia.ui.LocalTheme.current
     val surfaceColor = if (theme.type == snd.komelia.ui.Theme.ThemeType.DARK) Color(43, 43, 43)
     else MaterialTheme.colorScheme.background
@@ -136,57 +138,45 @@ fun Epub3SettingsCard(
 
             // Tab row — sticky, not scrollable
             SecondaryTabRow(
-                selectedTabIndex = selectedTab,
+                selectedTabIndex = pagerState.currentPage,
                 containerColor = Color.Transparent,
             ) {
                 Tab(
-                    selected = selectedTab == 0,
-                    onClick = { selectedTab = 0 },
+                    selected = pagerState.currentPage == 0,
+                    onClick = { coroutineScope.launch { pagerState.animateScrollToPage(0) } },
                     text = { Text("Appearance") },
                 )
                 Tab(
-                    selected = selectedTab == 1,
-                    onClick = { selectedTab = 1 },
+                    selected = pagerState.currentPage == 1,
+                    onClick = { coroutineScope.launch { pagerState.animateScrollToPage(1) } },
                     text = { Text("Font & Text") },
                 )
                 Tab(
-                    selected = selectedTab == 2,
-                    onClick = { selectedTab = 2 },
+                    selected = pagerState.currentPage == 2,
+                    onClick = { coroutineScope.launch { pagerState.animateScrollToPage(2) } },
                     text = { Text("Audio") },
                 )
             }
 
             // Tab content — fills remaining height, scrollable within it
-            TabContentLayout(
-                selectedTab = selectedTab,
-                modifier = Modifier
-                    .weight(1f)
-                    .verticalScroll(rememberScrollState())
-                    .padding(bottom = 16.dp),
-                tabs = listOf(
-                    { AppearanceTab(settings, onSettingsChange, accentColor) },
-                    { FontTextTab(settings, onSettingsChange, accentColor, userFonts, onLoadFont, onDeleteFont) },
-                    { AudioTab(settings, onSettingsChange, accentColor) },
-                ),
-            )
-        }
-    }
-}
-
-@Composable
-private fun TabContentLayout(
-    selectedTab: Int,
-    modifier: Modifier = Modifier,
-    tabs: List<@Composable () -> Unit>,
-) {
-    Layout(
-        content = { tabs.forEach { it() } },
-        modifier = modifier,
-    ) { measurables, constraints ->
-        val placeables = measurables.map { it.measure(constraints) }
-        val maxHeight = placeables.maxOf { it.height }
-        layout(constraints.maxWidth, maxHeight) {
-            placeables[selectedTab].placeRelative(0, 0)
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.Top,
+            ) { page ->
+                Column(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .verticalScroll(rememberScrollState())
+                        .padding(bottom = 16.dp),
+                ) {
+                    when (page) {
+                        0 -> AppearanceTab(settings, onSettingsChange, accentColor)
+                        1 -> FontTextTab(settings, onSettingsChange, accentColor, userFonts, onLoadFont, onDeleteFont)
+                        2 -> AudioTab(settings, onSettingsChange, accentColor)
+                    }
+                }
+            }
         }
     }
 }

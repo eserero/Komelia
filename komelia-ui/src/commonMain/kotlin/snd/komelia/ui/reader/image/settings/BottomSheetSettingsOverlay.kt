@@ -1,5 +1,7 @@
 package snd.komelia.ui.reader.image.settings
 
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
@@ -56,7 +58,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -290,28 +291,28 @@ fun BottomSheetSettingsOverlay(
                 sheetState = sheetState,
                 containerColor = surfaceColor,
             ) {
-                var selectedTab by remember { mutableStateOf(0) }
+                val pagerState = rememberPagerState(initialPage = 0, pageCount = { 3 })
                 SecondaryTabRow(
-                    selectedTabIndex = selectedTab,
+                    selectedTabIndex = pagerState.currentPage,
                     containerColor = Color.Transparent,
                 ) {
                     Tab(
-                        selected = selectedTab == 0,
-                        onClick = { selectedTab = 0 },
+                        selected = pagerState.currentPage == 0,
+                        onClick = { coroutineScope.launch { pagerState.animateScrollToPage(0) } },
                         modifier = Modifier.heightIn(min = 40.dp).cursorForHand(),
                     ) {
                         Text("Reading mode")
                     }
                     Tab(
-                        selected = selectedTab == 1,
-                        onClick = { selectedTab = 1 },
+                        selected = pagerState.currentPage == 1,
+                        onClick = { coroutineScope.launch { pagerState.animateScrollToPage(1) } },
                         modifier = Modifier.heightIn(min = 40.dp).cursorForHand(),
                     ) {
                         Text("Navigation")
                     }
                     Tab(
-                        selected = selectedTab == 2,
-                        onClick = { selectedTab = 2 },
+                        selected = pagerState.currentPage == 2,
+                        onClick = { coroutineScope.launch { pagerState.animateScrollToPage(2) } },
                         modifier = Modifier.heightIn(min = 40.dp).cursorForHand(),
                     ) {
                         Text("Image settings")
@@ -325,63 +326,70 @@ fun BottomSheetSettingsOverlay(
                         else -> 20.dp
                     }
                 }
-                Column(
-                    Modifier
-                        .padding(contentPadding)
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier
                         .height(maxHeight * (2f / 3f))
-                        .fillMaxWidth()
-                        .verticalScroll(rememberScrollState())
-                        .pointerInput(Unit) { detectTapGestures(onTap = { focusManager.clearFocus() }) }
-                ) {
+                        .fillMaxWidth(),
+                    verticalAlignment = Alignment.Top,
+                ) { page ->
+                    Column(
+                        Modifier
+                            .padding(contentPadding)
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
+                            .pointerInput(Unit) { detectTapGestures(onTap = { focusManager.clearFocus() }) }
+                    ) {
 
-                    when (selectedTab) {
-                        0 -> {
-                            BottomSheetReadingModeSettings(
+                        when (page) {
+                            0 -> {
+                                BottomSheetReadingModeSettings(
+                                    readerType = readerType,
+                                    onReaderTypeChange = onReaderTypeChange,
+                                    pagedReaderState = pagedReaderState,
+                                    continuousReaderState = continuousReaderState,
+                                    panelsReaderState = panelsReaderState,
+                                )
+                            }
+
+                            1 -> NavigationSettings(
+                                currentMode = tapNavigationMode,
+                                onModeChange = onTapNavigationModeChange
+                            )
+
+                            2 -> BottomSheetImageSettings(
                                 readerType = readerType,
-                                onReaderTypeChange = onReaderTypeChange,
                                 pagedReaderState = pagedReaderState,
                                 continuousReaderState = continuousReaderState,
                                 panelsReaderState = panelsReaderState,
+                                availableUpsamplingModes = availableUpsamplingModes,
+                                upsamplingMode = upsamplingMode,
+                                onUpsamplingModeChange = onUpsamplingModeChange,
+                                availableDownsamplingKernels = availableDownsamplingKernels,
+                                downsamplingKernel = downsamplingKernel,
+                                onDownsamplingKernelChange = onDownsamplingKernelChange,
+                                linearLightDownsampling = linearLightDownsampling,
+                                onLinearLightDownsamplingChange = onLinearLightDownsamplingChange,
+                                stretchToFit = stretchToFit,
+                                onStretchToFitChange = onStretchToFitChange,
+                                cropBorders = cropBorders,
+                                onCropBordersChange = onCropBordersChange,
+                                loadThumbnailPreviews = loadThumbnailPreviews,
+                                onLoadThumbnailPreviewsChange = onLoadThumbnailPreviewsChange,
+                                isColorCorrectionsActive = isColorCorrectionsActive,
+                                onColorCorrectionClick = onColorCorrectionClick,
+                                zoom = zoom,
+                                flashEnabled = flashEnabled,
+                                onFlashEnabledChange = onFlashEnabledChange,
+                                flashEveryNPages = flashEveryNPages,
+                                onFlashEveryNPagesChange = onFlashEveryNPagesChange,
+                                flashWith = flashWith,
+                                onFlashWithChange = onFlashWithChange,
+                                flashDuration = flashDuration,
+                                onFlashDurationChange = onFlashDurationChange,
+                                ncnnSettingsState = ncnnSettingsState,
                             )
                         }
-
-                        1 -> NavigationSettings(
-                            currentMode = tapNavigationMode,
-                            onModeChange = onTapNavigationModeChange
-                        )
-
-                        2 -> BottomSheetImageSettings(
-                            readerType = readerType,
-                            pagedReaderState = pagedReaderState,
-                            continuousReaderState = continuousReaderState,
-                            panelsReaderState = panelsReaderState,
-                            availableUpsamplingModes = availableUpsamplingModes,
-                            upsamplingMode = upsamplingMode,
-                            onUpsamplingModeChange = onUpsamplingModeChange,
-                            availableDownsamplingKernels = availableDownsamplingKernels,
-                            downsamplingKernel = downsamplingKernel,
-                            onDownsamplingKernelChange = onDownsamplingKernelChange,
-                            linearLightDownsampling = linearLightDownsampling,
-                            onLinearLightDownsamplingChange = onLinearLightDownsamplingChange,
-                            stretchToFit = stretchToFit,
-                            onStretchToFitChange = onStretchToFitChange,
-                            cropBorders = cropBorders,
-                            onCropBordersChange = onCropBordersChange,
-                            loadThumbnailPreviews = loadThumbnailPreviews,
-                            onLoadThumbnailPreviewsChange = onLoadThumbnailPreviewsChange,
-                            isColorCorrectionsActive = isColorCorrectionsActive,
-                            onColorCorrectionClick = onColorCorrectionClick,
-                            zoom = zoom,
-                            flashEnabled = flashEnabled,
-                            onFlashEnabledChange = onFlashEnabledChange,
-                            flashEveryNPages = flashEveryNPages,
-                            onFlashEveryNPagesChange = onFlashEveryNPagesChange,
-                            flashWith = flashWith,
-                            onFlashWithChange = onFlashWithChange,
-                            flashDuration = flashDuration,
-                            onFlashDurationChange = onFlashDurationChange,
-                            ncnnSettingsState = ncnnSettingsState,
-                        )
                     }
                 }
             }
