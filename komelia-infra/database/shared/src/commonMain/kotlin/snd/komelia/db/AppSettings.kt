@@ -37,4 +37,7 @@ data class AppSettings(
     val useNewLibraryUI2: Boolean = true,
     val showContinueReading: Boolean = true,
     val useImmersiveMorphingCover: Boolean = true,
+    val cardWidthScale: Float = 0.95f,
+    val cardHeightScale: Float = 0.95f,
+    val cardSpacingBelow: Float = 0.0f,
 )

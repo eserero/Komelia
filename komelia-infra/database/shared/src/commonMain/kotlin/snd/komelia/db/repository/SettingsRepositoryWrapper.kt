@@ -207,4 +207,21 @@ class SettingsRepositoryWrapper(
     override suspend fun putUseImmersiveMorphingCover(enabled: Boolean) =
         wrapper.transform { it.copy(useImmersiveMorphingCover = enabled) }
 
+    override fun getCardWidthScale(): Flow<Float> =
+        wrapper.state.map { it.cardWidthScale }.distinctUntilChanged()
+
+    override suspend fun putCardWidthScale(scale: Float) =
+        wrapper.transform { it.copy(cardWidthScale = scale) }
+
+    override fun getCardHeightScale(): Flow<Float> =
+        wrapper.state.map { it.cardHeightScale }.distinctUntilChanged()
+
+    override suspend fun putCardHeightScale(scale: Float) =
+        wrapper.transform { it.copy(cardHeightScale = scale) }
+
+    override fun getCardSpacingBelow(): Flow<Float> =
+        wrapper.state.map { it.cardSpacingBelow }.distinctUntilChanged()
+
+    override suspend fun putCardSpacingBelow(spacing: Float) =
+        wrapper.transform { it.copy(cardSpacingBelow = spacing) }
 }

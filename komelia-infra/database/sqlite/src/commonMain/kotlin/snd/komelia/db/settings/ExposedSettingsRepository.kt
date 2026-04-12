@@ -53,6 +53,9 @@ class ExposedSettingsRepository(database: Database) : ExposedRepository(database
                 it[useNewLibraryUI2] = settings.useNewLibraryUI2
                 it[showContinueReading] = settings.showContinueReading
                 it[useImmersiveMorphingCover] = settings.useImmersiveMorphingCover
+                it[cardWidthScale] = settings.cardWidthScale
+                it[cardHeightScale] = settings.cardHeightScale
+                it[cardSpacingBelow] = settings.cardSpacingBelow
             }
         }
     }
@@ -89,6 +92,9 @@ class ExposedSettingsRepository(database: Database) : ExposedRepository(database
             useNewLibraryUI2 = get(AppSettingsTable.useNewLibraryUI2),
             showContinueReading = get(AppSettingsTable.showContinueReading),
             useImmersiveMorphingCover = get(AppSettingsTable.useImmersiveMorphingCover),
+            cardWidthScale = get(AppSettingsTable.cardWidthScale),
+            cardHeightScale = get(AppSettingsTable.cardHeightScale),
+            cardSpacingBelow = get(AppSettingsTable.cardSpacingBelow),
         )
     }
 }

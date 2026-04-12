@@ -28,6 +28,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import snd.komelia.settings.model.AppTheme
+import snd.komelia.ui.LocalCardHeightScale
+import snd.komelia.ui.LocalCardSpacingBelow
+import snd.komelia.ui.LocalCardWidthScale
 import snd.komelia.ui.LocalCardLayoutBelow
 import snd.komelia.ui.LocalCardLayoutOverlayBackground
 import snd.komelia.ui.LocalHideParenthesesInNames
@@ -98,6 +101,12 @@ fun AppearanceSettingsContent(
     onUseNewLibraryUI2Change: (Boolean) -> Unit,
     useImmersiveMorphingCover: Boolean,
     onUseImmersiveMorphingCoverChange: (Boolean) -> Unit,
+    cardWidthScale: Float,
+    onCardWidthScaleChange: (Float) -> Unit,
+    cardHeightScale: Float,
+    onCardHeightScaleChange: (Float) -> Unit,
+    cardSpacingBelow: Float,
+    onCardSpacingBelowChange: (Float) -> Unit,
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -216,6 +225,34 @@ fun AppearanceSettingsContent(
             colors = AppSliderDefaults.colors(accentColor = accentColor),
             modifier = Modifier.cursorForHand().padding(end = 20.dp),
         )
+
+        Text("Width Gap: ${(cardWidthScale * 100).roundToInt()}%", modifier = Modifier.padding(10.dp))
+        AppSlider(
+            value = cardWidthScale,
+            onValueChange = onCardWidthScaleChange,
+            valueRange = 0.8f..1.0f,
+            colors = AppSliderDefaults.colors(accentColor = accentColor),
+            modifier = Modifier.cursorForHand().padding(end = 20.dp),
+        )
+
+        Text("Height Gap: ${(cardHeightScale * 100).roundToInt()}%", modifier = Modifier.padding(10.dp))
+        AppSlider(
+            value = cardHeightScale,
+            onValueChange = onCardHeightScaleChange,
+            valueRange = 0.8f..1.0f,
+            colors = AppSliderDefaults.colors(accentColor = accentColor),
+            modifier = Modifier.cursorForHand().padding(end = 20.dp),
+        )
+
+        Text("Spacing Below: ${(cardSpacingBelow * 100).roundToInt()}%", modifier = Modifier.padding(10.dp))
+        AppSlider(
+            value = cardSpacingBelow,
+            onValueChange = onCardSpacingBelowChange,
+            valueRange = 0.0f..0.2f,
+            colors = AppSliderDefaults.colors(accentColor = accentColor),
+            modifier = Modifier.cursorForHand().padding(end = 20.dp),
+        )
+
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -229,6 +266,9 @@ fun AppearanceSettingsContent(
                 LocalCardLayoutBelow provides cardLayoutBelow,
                 LocalHideParenthesesInNames provides hideParenthesesInNames,
                 LocalCardLayoutOverlayBackground provides cardLayoutOverlayBackground,
+                LocalCardWidthScale provides cardWidthScale,
+                LocalCardHeightScale provides cardHeightScale,
+                LocalCardSpacingBelow provides cardSpacingBelow,
             ) {
                 LibraryItemCard(
                     modifier = Modifier.width(cardWidth),

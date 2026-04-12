@@ -1,5 +1,10 @@
 package snd.komelia.ui.oneshot.immersive
 
+import snd.komelia.ui.common.ThumbnailConstants.ASPECT_RATIO
+import snd.komelia.ui.common.ThumbnailConstants.CARD_SCALE
+import snd.komelia.ui.LocalCardHeightScale
+import snd.komelia.ui.LocalCardSpacingBelow
+import snd.komelia.ui.LocalCardWidthScale
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.tween
@@ -374,9 +379,11 @@ private fun OneshotCardContent(
     authorYearText: String,
 ) {
     val useMorphingCover = LocalUseImmersiveMorphingCover.current
+    val cardHeightScale = LocalCardHeightScale.current
+    val cardSpacingBelow = LocalCardSpacingBelow.current
     val thumbnailOffset = ((cardWidth + 16.dp) * expandFraction).coerceAtLeast(0.dp)
     val thumbnailTopGap = if (useMorphingCover) 48.dp else 20.dp
-    val thumbnailHeight = cardWidth / 0.703f // ≈ 156.5 dp
+    val thumbnailHeight = (cardWidth * cardHeightScale) / ASPECT_RATIO + (cardWidth * cardSpacingBelow)
 
     val navBarBottom = with(LocalDensity.current) {
         WindowInsets.navigationBars.getBottom(this).toDp()

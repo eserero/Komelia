@@ -56,6 +56,9 @@ import androidx.compose.ui.util.lerp
 import snd.komelia.image.coil.SeriesDefaultThumbnailRequest
 import snd.komelia.komga.api.model.KomeliaBook
 import snd.komelia.ui.LoadState
+import snd.komelia.ui.LocalCardHeightScale
+import snd.komelia.ui.LocalCardSpacingBelow
+import snd.komelia.ui.LocalCardWidthScale
 import snd.komelia.ui.LocalHideParenthesesInNames
 import snd.komelia.ui.LocalKomgaEvents
 import snd.komelia.ui.LocalToggleImmersiveMorphingCover
@@ -64,6 +67,8 @@ import snd.komga.client.sse.KomgaEvent.ThumbnailBookEvent
 import snd.komga.client.sse.KomgaEvent.ThumbnailSeriesEvent
 import snd.komelia.ui.collection.SeriesCollectionsContent
 import snd.komelia.ui.collection.SeriesCollectionsState
+import snd.komelia.ui.common.ThumbnailConstants.ASPECT_RATIO
+import snd.komelia.ui.common.ThumbnailConstants.CARD_SCALE
 import snd.komelia.ui.common.components.AppFilterChipDefaults
 import snd.komelia.ui.common.images.ThumbnailImage
 import coil3.compose.rememberAsyncImagePainter
@@ -297,7 +302,9 @@ fun ImmersiveSeriesContent(
 
             // Thumbnail metrics — must match ImmersiveDetailScaffold Layer 3
             val thumbnailTopGap = if (useMorphingCover) 48.dp else 20.dp
-            val thumbnailHeight = gridMinWidth / 0.703f // ≈ 156.5 dp
+            val cardHeightScale = LocalCardHeightScale.current
+            val cardSpacingBelow = LocalCardSpacingBelow.current
+            val thumbnailHeight = (gridMinWidth * cardHeightScale) / ASPECT_RATIO + (gridMinWidth * cardSpacingBelow)
 
             val navBarBottom = with(LocalDensity.current) {
                 WindowInsets.navigationBars.getBottom(this).toDp()

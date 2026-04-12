@@ -51,9 +51,14 @@ class AppSettingsScreen : Screen {
                     onUseNewLibraryUI2Change = vm::onUseNewLibraryUI2Change,
                     useImmersiveMorphingCover = vm.useImmersiveMorphingCover,
                     onUseImmersiveMorphingCoverChange = vm::onUseImmersiveMorphingCoverChange,
+                    cardWidthScale = vm.cardWidthScale,
+                    onCardWidthScaleChange = vm::onCardWidthScaleChange,
+                    cardHeightScale = vm.cardHeightScale,
+                    onCardHeightScaleChange = vm::onCardHeightScaleChange,
+                    cardSpacingBelow = vm.cardSpacingBelow,
+                    onCardSpacingBelowChange = vm::onCardSpacingBelowChange,
                 )
-                                }
-                            }
-                        }
-                    }
-                    
+            }
+        }
+    }
+}

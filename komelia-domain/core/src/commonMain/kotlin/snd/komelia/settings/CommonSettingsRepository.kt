@@ -85,4 +85,13 @@ interface CommonSettingsRepository {
 
     fun getUseImmersiveMorphingCover(): Flow<Boolean>
     suspend fun putUseImmersiveMorphingCover(enabled: Boolean)
+
+    fun getCardWidthScale(): Flow<Float>
+    suspend fun putCardWidthScale(scale: Float)
+
+    fun getCardHeightScale(): Flow<Float>
+    suspend fun putCardHeightScale(scale: Float)
+
+    fun getCardSpacingBelow(): Flow<Float>
+    suspend fun putCardSpacingBelow(spacing: Float)
 }

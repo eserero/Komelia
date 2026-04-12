@@ -1,5 +1,9 @@
 package snd.komelia.ui.common.immersive
 
+import snd.komelia.ui.common.ThumbnailConstants.ASPECT_RATIO
+import snd.komelia.ui.common.ThumbnailConstants.CARD_SCALE
+import snd.komelia.ui.LocalCardHeightScale
+import snd.komelia.ui.LocalCardWidthScale
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.AnimationVector
@@ -485,17 +489,23 @@ fun ImmersiveDetailScaffold(
             // Layer 2.75: Morphing cover overlay (New UI 2 only) — the Card flies from full-screen
             // to the thumbnail position as the card expands. Disappears at expandFraction >= 0.99.
             if (useMorphingCover && expandFraction < 0.99f) {
-                val thumbnailHeight = thumbnailWidth / 0.703f
-                val targetX = with(density) { targetThumbnailOffset.x.toDp() }
-                val targetY = with(density) { targetThumbnailOffset.y.toDp() }
+                val cardWidthScale = LocalCardWidthScale.current
+                val cardHeightScale = LocalCardHeightScale.current
+                val targetWidth = thumbnailWidth * cardWidthScale
+                val targetHeight = (thumbnailWidth * cardHeightScale) / ASPECT_RATIO
+                val horizontalGap = (thumbnailWidth - targetWidth) / 2
+                val verticalGap = (thumbnailWidth / ASPECT_RATIO - targetHeight) / 2
+
+                val targetX = with(density) { targetThumbnailOffset.x.toDp() } + horizontalGap
+                val targetY = with(density) { targetThumbnailOffset.y.toDp() } + verticalGap
 
                 // UI2 uses edge-to-edge layout (content starts at y=0 behind status bar),
                 // so no negative offset is needed — the cover starts flush with the screen top.
                 val startY = 0.dp
                 val startHeight = collapsedOffset
 
-                val currentWidth = lerp(screenWidth, thumbnailWidth, expandFraction)
-                val currentHeight = lerp(startHeight, thumbnailHeight, expandFraction)
+                val currentWidth = lerp(screenWidth, targetWidth, expandFraction)
+                val currentHeight = lerp(startHeight, targetHeight, expandFraction)
                 val currentX = lerp(0.dp, targetX, expandFraction)
                 val currentY = lerp(startY, targetY, expandFraction)
 

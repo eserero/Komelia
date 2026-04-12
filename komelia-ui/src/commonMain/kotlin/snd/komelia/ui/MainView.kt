@@ -80,6 +80,9 @@ fun MainView(
     var showImmersiveNavBar by remember { mutableStateOf(false) }
     var useNewLibraryUI2 by remember { mutableStateOf(false) }
     var useImmersiveMorphingCover by remember { mutableStateOf(false) }
+    var cardWidthScale by remember { mutableStateOf(1.0f) }
+    var cardHeightScale by remember { mutableStateOf(1.0f) }
+    var cardSpacingBelow by remember { mutableStateOf(0.0f) }
     var hideParenthesesInNames by remember { mutableStateOf(false) }
     var lockScreenRotation by remember { mutableStateOf(false) }
     var cardLayoutOverlayBackground by remember { mutableStateOf(true) }
@@ -134,6 +137,18 @@ fun MainView(
     LaunchedEffect(dependencies) {
         dependencies?.appRepositories?.settingsRepository?.getUseImmersiveMorphingCover()
             ?.collect { useImmersiveMorphingCover = it }
+    }
+    LaunchedEffect(dependencies) {
+        dependencies?.appRepositories?.settingsRepository?.getCardWidthScale()
+            ?.collect { cardWidthScale = it }
+    }
+    LaunchedEffect(dependencies) {
+        dependencies?.appRepositories?.settingsRepository?.getCardHeightScale()
+            ?.collect { cardHeightScale = it }
+    }
+    LaunchedEffect(dependencies) {
+        dependencies?.appRepositories?.settingsRepository?.getCardSpacingBelow()
+            ?.collect { cardSpacingBelow = it }
     }
 
     MaterialTheme(colorScheme = theme.colorScheme) {
@@ -202,7 +217,10 @@ fun MainView(
                     coroutineScope.launch {
                         dependencies.appRepositories.settingsRepository.putUseImmersiveMorphingCover(!useImmersiveMorphingCover)
                     }
-                }
+                },
+                LocalCardWidthScale provides cardWidthScale,
+                LocalCardHeightScale provides cardHeightScale,
+                LocalCardSpacingBelow provides cardSpacingBelow,
             ) {
                 MainContent(platformType, dependencies.komgaSharedState)
 

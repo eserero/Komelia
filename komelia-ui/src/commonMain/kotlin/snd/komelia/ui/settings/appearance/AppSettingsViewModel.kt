@@ -33,6 +33,9 @@ class AppSettingsViewModel(
     var cardLayoutOverlayBackground by mutableStateOf(true)
     var useNewLibraryUI2 by mutableStateOf(false)
     var useImmersiveMorphingCover by mutableStateOf(false)
+    var cardWidthScale by mutableStateOf(1.0f)
+    var cardHeightScale by mutableStateOf(1.0f)
+    var cardSpacingBelow by mutableStateOf(0.0f)
 
     suspend fun initialize() {
         if (state.value !is LoadState.Uninitialized) return
@@ -50,9 +53,27 @@ class AppSettingsViewModel(
         cardLayoutOverlayBackground = settingsRepository.getCardLayoutOverlayBackground().first()
         useNewLibraryUI2 = settingsRepository.getUseNewLibraryUI2().first()
         useImmersiveMorphingCover = settingsRepository.getUseImmersiveMorphingCover().first()
+        cardWidthScale = settingsRepository.getCardWidthScale().first()
+        cardHeightScale = settingsRepository.getCardHeightScale().first()
+        cardSpacingBelow = settingsRepository.getCardSpacingBelow().first()
 
         settingsRepository.putNavBarColor(null)
         mutableState.value = LoadState.Success(Unit)
+    }
+
+    fun onCardWidthScaleChange(scale: Float) {
+        this.cardWidthScale = scale
+        screenModelScope.launch { settingsRepository.putCardWidthScale(scale) }
+    }
+
+    fun onCardHeightScaleChange(scale: Float) {
+        this.cardHeightScale = scale
+        screenModelScope.launch { settingsRepository.putCardHeightScale(scale) }
+    }
+
+    fun onCardSpacingBelowChange(spacing: Float) {
+        this.cardSpacingBelow = spacing
+        screenModelScope.launch { settingsRepository.putCardSpacingBelow(spacing) }
     }
 
     fun onCardWidthChange(cardWidth: Dp) {

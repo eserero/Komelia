@@ -37,6 +37,9 @@ object AppSettingsTable : Table("AppSettings") {
     val useNewLibraryUI2 = bool("use_new_library_ui_2").default(true)
     val showContinueReading = bool("show_continue_reading").default(true)
     val useImmersiveMorphingCover = bool("use_immersive_morphing_cover").default(true)
+    val cardWidthScale = float("card_width_scale").default(0.95f)
+    val cardHeightScale = float("card_height_scale").default(0.95f)
+    val cardSpacingBelow = float("card_spacing_below").default(0.0f)
 
     override val primaryKey = PrimaryKey(version)
-    }
+}

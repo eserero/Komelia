@@ -36,6 +36,9 @@ import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.ReorderableLazyGridState
 import snd.komelia.ui.LocalCardLayoutBelow
 import snd.komelia.ui.LocalCardLayoutOverlayBackground
+import snd.komelia.ui.LocalCardWidthScale
+import snd.komelia.ui.LocalCardHeightScale
+import snd.komelia.ui.LocalCardSpacingBelow
 import snd.komelia.ui.LocalPlatform
 import snd.komelia.ui.platform.PlatformType
 import snd.komelia.ui.platform.cursorForHand
@@ -54,6 +57,8 @@ import io.github.snd_r.komelia.ui.komelia_ui.generated.resources.NotoSerif_Bold
 import io.github.snd_r.komelia.ui.komelia_ui.generated.resources.Res
 import org.jetbrains.compose.resources.Font
 import snd.komelia.ui.LocalUseNewLibraryUI2
+import snd.komelia.ui.common.ThumbnailConstants.ASPECT_RATIO
+import snd.komelia.ui.common.ThumbnailConstants.CARD_SCALE
 
 const val defaultCardWidth = 240
 const val DEFAULT_CARD_MAX_LINES = 2
@@ -78,27 +83,35 @@ fun LibraryItemCard(
 
     val cardLayoutBelow = LocalCardLayoutBelow.current
     val overlayBackground = LocalCardLayoutOverlayBackground.current
+    val cardWidthScale = LocalCardWidthScale.current
+    val cardHeightScale = LocalCardHeightScale.current
+    val cardSpacingBelow = LocalCardSpacingBelow.current
 
     val shape = if (cardLayoutBelow) RoundedCornerShape(12.dp) else RoundedCornerShape(8.dp)
     val color = if (cardLayoutBelow) Color.Transparent else MaterialTheme.colorScheme.surfaceVariant
     val elevation = CardDefaults.cardElevation(defaultElevation = if (cardLayoutBelow) 0.dp else 2.dp)
 
-    Card(
-        shape = shape,
-        modifier = modifier
-            .combinedClickable(onClick = onClick ?: {}, onLongClick = onLongClick)
-            .then(if (onClick != null || onLongClick != null) Modifier.cursorForHand() else Modifier),
-        colors = CardDefaults.cardColors(containerColor = color),
-        elevation = elevation
+    Box(
+        modifier = modifier.padding(bottom = (defaultCardWidth * cardSpacingBelow).dp),
+        contentAlignment = Alignment.Center
     ) {
-        // Thumbnail Logic
-        val imageShape = if (cardLayoutBelow) RoundedCornerShape(12.dp) else RoundedCornerShape(8.dp)
-
-        Box(
+        Card(
+            shape = shape,
             modifier = Modifier
-                .aspectRatio(0.703f)
-                .clip(imageShape)
+                .fillMaxWidth(cardWidthScale)
+                .combinedClickable(onClick = onClick ?: {}, onLongClick = onLongClick)
+                .then(if (onClick != null || onLongClick != null) Modifier.cursorForHand() else Modifier),
+            colors = CardDefaults.cardColors(containerColor = color),
+            elevation = elevation
         ) {
+            // Thumbnail Logic
+            val imageShape = if (cardLayoutBelow) RoundedCornerShape(12.dp) else RoundedCornerShape(8.dp)
+
+            Box(
+                modifier = Modifier
+                    .aspectRatio(ASPECT_RATIO * (cardWidthScale / cardHeightScale))
+                    .clip(imageShape)
+            ) {
             image()
             badges()
 
@@ -230,6 +243,7 @@ fun LibraryItemCard(
         }
     }
 }
+}
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -245,26 +259,36 @@ fun ItemCard(
     val color = containerColor ?: if (cardLayoutBelow) Color.Transparent
     else MaterialTheme.colorScheme.surfaceVariant
 
+    val cardWidthScale = LocalCardWidthScale.current
+    val cardHeightScale = LocalCardHeightScale.current
+    val cardSpacingBelow = LocalCardSpacingBelow.current
+
     val shape = if (cardLayoutBelow) RoundedCornerShape(12.dp)
     else RoundedCornerShape(8.dp)
 
-    Card(
-        shape = shape,
-        modifier = modifier
-            .combinedClickable(onClick = onClick ?: {}, onLongClick = onLongClick)
-            .then(if (onClick != null || onLongClick != null) Modifier.cursorForHand() else Modifier),
-        colors = CardDefaults.cardColors(containerColor = color),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (cardLayoutBelow) 0.dp else 2.dp)
+    Box(
+        modifier = modifier.padding(bottom = (defaultCardWidth * cardSpacingBelow).dp),
+        contentAlignment = Alignment.Center
     ) {
-        val imageShape = if (cardLayoutBelow) RoundedCornerShape(12.dp)
-        else RoundedCornerShape(8.dp)
-
-        Box(
+        Card(
+            shape = shape,
             modifier = Modifier
-                .aspectRatio(0.703f)
-                .clip(imageShape)
-        ) { image() }
-        content()
+                .fillMaxWidth(cardWidthScale)
+                .combinedClickable(onClick = onClick ?: {}, onLongClick = onLongClick)
+                .then(if (onClick != null || onLongClick != null) Modifier.cursorForHand() else Modifier),
+            colors = CardDefaults.cardColors(containerColor = color),
+            elevation = CardDefaults.cardElevation(defaultElevation = if (cardLayoutBelow) 0.dp else 2.dp)
+        ) {
+            val imageShape = if (cardLayoutBelow) RoundedCornerShape(12.dp)
+            else RoundedCornerShape(8.dp)
+
+            Box(
+                modifier = Modifier
+                    .aspectRatio(ASPECT_RATIO * (cardWidthScale / cardHeightScale))
+                    .clip(imageShape)
+            ) { image() }
+            content()
+        }
     }
 }
 
@@ -274,13 +298,22 @@ fun ItemCardWithContent(
     image: @Composable () -> Unit,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    Card(
-        shape = RoundedCornerShape(8.dp),
-        modifier = modifier,
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    val cardWidthScale = LocalCardWidthScale.current
+    val cardHeightScale = LocalCardHeightScale.current
+    val cardSpacingBelow = LocalCardSpacingBelow.current
+
+    Box(
+        modifier = modifier.padding(bottom = (defaultCardWidth * cardSpacingBelow).dp),
+        contentAlignment = Alignment.Center
     ) {
-        Box(modifier = Modifier.aspectRatio(0.703f)) { image() }
-        content()
+        Card(
+            shape = RoundedCornerShape(8.dp),
+            modifier = Modifier.fillMaxWidth(cardWidthScale),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        ) {
+            Box(modifier = Modifier.aspectRatio(ASPECT_RATIO * (cardWidthScale / cardHeightScale))) { image() }
+            content()
+        }
     }
 }
 
