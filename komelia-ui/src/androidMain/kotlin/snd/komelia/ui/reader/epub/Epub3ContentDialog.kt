@@ -412,6 +412,8 @@ private fun SearchTab(
 ) {
     var query by remember { mutableStateOf(searchQuery) }
 
+    val keyboardController = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
+
     Column(modifier = Modifier.fillMaxWidth()) {
         OutlinedTextField(
             value = query,
@@ -419,9 +421,15 @@ private fun SearchTab(
             placeholder = { Text("Search") },
             shape = CircleShape,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-            keyboardActions = KeyboardActions(onSearch = { onSearch(query) }),
+            keyboardActions = KeyboardActions(onSearch = {
+                onSearch(query)
+                keyboardController?.hide()
+            }),
             trailingIcon = {
-                IconButton(onClick = { onSearch(query) }) {
+                IconButton(onClick = {
+                    onSearch(query)
+                    keyboardController?.hide()
+                }) {
                     Icon(Icons.Default.Search, contentDescription = "Search")
                 }
             },

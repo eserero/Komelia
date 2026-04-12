@@ -280,15 +280,20 @@ fun BottomSheetSettingsOverlay(
 
         val maxHeight = this.maxHeight
         val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        val theme = snd.komelia.ui.LocalTheme.current
+        val surfaceColor = if (theme.type == snd.komelia.ui.Theme.ThemeType.DARK) Color(43, 43, 43)
+        else MaterialTheme.colorScheme.surface
+
         if (showSettingsDialog) {
             ModalBottomSheet(
                 onDismissRequest = { showSettingsDialog = false },
                 sheetState = sheetState,
-                containerColor = MaterialTheme.colorScheme.surface,
+                containerColor = surfaceColor,
             ) {
                 var selectedTab by remember { mutableStateOf(0) }
                 SecondaryTabRow(
                     selectedTabIndex = selectedTab,
+                    containerColor = Color.Transparent,
                 ) {
                     Tab(
                         selected = selectedTab == 0,
