@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -49,6 +50,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import snd.komelia.ui.LocalHideParenthesesInNames
 import snd.komelia.ui.LocalLibraries
+import snd.komelia.ui.LocalWindowWidth
 import snd.komelia.ui.common.components.NoPaddingChip
 import snd.komelia.ui.common.images.SeriesThumbnail
 import snd.komelia.ui.common.menus.SeriesActionsMenu
@@ -104,6 +106,7 @@ fun SeriesImageCard(
 fun SeriesSimpleImageCard(
     series: KomgaSeries,
     onSeriesClick: (() -> Unit)? = null,
+    fillMaxWidth: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     val hideParentheses = LocalHideParenthesesInNames.current
@@ -112,7 +115,9 @@ fun SeriesSimpleImageCard(
     LibraryItemCard(
         modifier = modifier,
         title = title,
+        showText = false,
         onClick = onSeriesClick,
+        fillMaxWidth = fillMaxWidth,
         image = {
             SeriesThumbnail(
                 series.id,
@@ -252,10 +257,13 @@ fun SeriesDetailedListCard(
         Row(
             Modifier
                 .fillMaxWidth()
-                .heightIn(max = 200.dp)
-                .padding(10.dp)
+                .height(160.dp)
+                .padding(10.dp),
+            verticalAlignment = Alignment.Top
         ) {
-            SeriesSimpleImageCard(series, onClick)
+            Box(Modifier.width(100.dp)) {
+                SeriesSimpleImageCard(series = series, onSeriesClick = onClick, fillMaxWidth = false)
+            }
             SeriesDetails(title, series)
         }
     }
@@ -263,6 +271,7 @@ fun SeriesDetailedListCard(
 
 @Composable
 private fun SeriesDetails(title: String, series: KomgaSeries) {
+    val width = LocalWindowWidth.current
     Column(Modifier.padding(start = 10.dp)) {
         Row {
             Text(title, fontWeight = FontWeight.Bold)
@@ -281,7 +290,7 @@ private fun SeriesDetails(title: String, series: KomgaSeries) {
 
             }
         }
-        Text(series.metadata.summary, maxLines = 4, style = MaterialTheme.typography.bodyMedium)
+        Text(series.metadata.summary, maxLines = 2, style = MaterialTheme.typography.bodyMedium)
 
     }
 }

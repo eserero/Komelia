@@ -1,7 +1,11 @@
 # Komelia - Komga media client
 
 ## What's New in this Fork
-This is a fork of [Komelia](https://github.com/Gaysuist/Komelia) focused on improving the Android experience. It contains all the good in Komelia and adding new UX and many new features like completly new epub3 reader supporting immersive reading (based on storyteller), many new features in the comic reader (in app AI upscaling, additional navigation options, improved panel mode etc.)
+This is a fork of [Komelia](https://github.com/Gaysuist/Komelia) focused on improving the Android experience. It contains all the good in Komelia and adding many new featurs:
+*  Completly revamped UX 
+*  New epub3 reader supporting immersive Audio + Text reading (based on storyteller)
+*  Many new features in the comic reader (in app AI upscaling, additional navigation options, improved panel mode and more)
+*  Much more - read below to find out :-)
 
 ### New UX and Themes
 *   **Material 3**: Standardized M3 `TopAppBar` with cleaner menu location and a hamburger menu to choose the library. Floating FAB to open the filter dialog. Standardize Navigation Bar.

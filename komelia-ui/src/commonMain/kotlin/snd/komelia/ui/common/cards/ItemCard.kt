@@ -5,13 +5,16 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.LazyGridItemScope
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -23,39 +26,34 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
-import sh.calvin.reorderable.ReorderableItem
-import sh.calvin.reorderable.ReorderableLazyGridState
-import snd.komelia.ui.LocalCardLayoutBelow
-import snd.komelia.ui.LocalCardLayoutOverlayBackground
-import snd.komelia.ui.LocalCardWidthScale
-import snd.komelia.ui.LocalCardHeightScale
-import snd.komelia.ui.LocalCardSpacingBelow
-import snd.komelia.ui.LocalCardShadowLevel
-import snd.komelia.ui.LocalCardCornerRadius
-import snd.komelia.ui.LocalPlatform
-import snd.komelia.ui.platform.PlatformType
-import snd.komelia.ui.platform.cursorForHand
-
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.BoxScope
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Text
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.ReorderableLazyGridState
+import snd.komelia.ui.LocalCardCornerRadius
+import snd.komelia.ui.LocalCardHeightScale
+import snd.komelia.ui.LocalCardLayoutBelow
+import snd.komelia.ui.LocalCardLayoutOverlayBackground
+import snd.komelia.ui.LocalCardShadowLevel
+import snd.komelia.ui.LocalCardSpacingBelow
+import snd.komelia.ui.LocalCardWidthScale
+import snd.komelia.ui.LocalPlatform
 import snd.komelia.ui.LocalUseNewLibraryUI2
 import snd.komelia.ui.common.ThumbnailConstants.ASPECT_RATIO
-import snd.komelia.ui.common.ThumbnailConstants.CARD_SCALE
+import snd.komelia.ui.platform.PlatformType
+import snd.komelia.ui.platform.cursorForHand
 
 const val defaultCardWidth = 240
 const val DEFAULT_CARD_MAX_LINES = 2
@@ -69,6 +67,8 @@ fun LibraryItemCard(
     secondaryTextTop: Boolean = false,
     isUnavailable: Boolean = false,
     titleBold: Boolean = false,
+    showText: Boolean = true,
+    fillMaxWidth: Boolean = true,
     onClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
     badges: @Composable BoxScope.() -> Unit = {},
@@ -85,91 +85,97 @@ fun LibraryItemCard(
 
     val shape = RoundedCornerShape(cornerRadius.dp)
     val color = if (cardLayoutBelow) Color.Transparent else MaterialTheme.colorScheme.surfaceVariant
-    val elevation = CardDefaults.cardElevation(defaultElevation = if (cardLayoutBelow) 0.dp else shadowLevel.dp)
+    val cardRatio = ASPECT_RATIO * (cardWidthScale / cardHeightScale)
 
-    Box(
-        modifier = modifier.fillMaxWidth().padding(bottom = (defaultCardWidth * cardSpacingBelow).dp),
-        contentAlignment = Alignment.Center
+    Column(
+        modifier = modifier.padding(bottom = (defaultCardWidth * cardSpacingBelow).dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Top
     ) {
         Card(
             shape = shape,
             modifier = Modifier
-                .fillMaxWidth(cardWidthScale)
+                .then(if (fillMaxWidth) Modifier.fillMaxWidth(cardWidthScale) else Modifier)
+                .aspectRatio(cardRatio, matchHeightConstraintsFirst = true)
                 .combinedClickable(onClick = onClick ?: {}, onLongClick = onLongClick)
-                .then(if (onClick != null || onLongClick != null) Modifier.cursorForHand() else Modifier),
+                .then(if (onClick != null || onLongClick != null) Modifier.cursorForHand() else Modifier)
+                .shadow(elevation = shadowLevel.dp, shape = shape),
             colors = CardDefaults.cardColors(containerColor = color),
-            elevation = elevation
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
         ) {
             // Thumbnail Logic
             val imageShape = RoundedCornerShape(cornerRadius.dp)
 
             Box(
                 modifier = Modifier
-                    .aspectRatio(ASPECT_RATIO * (cardWidthScale / cardHeightScale))
+                    .fillMaxSize()
                     .clip(imageShape)
             ) {
-            image()
-            badges()
+                image()
+                badges()
 
-            // Gradients and overlay text — centralized here
-            if (!cardLayoutBelow && !overlayBackground) CardTopGradient()
-            if (!cardLayoutBelow) {
-                Box(
-                    contentAlignment = Alignment.BottomStart,
-                    modifier = Modifier.align(Alignment.BottomStart).fillMaxWidth()
-                ) {
-                    CardTextBackground()
-                    Column(
-                        modifier = Modifier
-                            .height(if (overlayBackground) 38.dp else 48.dp)
-                            .padding(
-                                start = 8.dp,
-                                end = 8.dp,
-                                top = if (overlayBackground) 2.dp else 4.dp,
-                                bottom = 4.dp
-                            ),
-                        verticalArrangement = if (overlayBackground) Arrangement.Top else Arrangement.Bottom
+                // Gradients and overlay text — centralized here
+                if (!cardLayoutBelow && !overlayBackground) CardTopGradient()
+                if (!cardLayoutBelow && showText) {
+                    Box(
+                        contentAlignment = Alignment.BottomStart,
+                        modifier = Modifier.align(Alignment.BottomStart).fillMaxWidth()
                     ) {
-                        val textColor = if (overlayBackground) MaterialTheme.colorScheme.onSurface else Color.White
-                        val secondaryTextColor = if (overlayBackground) MaterialTheme.colorScheme.onSurfaceVariant else Color.White.copy(alpha = 0.8f)
-                        val shadow = if (overlayBackground) null else Shadow(color = Color.Black, offset = Offset(1f, 1f), blurRadius = 4f)
+                        CardTextBackground()
+                        Column(
+                            modifier = Modifier
+                                .height(if (overlayBackground) 38.dp else 48.dp)
+                                .padding(
+                                    start = 8.dp,
+                                    end = 8.dp,
+                                    top = if (overlayBackground) 2.dp else 4.dp,
+                                    bottom = 4.dp
+                                ),
+                            verticalArrangement = if (overlayBackground) Arrangement.Top else Arrangement.Bottom
+                        ) {
+                            val textColor = if (overlayBackground) MaterialTheme.colorScheme.onSurface else Color.White
+                            val secondaryTextColor = if (overlayBackground) MaterialTheme.colorScheme.onSurfaceVariant else Color.White.copy(alpha = 0.8f)
+                            val shadow = if (overlayBackground) null else Shadow(color = Color.Black, offset = Offset(1f, 1f), blurRadius = 4f)
 
-                        val useNewLibraryUI2 = LocalUseNewLibraryUI2.current
-                        val primaryStyle = MaterialTheme.typography.bodySmall.copy(
-                            shadow = shadow,
-                            fontWeight = FontWeight.Bold,
-                        )
-                        val secondaryStyle = MaterialTheme.typography.labelSmall.copy(
-                            shadow = shadow,
-                            fontWeight = FontWeight.Normal,
-                        )
+                            val useNewLibraryUI2 = LocalUseNewLibraryUI2.current
+                            val primaryStyle = MaterialTheme.typography.bodySmall.copy(
+                                shadow = shadow,
+                                fontWeight = FontWeight.Bold,
+                            )
+                            val secondaryStyle = MaterialTheme.typography.labelSmall.copy(
+                                shadow = shadow,
+                                fontWeight = FontWeight.Normal,
+                            )
 
-                        if (isUnavailable) {
-                            Text("Unavailable", style = primaryStyle, color = MaterialTheme.colorScheme.error, maxLines = 1)
-                            Text(title, style = primaryStyle, color = textColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        } else {
-                            val secondary = @Composable {
-                                if (secondaryText != null) {
-                                    val text = if (useNewLibraryUI2) secondaryText.uppercase() else secondaryText
-                                    Text(text, style = secondaryStyle, color = secondaryTextColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            if (isUnavailable) {
+                                Text("Unavailable", style = primaryStyle, color = MaterialTheme.colorScheme.error, maxLines = 1)
+                                Text(title, style = primaryStyle, color = textColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            } else {
+                                val secondary = @Composable {
+                                    if (secondaryText != null) {
+                                        val text = if (useNewLibraryUI2) secondaryText.uppercase() else secondaryText
+                                        Text(text, style = secondaryStyle, color = secondaryTextColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    }
                                 }
-                            }
-                            val primary = @Composable {
-                                Text(title, style = primaryStyle, color = textColor, maxLines = if (secondaryText == null) 2 else 1, overflow = TextOverflow.Ellipsis)
-                            }
+                                val primary = @Composable {
+                                    Text(title, style = primaryStyle, color = textColor, maxLines = if (secondaryText == null) 2 else 1, overflow = TextOverflow.Ellipsis)
+                                }
 
-                            if (secondaryTextTop) { secondary(); primary() } else { primary(); secondary() }
+                                if (secondaryTextTop) { secondary(); primary() } else { primary(); secondary() }
+                            }
                         }
                     }
                 }
+                progress() // Always rendered on the image
             }
-            progress() // Always rendered on the image
         }
 
         // Below Card Text Logic
-        if (cardLayoutBelow) {
+        if (cardLayoutBelow && showText) {
             Column(
-                modifier = Modifier.padding(top = 4.dp, bottom = 4.dp).graphicsLayer {}, // NO horizontal padding
+                modifier = Modifier
+                    .fillMaxWidth(cardWidthScale)
+                    .padding(top = 4.dp, bottom = 4.dp),
                 verticalArrangement = Arrangement.Center
             ) {
                 val useNewLibraryUI2 = LocalUseNewLibraryUI2.current
@@ -202,13 +208,14 @@ fun LibraryItemCard(
         }
     }
 }
-}
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ItemCard(
     modifier: Modifier = Modifier,
     containerColor: Color? = null,
+    showText: Boolean = true,
+    fillMaxWidth: Boolean = true,
     onClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
     image: @Composable () -> Unit,
@@ -225,28 +232,41 @@ fun ItemCard(
     val shadowLevel = LocalCardShadowLevel.current
 
     val shape = RoundedCornerShape(cornerRadius.dp)
+    val cardRatio = ASPECT_RATIO * (cardWidthScale / cardHeightScale)
 
-    Box(
-        modifier = modifier.fillMaxWidth().padding(bottom = (defaultCardWidth * cardSpacingBelow).dp),
-        contentAlignment = Alignment.Center
+    Column(
+        modifier = modifier.padding(bottom = (defaultCardWidth * cardSpacingBelow).dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Top
     ) {
         Card(
             shape = shape,
             modifier = Modifier
-                .fillMaxWidth(cardWidthScale)
+                .then(if (fillMaxWidth) Modifier.fillMaxWidth(cardWidthScale) else Modifier)
+                .aspectRatio(cardRatio, matchHeightConstraintsFirst = true)
                 .combinedClickable(onClick = onClick ?: {}, onLongClick = onLongClick)
-                .then(if (onClick != null || onLongClick != null) Modifier.cursorForHand() else Modifier),
+                .then(if (onClick != null || onLongClick != null) Modifier.cursorForHand() else Modifier)
+                .shadow(elevation = shadowLevel.dp, shape = shape),
             colors = CardDefaults.cardColors(containerColor = color),
-            elevation = CardDefaults.cardElevation(defaultElevation = if (cardLayoutBelow) 0.dp else shadowLevel.dp)
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
         ) {
             val imageShape = RoundedCornerShape(cornerRadius.dp)
 
             Box(
                 modifier = Modifier
-                    .aspectRatio(ASPECT_RATIO * (cardWidthScale / cardHeightScale))
+                    .fillMaxSize()
                     .clip(imageShape)
             ) { image() }
-            content()
+            if (!cardLayoutBelow && showText) content()
+        }
+        if (cardLayoutBelow && showText) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth(cardWidthScale)
+                    .padding(top = 4.dp, bottom = 4.dp),
+            ) {
+                content()
+            }
         }
     }
 }
@@ -254,26 +274,44 @@ fun ItemCard(
 @Composable
 fun ItemCardWithContent(
     modifier: Modifier = Modifier,
+    fillMaxWidth: Boolean = true,
     image: @Composable () -> Unit,
     content: @Composable ColumnScope.() -> Unit
 ) {
+    val cardLayoutBelow = LocalCardLayoutBelow.current
     val cardWidthScale = LocalCardWidthScale.current
     val cardHeightScale = LocalCardHeightScale.current
     val cardSpacingBelow = LocalCardSpacingBelow.current
     val cornerRadius = LocalCardCornerRadius.current
     val shadowLevel = LocalCardShadowLevel.current
 
-    Box(
-        modifier = modifier.fillMaxWidth().padding(bottom = (defaultCardWidth * cardSpacingBelow).dp),
-        contentAlignment = Alignment.Center
+    val shape = RoundedCornerShape(cornerRadius.dp)
+    val cardRatio = ASPECT_RATIO * (cardWidthScale / cardHeightScale)
+
+    Column(
+        modifier = modifier.padding(bottom = (defaultCardWidth * cardSpacingBelow).dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Top
     ) {
         Card(
-            shape = RoundedCornerShape(cornerRadius.dp),
-            modifier = Modifier.fillMaxWidth(cardWidthScale),
-            elevation = CardDefaults.cardElevation(defaultElevation = if (LocalCardLayoutBelow.current) 0.dp else shadowLevel.dp)
+            shape = shape,
+            modifier = Modifier
+                .then(if (fillMaxWidth) Modifier.fillMaxWidth(cardWidthScale) else Modifier)
+                .aspectRatio(cardRatio, matchHeightConstraintsFirst = true)
+                .shadow(elevation = shadowLevel.dp, shape = shape),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
         ) {
-            Box(modifier = Modifier.aspectRatio(ASPECT_RATIO * (cardWidthScale / cardHeightScale))) { image() }
-            content()
+            Box(modifier = Modifier.fillMaxSize()) { image() }
+            if (!cardLayoutBelow) content()
+        }
+        if (cardLayoutBelow) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth(cardWidthScale)
+                    .padding(top = 4.dp, bottom = 4.dp),
+            ) {
+                content()
+            }
         }
     }
 }

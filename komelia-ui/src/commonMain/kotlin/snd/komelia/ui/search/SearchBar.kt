@@ -315,6 +315,7 @@ private fun SeriesSearchEntry(
         SeriesSimpleImageCard(
             series = series,
             onSeriesClick = onSeriesClick,
+            fillMaxWidth = false,
             modifier = Modifier
                 .width(70.dp)
                 .height(100.dp)
@@ -336,6 +337,7 @@ private fun BookSearchEntry(
         BookSimpleImageCard(
             book = book,
             onBookClick = onBookClick,
+            fillMaxWidth = false,
             modifier = Modifier
                 .width(70.dp)
                 .height(100.dp)

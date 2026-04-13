@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -141,6 +142,7 @@ fun BookImageCard(
 fun BookSimpleImageCard(
     book: KomeliaBook,
     onBookClick: (() -> Unit)? = null,
+    fillMaxWidth: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val hideParentheses = LocalHideParenthesesInNames.current
@@ -149,7 +151,9 @@ fun BookSimpleImageCard(
     LibraryItemCard(
         modifier = modifier,
         title = bookTitle,
+        showText = false,
         onClick = onBookClick,
+        fillMaxWidth = fillMaxWidth,
         image = {
             BookThumbnail(
                 book.id,
@@ -171,6 +175,9 @@ private fun BookImageBadges(
     book: KomeliaBook,
     libraryIsDeleted: Boolean,
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isHovered = interactionSource.collectIsHoveredAsState()
+
     Column(modifier = Modifier.fillMaxSize()) {
         Row {
             if (book.downloaded) {
@@ -356,7 +363,7 @@ fun BookDetailedListCard(
     ) {
         Row(
             modifier = Modifier
-                .heightIn(max = 220.dp)
+                .height(160.dp)
                 .fillMaxWidth()
                 .then(
                     if (isSelected) Modifier.background(
@@ -367,10 +374,10 @@ fun BookDetailedListCard(
                     else Modifier
                 )
                 .padding(10.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.Top
         ) {
-            Box {
-                BookSimpleImageCard(book)
+            Box(Modifier.width(100.dp)) {
+                BookSimpleImageCard(book = book, fillMaxWidth = true)
                 if (onSelect != null && (isSelected || isHovered.value)) {
                     SelectionRadioButton(
                         isSelected,
@@ -396,16 +403,14 @@ private fun BookDetailedListDetails(
     bookMenuActions: BookMenuActions?,
     onBookReadClick: ((Boolean) -> Unit)? = null,
 ) {
-    val width = LocalWindowWidth.current
     Column(Modifier.padding(start = 10.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 bookTitle,
                 fontWeight = FontWeight.Bold,
-                maxLines = when (width) {
-                    COMPACT, MEDIUM -> 2
-                    else -> 4
-                }
+                style = MaterialTheme.typography.titleMedium,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
             )
         }
 
@@ -436,10 +441,7 @@ private fun BookDetailedListDetails(
 
         Text(
             book.metadata.summary,
-            maxLines = when (width) {
-                COMPACT, MEDIUM -> 3
-                else -> 4
-            },
+            maxLines = 2,
             style = MaterialTheme.typography.bodyMedium,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.widthIn(max = 1500.dp)
