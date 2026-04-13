@@ -92,7 +92,7 @@ fun LibraryItemCard(
     val elevation = CardDefaults.cardElevation(defaultElevation = if (cardLayoutBelow) 0.dp else 2.dp)
 
     Box(
-        modifier = modifier.padding(bottom = (defaultCardWidth * cardSpacingBelow).dp),
+        modifier = modifier.fillMaxWidth().padding(bottom = (defaultCardWidth * cardSpacingBelow).dp),
         contentAlignment = Alignment.Center
     ) {
         Card(
@@ -267,7 +267,7 @@ fun ItemCard(
     else RoundedCornerShape(8.dp)
 
     Box(
-        modifier = modifier.padding(bottom = (defaultCardWidth * cardSpacingBelow).dp),
+        modifier = modifier.fillMaxWidth().padding(bottom = (defaultCardWidth * cardSpacingBelow).dp),
         contentAlignment = Alignment.Center
     ) {
         Card(
@@ -303,7 +303,7 @@ fun ItemCardWithContent(
     val cardSpacingBelow = LocalCardSpacingBelow.current
 
     Box(
-        modifier = modifier.padding(bottom = (defaultCardWidth * cardSpacingBelow).dp),
+        modifier = modifier.fillMaxWidth().padding(bottom = (defaultCardWidth * cardSpacingBelow).dp),
         contentAlignment = Alignment.Center
     ) {
         Card(
