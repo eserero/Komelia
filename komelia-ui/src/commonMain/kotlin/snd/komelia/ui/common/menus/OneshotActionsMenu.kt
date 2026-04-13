@@ -4,6 +4,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.DeleteForever
+import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Label
 import androidx.compose.material.icons.rounded.LabelOff
 import androidx.compose.material.icons.rounded.Refresh
@@ -32,6 +33,7 @@ import snd.komelia.ui.dialogs.ConfirmationDialog
 import snd.komelia.ui.dialogs.collectionadd.AddToCollectionDialog
 import snd.komelia.ui.dialogs.komf.identify.KomfIdentifyDialog
 import snd.komelia.ui.dialogs.komf.reset.KomfResetSeriesMetadataDialog
+import snd.komelia.ui.dialogs.oneshot.OneshotEditDialog
 import snd.komelia.ui.dialogs.readlistadd.AddToReadListDialog
 import snd.komga.client.series.KomgaSeries
 
@@ -41,6 +43,7 @@ fun OneshotActionsMenu(
     book: KomeliaBook,
     actions: BookMenuActions,
     expanded: Boolean,
+    showEditOption: Boolean = false,
     onDismissRequest: () -> Unit,
     onToggleImmersiveMode: (() -> Unit)? = null,
 ) {
@@ -79,6 +82,18 @@ fun OneshotActionsMenu(
             },
             buttonConfirmColor = MaterialTheme.colorScheme.errorContainer
         )
+    }
+
+    var showEditDialog by remember { mutableStateOf(false) }
+    if (showEditDialog) {
+        OneshotEditDialog(
+            seriesId = series.id,
+            series = series,
+            book = book,
+            onDismissRequest = {
+                showEditDialog = false
+                onDismissRequest()
+            })
     }
 
     var showAddToReadListDialog by remember { mutableStateOf(false) }
@@ -125,6 +140,7 @@ fun OneshotActionsMenu(
                 !showDeleteDialog &&
                 !showKomfDialog &&
                 !showKomfResetDialog &&
+                !showEditDialog &&
                 !showAddToCollectionDialog &&
                 !showAddToReadListDialog
     }
@@ -186,6 +202,14 @@ fun OneshotActionsMenu(
                     actions.markAsUnread(book)
                     onDismissRequest()
                 },
+            )
+        }
+
+        if (isAdmin && !isOffline && showEditOption) {
+            DropdownMenuItem(
+                text = { Text("Edit", style = MaterialTheme.typography.labelLarge) },
+                leadingIcon = { Icon(Icons.Rounded.Edit, null) },
+                onClick = { showEditDialog = true },
             )
         }
 

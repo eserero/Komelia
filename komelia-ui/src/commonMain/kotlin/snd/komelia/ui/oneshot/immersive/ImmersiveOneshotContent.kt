@@ -310,6 +310,7 @@ fun ImmersiveOneshotContent(
                         book = book,
                         actions = oneshotMenuActions,
                         expanded = expandActions,
+                        showEditOption = true,
                         onDismissRequest = { expandActions = false },
                         onToggleImmersiveMode = LocalToggleImmersiveMorphingCover.current,
                     )
