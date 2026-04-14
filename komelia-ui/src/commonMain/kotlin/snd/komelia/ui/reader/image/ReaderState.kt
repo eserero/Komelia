@@ -159,13 +159,17 @@ class ReaderState(
             }
             currentBookId.value = bookId
 
-            val currentSeries = seriesApi.getOneSeries(newBook.seriesId)
-            series.value = currentSeries
-            readerType.value = when (currentSeries.metadata.readingDirection) {
-                KomgaReadingDirection.LEFT_TO_RIGHT -> ReaderType.PAGED
-                KomgaReadingDirection.RIGHT_TO_LEFT -> ReaderType.PAGED
-                KomgaReadingDirection.WEBTOON -> ReaderType.CONTINUOUS
-                KomgaReadingDirection.VERTICAL, null -> readerSettingsRepository.getReaderType().first()
+            if (!newBook.seriesId.value.startsWith("local")) {
+                val currentSeries = seriesApi.getOneSeries(newBook.seriesId)
+                series.value = currentSeries
+                readerType.value = when (currentSeries.metadata.readingDirection) {
+                    KomgaReadingDirection.LEFT_TO_RIGHT -> ReaderType.PAGED
+                    KomgaReadingDirection.RIGHT_TO_LEFT -> ReaderType.PAGED
+                    KomgaReadingDirection.WEBTOON -> ReaderType.CONTINUOUS
+                    KomgaReadingDirection.VERTICAL, null -> readerSettingsRepository.getReaderType().first()
+                }
+            } else {
+                readerType.value = readerSettingsRepository.getReaderType().first()
             }
 
             state.value = LoadState.Success(Unit)

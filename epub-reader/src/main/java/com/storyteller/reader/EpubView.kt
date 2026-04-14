@@ -251,7 +251,7 @@ class EpubView(
         // Remove any shell fragment that was restored by the system without its dependencies
         val existingFragment = activity.supportFragmentManager.findFragmentByTag(fragmentTag)
         if (existingFragment != null) {
-            activity.supportFragmentManager.commitNow {
+            activity.supportFragmentManager.commitNow(allowStateLoss = true) {
                 setReorderingAllowed(true)
                 remove(existingFragment)
             }
@@ -259,7 +259,7 @@ class EpubView(
 
         val epubFragment = EpubFragment(publication, this)
 
-        activity.supportFragmentManager.commitNow {
+        activity.supportFragmentManager.commitNow(allowStateLoss = true) {
             setReorderingAllowed(true)
             add(epubFragment, fragmentTag)
         }

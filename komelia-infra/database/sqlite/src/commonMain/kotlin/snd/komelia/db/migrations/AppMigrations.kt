@@ -45,6 +45,7 @@ class AppMigrations : MigrationResourcesProvider() {
         "V36__epub3_bookmarks.sql",
         "V37__thumbnail_presentation_settings.sql",
         "V38__card_shadow_and_corner_radius.sql",
+        "V39__local_file_read_progress.sql",
     )
 
     override suspend fun getMigration(name: String): ByteArray? {

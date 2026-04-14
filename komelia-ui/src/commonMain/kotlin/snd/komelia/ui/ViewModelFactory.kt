@@ -245,10 +245,13 @@ class ViewModelFactory(
     fun getBookReaderViewModel(
         navigator: Navigator,
         markReadProgress: Boolean,
-        bookSiblingsContext: BookSiblingsContext
+        bookSiblingsContext: BookSiblingsContext,
+        bookId: KomgaBookId? = null,
     ): ReaderViewModel {
+        val bookApi = bookId?.let { dependencies.localFileApiProvider?.getApiForBook(it) }
+            ?: komgaApi.bookApi
         return ReaderViewModel(
-            bookApi = komgaApi.bookApi,
+            bookApi = bookApi,
             seriesApi = komgaApi.seriesApi,
             readListApi = komgaApi.readListApi,
             navigator = navigator,
@@ -610,11 +613,13 @@ class ViewModelFactory(
         markReadProgress: Boolean = true,
         onExit: (KomeliaBook) -> Unit,
     ): EpubReaderViewModel {
+        val bookApi = dependencies.localFileApiProvider?.getApiForBook(bookId)
+            ?: komgaApi.bookApi
         return EpubReaderViewModel(
             bookId = bookId,
             book = book,
             markReadProgress = markReadProgress,
-            bookApi = komgaApi.bookApi,
+            bookApi = bookApi,
             seriesApi = komgaApi.seriesApi,
             readListApi = komgaApi.readListApi,
             settingsRepository = appRepositories.settingsRepository,

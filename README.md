@@ -44,7 +44,7 @@ This is a fork of [Komelia](https://github.com/Gaysuist/Komelia) focused on impr
 | <img src="screenshots/New UI 2/Immersive Series Screen Expanded 2.jpg" width="250"> | <img src="screenshots/New UI 2/Immersive Book view.jpg" width="250"> | <img src="screenshots/New UI 2/Immersive Book with expanded button.jpg" width="250"> |
 
 ### Image/Comic Reader
-*   **New Controls UX**: Aligned with the new epub reader and matching the new dark/light teams and immersive card color
+*   **New Controls UX**: Aligned with the new epub reader and matching the new dark/light teams and immersive card color. provide easy access to switching between reading modes (Page, continous, panel), turn on/of upscaling and lock screen rotation.
 *   **Adaptive Backgrounds**: "Blooming" gradient backgrounds that sample edge colors in real-time for both Paged and Panel modes.
 *   **High-Performance GPU Upscaling**: Integrated NCNN-powered upscaling (Waifu2x, RealCUGAN, RealSR, Real-ESRGAN) specifically optimized for Android GPU hardware. upscaling is really good but may require some time to complete depending on your mobile cpu/gpu. there are page upscaling indicators showing you what is goingn on.
 *   **Swiping Navigation in Page Mode**: swiping now work and allow you to move forward/backward pages smoothly.
@@ -74,9 +74,11 @@ This is a fork of [Komelia](https://github.com/Gaysuist/Komelia) focused on impr
 
 ### Epub Reader with support for Epub 3 audio layer
 *   **New Epub Viewer**: Completely new epub viewer that can be toggled in settings. based on Storyteller and Redium Kotlin Tookit - support epubs with audio layer to a combined text + Audio reading (You can easily create such books using storyteller
-*   **Completly new controls**: completly new reading controls matching the new comic reader controls, new settings, ability to swipe to turn pages (swipe left/right to move about, scroll based reading etc.)
-*   **Bookmark and Search**: new implementation of chapter, bookmarking and search
-*   **Media player**: integrated media player navigation, move chapters, segments and double tap to choose sentenses to play, Including a mini player and integrated full screen "audio book" interface
+*   **New controls**: completly new reading controls matching the new comic reader controls - easily select chapter, bookmark, search and lock screen rotation.
+*   **New setting screen**: Theme and appearance selection, margins, fonts and audio settings. 
+*   **Better Navigation**: Ability to swipe to turn pages (swipe left/right to move about, scroll based reading etc.)
+*   **Bookmark and Search**: new implementation of chapter, bookmarking and text search
+*   **Media player**: integrated media player navigation, with chapter navigation , double tap on a text row to choose sentenses to play, including a mini player and integrated full screen "audio book" interface
 
 **Controls and Audio Player**
 | Light Theme | Dark Theme | Mini Player |
@@ -110,6 +112,7 @@ This is a fork of [Komelia](https://github.com/Gaysuist/Komelia) focused on impr
 
 ### General improvements
 *   **Prefer local files**: If the files are downloaded, they will be used instead of downloading from the server - this is very helpfull for large comics or epub files with audio - which can get pretty large. This is working even in online mode although the app will still go to the server to fetch metadata.
+*   **Ability to open local files through android context**: Ability to open cbz and epub files from android. it will not let you manage these files, but it will remember the page and bookmarks based on the file location. maybe in the future I will add more local file management.
 
 
 

@@ -63,6 +63,9 @@ import snd.komelia.db.settings.ExposedSettingsRepository
 import snd.komelia.fonts.fontsDirectory
 import snd.komelia.homefilters.homeScreenDefaultFilters
 import snd.komelia.http.komeliaUserAgent
+import snd.komelia.komga.api.LocalFileApiProvider
+import snd.komelia.localfile.LocalFileApiProviderImpl
+import snd.komelia.db.localfile.LocalFileReadProgressRepository
 import snd.komelia.image.AndroidNcnnUpscaler
 import snd.komelia.image.AndroidPanelDetector
 import snd.komelia.image.AndroidReaderImageFactory
@@ -349,6 +352,15 @@ class AndroidAppModule(
 
     override fun getReaderCacheDirectory(): Path {
         return Path(context.cacheDir.resolve("komelia_reader_cache").toString())
+    }
+
+    override fun createLocalFileApiProvider(): LocalFileApiProvider {
+        return LocalFileApiProviderImpl(
+            context = context,
+            incomingUriFlow = incomingFileUriFlow,
+            readProgressRepo = LocalFileReadProgressRepository(databases.app),
+            scope = initScope,
+        )
     }
 
     override fun createOfflineModule(

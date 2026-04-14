@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.StateFlow
 import okio.FileSystem
 import okio.Path.Companion.toPath
 import snd.komelia.komga.api.KomgaBookApi
+import snd.komelia.komga.api.LocalFileApiProvider
 import snd.komelia.offline.book.repository.OfflineBookRepository
 import snd.komga.client.book.KomgaBookId
 
@@ -21,6 +22,7 @@ class BookImageLoader(
     val diskCache: DiskCache?,
     private val offlineBookRepository: OfflineBookRepository? = null,
     private val offlineBookApi: KomgaBookApi? = null,
+    private val localFileApiProvider: LocalFileApiProvider? = null,
 ) {
     val fileSystem = diskCache?.fileSystem
 
@@ -57,6 +59,9 @@ class BookImageLoader(
     }
 
     private suspend fun fetchPage(bookId: KomgaBookId, page: Int): ByteArray {
+        localFileApiProvider?.getApiForBook(bookId)?.let { localApi ->
+            return localApi.getPage(bookId, page)
+        }
         if (offlineBookRepository?.find(bookId) != null && offlineBookApi != null) {
             return try {
                 offlineBookApi.getPage(bookId, page)

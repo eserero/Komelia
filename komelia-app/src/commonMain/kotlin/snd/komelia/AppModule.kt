@@ -50,6 +50,7 @@ import snd.komelia.image.processing.CropBordersStep
 import snd.komelia.image.processing.ImageProcessingPipeline
 import snd.komelia.komga.api.KomgaApi
 import snd.komelia.komga.api.KomgaBookApi
+import snd.komelia.komga.api.LocalFileApiProvider
 import snd.komelia.offline.OfflineDependencies
 import snd.komelia.offline.OfflineModule
 import snd.komelia.offline.OfflineRepositories
@@ -206,6 +207,8 @@ abstract class AppModule {
             onnxModelDownloader = onnxModelDownloader
         )
 
+        val localFileApiProvider = createLocalFileApiProvider()
+
         return DependencyContainer(
             appStrings = MutableStateFlow(EnStrings),
             appRepositories = appRepositories,
@@ -227,6 +230,7 @@ abstract class AppModule {
                 imageDecoder = createImageDecoder(),
                 offlineBookRepository = offlineRepositories.bookRepository,
                 offlineBookApi = offlineModule.komgaApi.bookApi,
+                localFileApiProvider = localFileApiProvider,
             ),
             readerImageFactory = readerImageFactory,
             windowState = createWindowState(),
@@ -238,10 +242,13 @@ abstract class AppModule {
             panelDetector = panelDetector,
             offlineDependencies = offlineModule,
             onBookChange = createOnBookChange(),
+            localFileApiProvider = localFileApiProvider,
         )
     }
 
     protected open fun createOnBookChange(): () -> Unit = {}
+
+    protected open fun createLocalFileApiProvider(): LocalFileApiProvider? = null
 
     protected open suspend fun beforeInit() = Unit
 
@@ -309,6 +316,7 @@ abstract class AppModule {
         imageDecoder: KomeliaImageDecoder,
         offlineBookRepository: OfflineBookRepository,
         offlineBookApi: KomgaBookApi,
+        localFileApiProvider: LocalFileApiProvider? = null,
     ): BookImageLoader {
         val diskCache = getReaderCacheDirectory()?.let { kotlinxPath ->
             DiskCache.Builder()
@@ -322,6 +330,7 @@ abstract class AppModule {
             diskCache = diskCache,
             offlineBookRepository = offlineBookRepository,
             offlineBookApi = offlineBookApi,
+            localFileApiProvider = localFileApiProvider,
         )
     }
 

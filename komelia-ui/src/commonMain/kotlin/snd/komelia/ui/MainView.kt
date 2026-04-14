@@ -16,6 +16,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -36,10 +37,14 @@ import com.dokar.sonner.listenMany
 import com.dokar.sonner.rememberToasterState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import snd.komelia.AppNotifications
 import snd.komelia.KomgaAuthenticationState
+import snd.komelia.komga.api.LocalFileApiProvider
+import snd.komelia.ui.BookSiblingsContext
 import snd.komelia.KomgaAuthenticationState.DataState.AuthenticationRequired
 import snd.komelia.KomgaAuthenticationState.DataState.Loaded
 import snd.komelia.ui.Theme.Companion.toTheme
@@ -49,6 +54,7 @@ import snd.komelia.ui.dialogs.update.UpdateDialog
 import snd.komelia.ui.dialogs.update.UpdateProgressDialog
 import snd.komelia.ui.komf.KomfMainScreen
 import snd.komelia.ui.login.LoginScreen
+import snd.komelia.ui.reader.readerScreen
 import snd.komelia.ui.platform.BackPressHandler
 import snd.komelia.ui.platform.ConfigurePlatformTheme
 import snd.komelia.ui.platform.PlatformTitleBar
@@ -234,7 +240,7 @@ fun MainView(
                 LocalCardShadowLevel provides cardShadowLevel,
                 LocalCardCornerRadius provides cardCornerRadius,
             ) {
-                MainContent(platformType, dependencies.komgaSharedState)
+                MainContent(platformType, dependencies.komgaSharedState, dependencies.localFileApiProvider)
 
                 AppNotifications(dependencies.appNotifications, theme)
                 val updateChecker = remember { viewModelFactory.getStartupUpdateChecker() }
@@ -252,7 +258,8 @@ fun MainView(
 @Composable
 private fun MainContent(
     platformType: PlatformType,
-    komgaSharedState: KomgaAuthenticationState
+    komgaSharedState: KomgaAuthenticationState,
+    localFileApiProvider: LocalFileApiProvider? = null,
 ) {
     val loginScreen = remember(platformType) {
         when (platformType) {
@@ -296,6 +303,20 @@ private fun MainContent(
                             AuthenticationRequired -> false
                             Loaded -> true
                         }
+                    }
+                }
+
+                LaunchedEffect(localFileApiProvider) {
+                    localFileApiProvider?.processedBooksFlow?.collect { book ->
+                        snapshotFlow { canProceed }.filter { it }.first()
+                        navigator.popUntilRoot()
+                        navigator.push(
+                            readerScreen(
+                                book = book,
+                                markReadProgress = true,
+                                bookSiblingsContext = BookSiblingsContext.Series(),
+                            )
+                        )
                     }
                 }
 

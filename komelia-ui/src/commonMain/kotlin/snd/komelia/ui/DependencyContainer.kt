@@ -15,6 +15,7 @@ import snd.komelia.image.KomeliaUpscaler
 import snd.komelia.image.ReaderImageFactory
 import snd.komelia.image.processing.ColorCorrectionStep
 import snd.komelia.komga.api.KomgaApi
+import snd.komelia.komga.api.LocalFileApiProvider
 import snd.komelia.offline.OfflineDependencies
 import snd.komelia.onnxruntime.OnnxRuntime
 import snd.komelia.ui.strings.AppStrings
@@ -53,5 +54,6 @@ data class DependencyContainer(
 
     val offlineDependencies: OfflineDependencies,
     val onBookChange: () -> Unit = {},
+    val localFileApiProvider: LocalFileApiProvider? = null,
 )
 

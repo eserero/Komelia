@@ -101,7 +101,8 @@ class ImageReaderScreen(
             viewModelFactory.getBookReaderViewModel(
                 navigator = navigator,
                 markReadProgress = markReadProgress,
-                bookSiblingsContext = bookSiblingsContext
+                bookSiblingsContext = bookSiblingsContext,
+                bookId = bookId,
             )
         }
 

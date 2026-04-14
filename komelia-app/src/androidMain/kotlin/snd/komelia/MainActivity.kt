@@ -1,6 +1,7 @@
 package snd.komelia
 
 import android.app.Activity
+import android.content.Intent
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
@@ -23,6 +24,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -33,6 +36,8 @@ import snd.komelia.ui.platform.WindowSizeClass
 private val initScope = CoroutineScope(Dispatchers.Default)
 private val initMutex = Mutex()
 private val mainActivity = MutableStateFlow<MainActivity?>(null)
+private val _incomingFileUriFlow = MutableSharedFlow<String>(replay = 1)
+val incomingFileUriFlow: SharedFlow<String> = _incomingFileUriFlow.asSharedFlow()
 
 class MainActivity : AppCompatActivity() {
 
@@ -54,6 +59,7 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
+        handleIntent(intent)
 
         enableEdgeToEdge(
             navigationBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT)
@@ -71,6 +77,16 @@ class MainActivity : AppCompatActivity() {
                 platformType = PlatformType.MOBILE,
                 keyEvents = MutableSharedFlow()
             )
+        }
+    }
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleIntent(intent)
+    }
+
+    private fun handleIntent(intent: Intent?) {
+        if (intent?.action == Intent.ACTION_VIEW) {
+            intent.data?.toString()?.let { _incomingFileUriFlow.tryEmit(it) }
         }
     }
 }
