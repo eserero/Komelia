@@ -30,24 +30,24 @@ class MediaOverlayController(
     private val coroutineScope: CoroutineScope,
     private val bookUuid: String,
     private val extractedDir: File,
-) {
+) : EpubAudioController {
     private val _isPlaying = MutableStateFlow(false)
-    val isPlaying: StateFlow<Boolean> = _isPlaying
+    override val isPlaying: StateFlow<Boolean> = _isPlaying
 
     private val _volume = MutableStateFlow(1f)
-    val volume: StateFlow<Float> = _volume
+    override val volume: StateFlow<Float> = _volume
 
     private val _elapsedSeconds = MutableStateFlow(0.0)
-    val elapsedSeconds: StateFlow<Double> = _elapsedSeconds
+    override val elapsedSeconds: StateFlow<Double> = _elapsedSeconds
 
     private val _totalDurationSeconds = MutableStateFlow(0.0)
-    val totalDurationSeconds: StateFlow<Double> = _totalDurationSeconds
+    override val totalDurationSeconds: StateFlow<Double> = _totalDurationSeconds
 
     private var loadedTracks: List<Track> = emptyList()
     private var currentTrackIndex = 0
     private var elapsedTimeJob: Job? = null
 
-    fun setVolume(v: Float) {
+    override fun setVolume(v: Float) {
         val clamped = v.coerceIn(0f, 1f)
         _volume.value = clamped
         player.setVolume(clamped)
@@ -193,7 +193,7 @@ class MediaOverlayController(
         }
     }
 
-    fun applyAudioSettings(settings: Epub3NativeSettings) {
+    override fun applyAudioSettings(settings: Epub3NativeSettings) {
         player.setRate(settings.playbackSpeed)
         player.setAutomaticRewind(
             enabled = settings.rewindEnabled,
@@ -217,7 +217,7 @@ class MediaOverlayController(
         }
     }
 
-    fun seekToNextClip() {
+    override fun seekToNext() {
         val allClips = BookService.getOverlayClips(bookUuid)
         val current = player.getCurrentClip() ?: return
         val idx = allClips.indexOf(current)
@@ -225,7 +225,7 @@ class MediaOverlayController(
         player.seekTo(next.audioResource, next.start, skipEmit = false)
     }
 
-    fun seekToPrevClip() {
+    override fun seekToPrev() {
         val allClips = BookService.getOverlayClips(bookUuid)
         val current = player.getCurrentClip() ?: return
         val idx = allClips.indexOf(current)
@@ -233,7 +233,7 @@ class MediaOverlayController(
         player.seekTo(prev.audioResource, prev.start, skipEmit = false)
     }
 
-    fun togglePlayPause() {
+    override fun togglePlayPause() {
         if (_isPlaying.value) {
             player.pause()
         } else {
@@ -391,7 +391,9 @@ class MediaOverlayController(
         return null
     }
 
-    fun release() {
+    override fun release() {
+        elapsedTimeJob?.cancel()
+        pageTurnJob?.cancel()
         player.unload()
         epubView = null
     }
