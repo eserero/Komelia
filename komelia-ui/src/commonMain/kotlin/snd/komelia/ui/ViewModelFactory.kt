@@ -625,6 +625,8 @@ class ViewModelFactory(
             settingsRepository = appRepositories.settingsRepository,
             epubSettingsRepository = appRepositories.epubReaderSettingsRepository,
             epubBookmarkRepository = appRepositories.epubBookmarkRepository,
+            audioPositionRepository = appRepositories.audioPositionRepository,
+            audioBookmarkRepository = appRepositories.audioBookmarkRepository,
             fontsRepository = appRepositories.fontsRepository,
             notifications = dependencies.appNotifications,
             windowState = dependencies.windowState,

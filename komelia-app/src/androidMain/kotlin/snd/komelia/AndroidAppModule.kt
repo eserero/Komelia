@@ -169,6 +169,8 @@ class AndroidAppModule(
                 )
             },
             epubBookmarkRepository = snd.komelia.db.bookmarks.ExposedEpubBookmarkRepository(databases.app),
+            audioPositionRepository = snd.komelia.db.audiobook.ExposedAudioPositionRepository(databases.app),
+            audioBookmarkRepository = snd.komelia.db.audiobook.ExposedAudioBookmarkRepository(databases.app),
             imageReaderSettingsRepository = ExposedImageReaderSettingsRepository(databases.app).let { repository ->
                 ReaderSettingsRepositoryWrapper(
                     SettingsStateWrapper(

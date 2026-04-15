@@ -22,6 +22,8 @@ data class AppRepositories(
     val settingsRepository: CommonSettingsRepository,
     val epubReaderSettingsRepository: EpubReaderSettingsRepository,
     val epubBookmarkRepository: snd.komelia.bookmarks.EpubBookmarkRepository,
+    val audioPositionRepository: snd.komelia.audiobook.AudioPositionRepository,
+    val audioBookmarkRepository: snd.komelia.audiobook.AudioBookmarkRepository,
     val imageReaderSettingsRepository: ImageReaderSettingsRepository,
     val fontsRepository: UserFontsRepository,
     val colorCurvesPresetsRepository: ColorCurvePresetRepository,

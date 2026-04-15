@@ -26,6 +26,8 @@ expect fun createEpub3ReaderState(
     settingsRepository: CommonSettingsRepository,
     epubSettingsRepository: EpubReaderSettingsRepository,
     epubBookmarkRepository: snd.komelia.bookmarks.EpubBookmarkRepository,
+    audioPositionRepository: snd.komelia.audiobook.AudioPositionRepository,
+    audioBookmarkRepository: snd.komelia.audiobook.AudioBookmarkRepository,
     fontsRepository: UserFontsRepository,
     notifications: AppNotifications,
     windowState: AppWindowState,
