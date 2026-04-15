@@ -341,6 +341,10 @@ actual fun Epub3ReaderContent(state: EpubReaderState) {
                                             audioTracks.getOrNull(currentAudioTrackIndex)?.title ?: ""
                                         )
                                     },
+                                    currentAudioTrackIndex = currentAudioTrackIndex,
+                                    onSeekToTrackPosition = { trackIndex, positionSeconds ->
+                                        folderController?.seekToTrackPosition(trackIndex, positionSeconds)
+                                    },
                                     playbackSpeed = settings.playbackSpeed,
                                     onSpeedChange = { epub3State.updateSettings(settings.copy(playbackSpeed = it)) },
                                     sharedTransitionScope = this@SharedTransitionLayout,

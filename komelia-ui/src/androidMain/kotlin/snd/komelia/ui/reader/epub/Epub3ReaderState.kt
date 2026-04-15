@@ -453,9 +453,10 @@ class Epub3ReaderState(
                 }
             } else {
                 val audioFiles = AudiobookFolderController.detectAudioFiles(extractedDir)
+                logger.info { "[epub3-init] folder detection: found ${audioFiles.size} audio files in $extractedDir" }
                 if (audioFiles.isNotEmpty()) {
                     coroutineScope.launch {
-                        logger.debug { "[epub3-init] initializing audiobook folder controller (${audioFiles.size} audio files)" }
+                        logger.info { "[epub3-init] audiobook folder controller coroutine START (${audioFiles.size} files)" }
                         runCatching {
                             val controller = AudiobookFolderController(
                                 context = context,
@@ -467,11 +468,12 @@ class Epub3ReaderState(
                                 audioBookmarkRepository = audioBookmarkRepository,
                             )
                             controller.initialize()
+                            logger.info { "[epub3-init] audiobook folder controller initialize() completed" }
                             controller.applyAudioSettings(settings.value)
                             mediaOverlayController.value = controller
-                            logger.debug { "[epub3-init] audiobook folder controller ready" }
+                            logger.info { "[epub3-init] audiobook folder controller READY — mediaOverlayController set" }
                         }.onFailure { e ->
-                            logger.error { "[epub3-init] audiobook folder controller FAILED: ${e::class.qualifiedName}: ${e.message}" }
+                            logger.error { "[epub3-init] audiobook folder controller FAILED: ${e::class.qualifiedName}: ${e.message}\n${e.stackTraceToString()}" }
                         }
                     }
                 }

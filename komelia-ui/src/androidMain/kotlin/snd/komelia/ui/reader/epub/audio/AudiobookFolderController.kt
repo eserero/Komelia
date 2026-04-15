@@ -27,7 +27,7 @@ import java.io.File
 import java.util.UUID
 
 private val logger = KotlinLogging.logger {}
-private val AUDIO_EXTENSIONS = setOf("mp3", "m4a", "m4b", "ogg", "aac", "flac", "opus")
+private val AUDIO_EXTENSIONS = setOf("mp3", "mp4", "m4a", "m4b", "ogg", "aac", "flac", "opus")
 private val AUDIO_FOLDER_NAMES = setOf("audio", "audiobook")
 
 class AudiobookFolderController(
@@ -98,11 +98,18 @@ class AudiobookFolderController(
     )
 
     suspend fun initialize() {
-        withContext(Dispatchers.IO) {
+        // Build track lists on IO (file scanning + metadata reading); loadTracks() must run on Main
+        // because MediaController.buildAsync() requires a looper thread.
+        data class TrackData(
+            val folderTracks: List<AudioFolderTrack>,
+            val playerTracks: List<Track>,
+        )
+
+        val trackData = withContext(Dispatchers.IO) {
             val audioFiles = detectAudioFiles(extractedDir)
             if (audioFiles.isEmpty()) {
                 logger.warn { "[audiobook-folder] No audio files found in $extractedDir" }
-                return@withContext
+                return@withContext null
             }
             logger.info { "[audiobook-folder] Found ${audioFiles.size} audio files" }
 
@@ -150,24 +157,29 @@ class AudiobookFolderController(
             }
 
             retriever.release()
+            TrackData(folderTracks, playerTracks)
+        } ?: return
 
-            _tracks.value = folderTracks
-            _totalDurationSeconds.value = folderTracks.sumOf { it.durationSeconds }
-            loadedTracks = playerTracks
+        val (folderTracks, playerTracks) = trackData
 
-            val savedPosition = audioPositionRepository.getPosition(bookId)
-            val initialIndex = savedPosition?.trackIndex?.coerceIn(0, playerTracks.lastIndex) ?: 0
-            val initialPositionMs = if (savedPosition != null) savedPosition.positionSeconds else 0.0
+        _tracks.value = folderTracks
+        _totalDurationSeconds.value = folderTracks.sumOf { it.durationSeconds }
+        loadedTracks = playerTracks
 
-            logger.info {
-                "[audiobook-folder] Loading ${playerTracks.size} tracks, " +
-                "initialIndex=$initialIndex initialPosition=${initialPositionMs}s"
-            }
+        // audioPositionRepository.getPosition() already dispatches to IO internally
+        val savedPosition = audioPositionRepository.getPosition(bookId)
+        val initialIndex = savedPosition?.trackIndex?.coerceIn(0, playerTracks.lastIndex) ?: 0
+        val initialPositionMs = savedPosition?.positionSeconds ?: 0.0
 
-            player.loadTracks(playerTracks, initialIndex, initialPositionMs)
-            _currentTrackIndex.value = initialIndex
-            _elapsedSeconds.value = folderTracks.take(initialIndex).sumOf { it.durationSeconds } + initialPositionMs
+        logger.info {
+            "[audiobook-folder] Loading ${playerTracks.size} tracks, " +
+            "initialIndex=$initialIndex initialPosition=${initialPositionMs}s"
         }
+
+        // Must be called on Main — MediaController.buildAsync() requires a looper thread
+        player.loadTracks(playerTracks, initialIndex, initialPositionMs)
+        _currentTrackIndex.value = initialIndex
+        _elapsedSeconds.value = folderTracks.take(initialIndex).sumOf { it.durationSeconds } + initialPositionMs
 
         coroutineScope.launch {
             audioBookmarkRepository.getBookmarks(bookId).collect { bookmarks ->
@@ -333,6 +345,7 @@ class AudiobookFolderController(
         private fun mimeTypeForExtension(ext: String): String {
             return when (ext) {
                 "mp3" -> "audio/mpeg"
+                "mp4" -> "audio/mp4"
                 "m4a" -> "audio/mp4"
                 "m4b" -> "audio/mp4"
                 "ogg" -> "audio/ogg"

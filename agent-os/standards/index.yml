@@ -1,0 +1,19 @@
+# Agent OS Standards Index
+
+root:
+  build:
+    description: Gradle build commands: compile check, debug APK, module structure, and CMP 1.11 API gotchas
+
+compose-ui:
+  dependency-injection:
+    description: CompositionLocal service locator pattern for UI dependencies
+  dialogs:
+    description: Dialog patterns including 200ms delayed loading indicator
+  lazy-layouts:
+    description: LazyGridScope extension functions for grouped grid sections
+  navigation:
+    description: Voyager navigation with factory functions and domain-keyed screens
+  theming:
+    description: Enum-based theme system with embedded ColorScheme values
+  view-models:
+    description: Voyager StateScreenModel usage and rememberScreenModel keying

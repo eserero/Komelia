@@ -42,6 +42,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -104,6 +105,8 @@ fun AudioFullScreenPlayer(
     audioBookmarks: List<AudioBookmark> = emptyList(),
     isAudioBookmarked: Boolean = false,
     onAudioBookmarkToggle: () -> Unit = {},
+    currentAudioTrackIndex: Int = 0,
+    onSeekToTrackPosition: ((trackIndex: Int, positionSeconds: Double) -> Unit)? = null,
     playbackSpeed: Double,
     onSpeedChange: (Double) -> Unit,
     sharedTransitionScope: SharedTransitionScope,
@@ -274,8 +277,32 @@ fun AudioFullScreenPlayer(
                             )
                         }
 
-                        // Page slider — only in SMIL mode
-                        if (positions.size > 1) {
+                        if (audioTracks.isNotEmpty() && onSeekToTrackPosition != null) {
+                            // Folder-mode: seek within current track
+                            val prevTrackDuration = audioTracks.take(currentAudioTrackIndex).sumOf { it.durationSeconds }
+                            val currentTrackDuration = audioTracks.getOrNull(currentAudioTrackIndex)?.durationSeconds ?: 0.0
+                            val positionInTrack = (elapsedSeconds - prevTrackDuration).coerceIn(0.0, currentTrackDuration)
+
+                            var sliderDraft by remember(currentAudioTrackIndex) { mutableStateOf(positionInTrack.toFloat()) }
+                            var isInteracting by remember { mutableStateOf(false) }
+
+                            AppSlider(
+                                value = if (isInteracting) sliderDraft else positionInTrack.toFloat(),
+                                onValueChange = { isInteracting = true; sliderDraft = it },
+                                onValueChangeFinished = {
+                                    isInteracting = false
+                                    onSeekToTrackPosition(currentAudioTrackIndex, sliderDraft.toDouble())
+                                },
+                                valueRange = 0f..currentTrackDuration.toFloat().coerceAtLeast(1f),
+                                accentColor = accentColor,
+                                colors = AppSliderDefaults.colors(accentColor = accentColor),
+                                modifier = fadeModifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 32.dp)
+                                    .padding(top = 16.dp),
+                            )
+                        } else if (positions.size > 1) {
+                            // SMIL mode: navigate epub reading position
                             Epub3PageNavigatorRow(
                                 positions = positions,
                                 currentLocator = currentLocator,
