@@ -9,15 +9,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.MenuBook
 import androidx.compose.material.icons.rounded.Download
+import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.VisibilityOff
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -27,15 +29,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.dp
-import androidx.compose.runtime.DisposableEffect
+import snd.komelia.ui.LocalFloatingActionButton
+import snd.komelia.ui.LocalFloatingActionButtonLeft
 import snd.komelia.ui.LocalNavBarColor
 import snd.komelia.ui.LocalTheme
-import snd.komelia.ui.Theme
 import snd.komelia.ui.LocalUseFloatingNavigationBar
-import snd.komelia.ui.LocalFloatingActionButton
+import snd.komelia.ui.Theme
 import snd.komelia.ui.common.FloatingFAB
-import snd.komelia.ui.common.FloatingSplitFAB
-import snd.komelia.ui.common.FloatingIslandMenuItem
+import snd.komelia.ui.common.FloatingFABWithDropdownMenu
 import snd.komelia.ui.common.SplitFabMenu
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -66,68 +67,68 @@ fun ImmersiveDetailFab(
 
     val useFloatingNavigationBar = LocalUseFloatingNavigationBar.current
     val fab = LocalFloatingActionButton.current
+    val fabLeft = LocalFloatingActionButtonLeft.current
+
     if (useFloatingNavigationBar) {
         val ownerKey = remember { Any() }
-        DisposableEffect(expanded, showReadActions) {
-            fab.value = ownerKey to {
-                if (showReadActions) {
-                    FloatingSplitFAB(
-                        expanded = expanded,
-                        onExpandedChange = { expanded = it },
-                        primaryActionIcon = Icons.AutoMirrored.Rounded.MenuBook,
-                        onPrimaryActionClick = {
-                            expanded = false
-                            onReadClick()
-                        },
+
+        if (showReadActions) {
+            // Right FAB: primary Read action
+            DisposableEffect(Unit) {
+                fab.value = ownerKey to {
+                    FloatingFAB(
+                        icon = Icons.AutoMirrored.Rounded.MenuBook,
+                        onClick = onReadClick,
                         accentColor = accentColor,
-                        menuItems = {
-                            FloatingIslandMenuItem(
-                                onClick = {
-                                    expanded = false
-                                    onReadClick()
-                                },
-                                icon = { Icon(Icons.AutoMirrored.Rounded.MenuBook, contentDescription = null) },
-                                text = { Text("Read") },
-                                containerColor = readNowContainerColor,
-                                contentColor = readNowContentColor
-                            )
-                            FloatingIslandMenuItem(
-                                onClick = {
-                                    expanded = false
-                                    onReadIncognitoClick()
-                                },
-                                icon = { Icon(Icons.Rounded.VisibilityOff, contentDescription = null) },
-                                text = { Text("Read Incognito") },
-                                containerColor = readNowContainerColor,
-                                contentColor = readNowContentColor
-                            )
-                            FloatingIslandMenuItem(
-                                onClick = {
-                                    expanded = false
-                                    onDownloadClick()
-                                },
-                                icon = { Icon(Icons.Rounded.Download, contentDescription = null) },
-                                text = { Text("Download") },
-                                containerColor = readNowContainerColor,
-                                contentColor = readNowContentColor
-                            )
-                        }
                     )
-                } else {
+                }
+                onDispose { if (fab.value?.first == ownerKey) fab.value = null }
+            }
+
+            // Left FAB: dropdown menu with all three options
+            DisposableEffect(Unit) {
+                fabLeft.value = ownerKey to {
+                    FloatingFABWithDropdownMenu(
+                        icon = Icons.Rounded.MoreVert,
+                        accentColor = accentColor,
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Read") },
+                            onClick = onReadClick,
+                            leadingIcon = { Icon(Icons.AutoMirrored.Rounded.MenuBook, contentDescription = null) },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Read Incognito") },
+                            onClick = onReadIncognitoClick,
+                            leadingIcon = { Icon(Icons.Rounded.VisibilityOff, contentDescription = null) },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Download") },
+                            onClick = onDownloadClick,
+                            leadingIcon = { Icon(Icons.Rounded.Download, contentDescription = null) },
+                        )
+                    }
+                }
+                onDispose { if (fabLeft.value?.first == ownerKey) fabLeft.value = null }
+            }
+        } else {
+            // No read actions — just show Download on the right, nothing on the left
+            DisposableEffect(Unit) {
+                fab.value = ownerKey to {
                     FloatingFAB(
                         icon = Icons.Rounded.Download,
                         onClick = onDownloadClick,
                         accentColor = accentColor,
                     )
                 }
+                onDispose { if (fab.value?.first == ownerKey) fab.value = null }
             }
-            onDispose {
-                if (fab.value?.first == ownerKey) {
-                    fab.value = null
-                }
+            DisposableEffect(Unit) {
+                onDispose { if (fabLeft.value?.first == ownerKey) fabLeft.value = null }
             }
         }
     } else {
+        // ── Non-floating mode: unchanged ────────────��────────────────────────────
         Row(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -152,30 +153,21 @@ fun ImmersiveDetailFab(
                     contentColor = readNowContentColor,
                     menuItems = {
                         FloatingActionButtonMenuItem(
-                            onClick = {
-                                expanded = false
-                                onReadClick()
-                            },
+                            onClick = { expanded = false; onReadClick() },
                             icon = { Icon(Icons.AutoMirrored.Rounded.MenuBook, contentDescription = null) },
                             text = { Text("Read") },
                             containerColor = readNowContainerColor,
                             contentColor = readNowContentColor
                         )
                         FloatingActionButtonMenuItem(
-                            onClick = {
-                                expanded = false
-                                onReadIncognitoClick()
-                            },
+                            onClick = { expanded = false; onReadIncognitoClick() },
                             icon = { Icon(Icons.Rounded.VisibilityOff, contentDescription = null) },
                             text = { Text("Read Incognito") },
                             containerColor = readNowContainerColor,
                             contentColor = readNowContentColor
                         )
                         FloatingActionButtonMenuItem(
-                            onClick = {
-                                expanded = false
-                                onDownloadClick()
-                            },
+                            onClick = { expanded = false; onDownloadClick() },
                             icon = { Icon(Icons.Rounded.Download, contentDescription = null) },
                             text = { Text("Download") },
                             containerColor = readNowContainerColor,
@@ -184,16 +176,12 @@ fun ImmersiveDetailFab(
                     }
                 )
             } else {
-                // Download FAB
                 FloatingActionButton(
                     onClick = onDownloadClick,
                     containerColor = fabContainerColor,
                     contentColor = fabContentColor,
                 ) {
-                    Icon(
-                        Icons.Rounded.Download,
-                        contentDescription = "Download"
-                    )
+                    Icon(Icons.Rounded.Download, contentDescription = "Download")
                 }
             }
         }

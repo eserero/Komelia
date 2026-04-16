@@ -215,11 +215,13 @@ class MainScreen(
         val useNewTopBar = useNewLibraryUI2 && useNewLibraryUI
         val hazeState = if (transparentBars || useNewTopBar) rememberHazeState() else null
         val floatingActionButton = remember { mutableStateOf<Pair<Any, @Composable () -> Unit>?>(null) }
+        val floatingActionButtonLeft = remember { mutableStateOf<Pair<Any, @Composable () -> Unit>?>(null) }
         CompositionLocalProvider(
             LocalRawStatusBarHeight provides rawStatusBarHeight,
             LocalRawNavBarHeight provides rawNavBarHeight,
             LocalHazeState provides hazeState,
             LocalFloatingActionButton provides floatingActionButton,
+            LocalFloatingActionButtonLeft provides floatingActionButtonLeft,
         ) {
             Scaffold(
                 containerColor = MaterialTheme.colorScheme.surface,
@@ -321,40 +323,53 @@ class MainScreen(
                                                 }
                                                 val fab = LocalFloatingActionButton.current.value
                                                 if (fab != null) {
-                                                    Box(Modifier.layoutId("fab")) {
-                                                        fab.second()
-                                                    }
+                                                    Box(Modifier.layoutId("fab")) { fab.second() }
+                                                }
+                                                val fabLeft = LocalFloatingActionButtonLeft.current.value
+                                                if (fabLeft != null) {
+                                                    Box(Modifier.layoutId("fab-left")) { fabLeft.second() }
                                                 }
                                             }
                                         ) { measurables, constraints ->
-                                            val navPlaceable = measurables.first { it.layoutId == "nav" }.measure(constraints.copy(minWidth = 0))
-                                            val fabMeasurable = measurables.firstOrNull { it.layoutId == "fab" }
-                                            val fabPlaceable = fabMeasurable?.measure(constraints.copy(minWidth = 0))
+                                            val loose = constraints.copy(minWidth = 0)
+                                            val navPlaceable = measurables.first { it.layoutId == "nav" }.measure(loose)
+                                            val fabPlaceable = measurables.firstOrNull { it.layoutId == "fab" }?.measure(loose)
+                                            val fabLeftPlaceable = measurables.firstOrNull { it.layoutId == "fab-left" }?.measure(loose)
 
                                             val width = constraints.maxWidth
-                                            val height = maxOf(navPlaceable.height, fabPlaceable?.height ?: 0)
+                                            val height = maxOf(navPlaceable.height, fabPlaceable?.height ?: 0, fabLeftPlaceable?.height ?: 0)
+                                            val spacing = 8.dp.roundToPx()
 
                                             layout(width, height) {
-                                                val navPlaceableWidth = navPlaceable.width
-                                                val fabPlaceableWidth = fabPlaceable?.width ?: 0
-                                                val spacing = 8.dp.roundToPx()
-
-                                                var navX = (width - navPlaceableWidth) / 2
+                                                // Start with nav centered
+                                                var navX = (width - navPlaceable.width) / 2
                                                 val navY = (height - navPlaceable.height) / 2
 
+                                                // Right FAB: shift nav left if it would overflow the right edge
                                                 if (fabPlaceable != null) {
-                                                    val fabX = navX + navPlaceableWidth + spacing
-                                                    if (fabX + fabPlaceableWidth > width) {
-                                                        val overflow = (fabX + fabPlaceableWidth) - width
-                                                        navX = (navX - overflow).coerceAtLeast(0)
+                                                    val fabX = navX + navPlaceable.width + spacing
+                                                    if (fabX + fabPlaceable.width > width) {
+                                                        navX = (navX - ((fabX + fabPlaceable.width) - width)).coerceAtLeast(0)
                                                     }
+                                                }
 
-                                                    val finalFabX = navX + navPlaceableWidth + spacing
-                                                    val fabY = (height - fabPlaceable.height) / 2
-                                                    navPlaceable.placeRelative(navX, navY)
-                                                    fabPlaceable.placeRelative(finalFabX, fabY)
-                                                } else {
-                                                    navPlaceable.placeRelative(navX, navY)
+                                                // Left FAB: shift nav right if it would overflow the left edge
+                                                if (fabLeftPlaceable != null) {
+                                                    val leftFabRightEdge = navX - spacing
+                                                    if (leftFabRightEdge < fabLeftPlaceable.width) {
+                                                        navX = (navX + (fabLeftPlaceable.width - leftFabRightEdge)).coerceAtMost(width - navPlaceable.width)
+                                                    }
+                                                }
+
+                                                navPlaceable.placeRelative(navX, navY)
+
+                                                if (fabPlaceable != null) {
+                                                    val finalFabX = navX + navPlaceable.width + spacing
+                                                    fabPlaceable.placeRelative(finalFabX, (height - fabPlaceable.height) / 2)
+                                                }
+                                                if (fabLeftPlaceable != null) {
+                                                    val finalLeftFabX = navX - spacing - fabLeftPlaceable.width
+                                                    fabLeftPlaceable.placeRelative(finalLeftFabX.coerceAtLeast(0), (height - fabLeftPlaceable.height) / 2)
                                                 }
                                             }
                                         }
