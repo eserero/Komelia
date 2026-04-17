@@ -117,7 +117,7 @@ android {
         applicationId = "io.github.eserero.sipurra"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 21
+        versionCode = 22
         versionName = libs.versions.app.version.get()
 
         val enableSelfUpdates = when (androidVariant) {

@@ -1,4 +1,4 @@
-# Building Komelia APKs
+# Building Sipurra APKs
 
 ## Debug APK
 
@@ -8,7 +8,7 @@ Already signed with the Android debug keystore — install directly.
 ./gradlew :komelia-app:assembleDebug
 ```
 
-Output: `komelia-app/build/outputs/apk/debug/komelia-app-debug.apk`
+Output: `komelia-app/build/outputs/apk/debug/sipurra-app-debug.apk`
 
 ---
 
@@ -22,7 +22,7 @@ The release build is unsigned. After building, sign it with the debug keystore.
 ./gradlew :komelia-app:assembleRelease
 ```
 
-Output: `komelia-app/build/outputs/apk/release/komelia-app-release-unsigned.apk`
+Output: `komelia-app/build/outputs/apk/release/sipurra-app-release-unsigned.apk`
 
 ### 2. Align and sign
 
@@ -30,19 +30,19 @@ Output: `komelia-app/build/outputs/apk/release/komelia-app-release-unsigned.apk`
 cd komelia-app/build/outputs/apk/release
 
 ~/Android/Sdk/build-tools/35.0.0/zipalign -p -f 4 \
-  komelia-app-release-unsigned.apk \
-  komelia-app-release-aligned.apk
+  sipurra-app-release-unsigned.apk \
+  sipurra-app-release-aligned.apk
 
 ~/Android/Sdk/build-tools/35.0.0/apksigner sign \
   --ks ~/.android/debug.keystore \
   --ks-pass pass:android \
   --ks-key-alias androiddebugkey \
   --key-pass pass:android \
-  --out komelia-app-release-signed.apk \
-  komelia-app-release-aligned.apk
+  --out sipurra-app-release-signed.apk \
+  sipurra-app-release-aligned.apk
 ```
 
-Output: `komelia-app/build/outputs/apk/release/komelia-app-release-signed.apk`
+Output: `komelia-app/build/outputs/apk/release/sipurra-app-release-signed.apk`
 
 ---
 
@@ -51,7 +51,7 @@ Output: `komelia-app/build/outputs/apk/release/komelia-app-release-signed.apk`
 Force the package step to re-run:
 
 ```bash
-rm -f komelia-app/build/outputs/apk/release/komelia-app-release-unsigned.apk
+rm -f komelia-app/build/outputs/apk/release/sipurra-app-release-unsigned.apk
 ./gradlew :komelia-app:packageRelease
 ```
 
@@ -62,14 +62,14 @@ Then sign as above.
 ## Installing via ADB
 
 ```bash
-adb install komelia-app/build/outputs/apk/release/komelia-app-release-signed.apk
+adb install komelia-app/build/outputs/apk/release/sipurra-app-release-signed.apk
 ```
 
 If you get "INSTALL_FAILED_UPDATE_INCOMPATIBLE" (signature mismatch with an existing install):
 
 ```bash
-adb uninstall io.github.snd_r.komelia
-adb install komelia-app/build/outputs/apk/release/komelia-app-release-signed.apk
+adb uninstall io.github.eserero.sipurra
+adb install komelia-app/build/outputs/apk/release/sipurra-app-release-signed.apk
 ```
 
 ---
@@ -82,28 +82,28 @@ When you are ready to create a new release, follow these steps:
 1. **Update the App Version Name:**
    In `gradle/libs.versions.toml`, update the `app-version` variable.
    ```toml
-   app-version = "0.18.5" # Example new version
+   app-version = "2.0.0" # Example new version
    ```
 2. **Update the App Version Code:**
    In `komelia-app/build.gradle.kts`, increment the `versionCode` (found around line 116).
    ```kotlin
-   versionCode = 19 # Must be higher than the previous release
+   versionCode = 22 # Must be higher than the previous release
    ```
 3. **Update the Hardcoded Version:**
    In `komelia-domain/core/src/commonMain/kotlin/snd/komelia/updates/AppVersion.kt`, update `AppVersion.current`.
    ```kotlin
-   val current = AppVersion(0, 18, 5) // Example new version
+   val current = AppVersion(2, 0, 0) // Example new version
    ```
 
 ### Part 2: Building the Artifacts
 Follow the instructions above in **Release APK** to create the release APK:
 - Run `./gradlew :komelia-app:assembleRelease`
-- Align and Sign the APK to produce `komelia-app-release-signed.apk`.
+- Align and Sign the APK to produce `sipurra-app-release-signed.apk`.
 
 ### Part 3: Updates in GitHub (Creating the Release)
-1. **Create the Tag:** In your `eserero/Komelia` repository, create a new tag matching the version you just set in the code (e.g., `0.18.5` or `v0.18.5`).
+1. **Create the Tag:** In your `eserero/Sipurra` repository, create a new tag matching the version you just set in the code (e.g., `2.0.0` or `v2.0.0`).
    **Note:** Both formats are supported, but it's recommended to stay consistent. The application will automatically remove a leading `v` if present.
 2. **Draft a New Release:** Go to GitHub Releases and draft a new release pointing to the tag you created.
-3. **Upload Assets:** Drag and drop your compiled `komelia-app-release-signed.apk` (and any desktop artifacts like `.msi` or `.deb` if applicable) into the release assets section. 
+3. **Upload Assets:** Drag and drop your compiled `sipurra-app-release-signed.apk` (and any desktop artifacts like `.msi` or `.deb` if applicable) into the release assets section. 
    **CRITICAL:** Ensure the Android file ends with `.apk`. The Android auto-updater specifically looks for `assets.firstOrNull { it.name.endsWith(".apk") }`.
 4. **Publish Release:** Add your release notes and publish. The application will now detect this as the newest update.
