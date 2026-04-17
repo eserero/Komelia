@@ -53,6 +53,7 @@ data class Props(
     var columnCount: ColumnCount?,
     var pageMargins: Double?,
     var publisherStyles: Boolean?,
+    var respectPublisherColors: Boolean?,
 )
 
 
@@ -75,6 +76,7 @@ data class FinalizedProps(
     var columnCount: ColumnCount,
     var pageMargins: Double,
     var publisherStyles: Boolean,
+    var respectPublisherColors: Boolean,
 )
 
 /**
@@ -186,6 +188,7 @@ class EpubView(
         columnCount = null,
         pageMargins = null,
         publisherStyles = null,
+        respectPublisherColors = null,
     )
     var props: FinalizedProps? = null
 
@@ -217,6 +220,7 @@ class EpubView(
                 columnCount = pendingProps.columnCount ?: oldProps?.columnCount ?: ColumnCount.AUTO,
                 pageMargins = pendingProps.pageMargins ?: oldProps?.pageMargins ?: 1.0,
                 publisherStyles = pendingProps.publisherStyles ?: oldProps?.publisherStyles ?: false,
+                respectPublisherColors = pendingProps.respectPublisherColors ?: oldProps?.respectPublisherColors ?: false,
             )
 
         props = finalProps
@@ -253,13 +257,15 @@ class EpubView(
 
         navigator?.submitPreferences(
             EpubPreferences(
-                backgroundColor = org.readium.r2.navigator.preferences.Color(props!!.background),
+                backgroundColor = if (props!!.publisherStyles || props!!.respectPublisherColors) null
+                else org.readium.r2.navigator.preferences.Color(props!!.background),
                 fontFamily = props!!.fontFamily,
                 fontSize = props!!.fontSize,
                 lineHeight = props!!.lineHeight,
                 paragraphSpacing = props!!.paragraphSpacing,
                 textAlign = props!!.textAlign,
-                textColor = org.readium.r2.navigator.preferences.Color(props!!.foreground),
+                textColor = if (props!!.publisherStyles || props!!.respectPublisherColors) null
+                else org.readium.r2.navigator.preferences.Color(props!!.foreground),
                 scroll = props!!.scroll,
                 columnCount = props!!.columnCount,
                 pageMargins = props!!.pageMargins,

@@ -27,6 +27,7 @@ class ExposedEpubReaderSettingsRepository(database: Database) : ExposedRepositor
                             bottomMargin = it[EpubReaderSettingsTable.bottomMargin],
                             showDateTimeOverlay = it[EpubReaderSettingsTable.showDateTimeOverlay],
                             showLocationOverlay = it[EpubReaderSettingsTable.showLocationOverlay],
+                            respectPublisherColors = it[EpubReaderSettingsTable.epub3RespectPublisherColors],
                         ),
                     )
                 }
@@ -45,6 +46,7 @@ class ExposedEpubReaderSettingsRepository(database: Database) : ExposedRepositor
                 it[bottomMargin] = settings.epub3NativeSettings.bottomMargin
                 it[showDateTimeOverlay] = settings.epub3NativeSettings.showDateTimeOverlay
                 it[showLocationOverlay] = settings.epub3NativeSettings.showLocationOverlay
+                it[epub3RespectPublisherColors] = settings.epub3NativeSettings.respectPublisherColors
             }
         }
     }

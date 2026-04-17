@@ -133,13 +133,15 @@ class EpubFragment : Fragment {
                     }
                 },
                 initialPreferences = EpubPreferences(
-                    backgroundColor = org.readium.r2.navigator.preferences.Color(lst.props!!.background),
+                    backgroundColor = if (lst.props!!.publisherStyles || lst.props!!.respectPublisherColors) null
+                    else org.readium.r2.navigator.preferences.Color(lst.props!!.background),
                     fontFamily = lst.props!!.fontFamily,
                     fontSize = lst.props!!.fontSize,
                     lineHeight = lst.props!!.lineHeight,
                     paragraphSpacing = lst.props!!.paragraphSpacing,
                     textAlign = lst.props!!.textAlign,
-                    textColor = org.readium.r2.navigator.preferences.Color(lst.props!!.foreground),
+                    textColor = if (lst.props!!.publisherStyles || lst.props!!.respectPublisherColors) null
+                    else org.readium.r2.navigator.preferences.Color(lst.props!!.foreground),
                     scroll = lst.props!!.scroll,
                     columnCount = lst.props!!.columnCount,
                     pageMargins = lst.props!!.pageMargins,

@@ -528,6 +528,21 @@ private fun FontTextTab(
                 onCheckedChange = { onSettingsChange(settings.copy(publisherStyles = it)) },
             )
         }
+
+        // Respect publisher colors toggle
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text("Respect publisher colors", style = MaterialTheme.typography.labelLarge)
+            Switch(
+                checked = settings.respectPublisherColors,
+                onCheckedChange = { onSettingsChange(settings.copy(respectPublisherColors = it)) },
+            )
+        }
     }
 }
 

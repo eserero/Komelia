@@ -290,6 +290,7 @@ class Epub3ReaderState(
         }
         view.pendingProps.pageMargins      = s.pageMargins
         view.pendingProps.publisherStyles  = s.publisherStyles
+        view.pendingProps.respectPublisherColors = s.respectPublisherColors
         view.pendingProps.customFonts      = buildCustomFontList()
         view.finalizeProps()
     }

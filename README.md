@@ -1,10 +1,11 @@
 # Sipurra - Komga media client
 
 ## What's New in this Fork
-This is a fork of [Komelia](https://github.com/Snd-R/Komelia) focused on improving the Android experience. It contains all the good in Komelia and adding many new featurs:
+Sipurra is a fork of [Komelia](https://github.com/Snd-R/Komelia) focused on improving the Android experience. It contains all the good in Komelia and adding many new featurs:
 *  Completly revamped UX 
 *  New epub3 reader supporting immersive Audio + Text reading (based on storyteller)
-*  Many new features in the comic reader (in app AI upscaling, additional navigation options, improved panel mode and more)
+*  Audio books playback
+*  Many new features in the comic reader (AI upscaling, additional navigation options, improved panel mode and more)
 *  Much more - read below to find out :-)
 
 ### New UX and Themes
@@ -72,13 +73,14 @@ This is a fork of [Komelia](https://github.com/Snd-R/Komelia) focused on improvi
 | :---: | :---: |
 | <img src="screenshots/New UI 2/Comic Reader - Comic page with controls without upscaling B&W.jpg" width="250"> | <img src="screenshots/New UI 2/Comic Reader - Comic page with controls with upscaling B&W.jpg" width="250"> |
 
-### Epub Reader with support for Epub 3 audio layer
+### Epub Reader with support for Epub 3 audio layer and Audio Books
 *   **New Epub Viewer**: Completely new epub viewer that can be toggled in settings. based on Storyteller and Redium Kotlin Tookit - support epubs with audio layer to a combined text + Audio reading (You can easily create such books using storyteller
+*   **Audio Book player**: integrated audio books player, with chapter navigation , double tap on a text row to choose sentenses to play, including a mini player and integrated full screen "audio book" interface. Audio books must alwasy be inside the book epub file (which is a zip file) and there are 2 modes: 1. if you are using Storyteller to create an immersive reading experience you will get a synchronized text and audio experiece. 2. if you just have an audiobook or audio folder inside your epub then you can use it as a normal audio book without text synchronization.
 *   **New controls**: completly new reading controls matching the new comic reader controls - easily select chapter, bookmark, search and lock screen rotation.
 *   **New setting screen**: Theme and appearance selection, margins, fonts and audio settings. 
 *   **Better Navigation**: Ability to swipe to turn pages (swipe left/right to move about, scroll based reading etc.)
 *   **Bookmark and Search**: new implementation of chapter, bookmarking and text search
-*   **Media player**: integrated media player navigation, with chapter navigation , double tap on a text row to choose sentenses to play, including a mini player and integrated full screen "audio book" interface
+
 
 **Controls and Audio Player**
 | Light Theme | Dark Theme | Mini Player |
