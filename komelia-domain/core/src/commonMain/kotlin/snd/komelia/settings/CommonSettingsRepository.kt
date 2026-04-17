@@ -103,4 +103,7 @@ interface CommonSettingsRepository {
 
     fun getFloatingNavigationBar(): Flow<Boolean>
     suspend fun putFloatingNavigationBar(enabled: Boolean)
+
+    fun getLastHighlightColor(): Flow<Int>
+    suspend fun putLastHighlightColor(color: Int)
 }

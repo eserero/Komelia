@@ -59,6 +59,7 @@ class ExposedSettingsRepository(database: Database) : ExposedRepository(database
                 it[cardShadowLevel] = settings.cardShadowLevel
                 it[cardCornerRadius] = settings.cardCornerRadius
                 it[useFloatingNavigationBar] = settings.useFloatingNavigationBar
+                it[lastHighlightColor] = settings.lastHighlightColor
             }
         }
     }
@@ -101,6 +102,7 @@ class ExposedSettingsRepository(database: Database) : ExposedRepository(database
             cardShadowLevel = get(AppSettingsTable.cardShadowLevel),
             cardCornerRadius = get(AppSettingsTable.cardCornerRadius),
             useFloatingNavigationBar = get(AppSettingsTable.useFloatingNavigationBar),
+            lastHighlightColor = get(AppSettingsTable.lastHighlightColor),
         )
     }
 }

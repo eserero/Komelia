@@ -242,4 +242,12 @@ class SettingsRepositoryWrapper(
 
     override suspend fun putFloatingNavigationBar(enabled: Boolean) =
         wrapper.transform { it.copy(useFloatingNavigationBar = enabled) }
+
+    override fun getLastHighlightColor(): Flow<Int> {
+        return wrapper.state.map { it.lastHighlightColor ?: 0xFFFFEB3B.toInt() }.distinctUntilChanged()
+    }
+
+    override suspend fun putLastHighlightColor(color: Int) {
+        wrapper.transform { it.copy(lastHighlightColor = color) }
+    }
 }
