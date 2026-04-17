@@ -97,7 +97,7 @@ fun NewTopAppBar(
             }
 
             Text(
-                "Komelia",
+                "Sipurra",
                 style = MaterialTheme.typography.titleLarge.copy(
                     fontFamily = notoSerif,
                     fontWeight = FontWeight.Bold,

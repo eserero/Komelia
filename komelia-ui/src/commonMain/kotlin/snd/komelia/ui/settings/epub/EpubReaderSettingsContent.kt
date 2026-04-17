@@ -68,16 +68,15 @@ fun EpubReaderSettingsContent(
             TTSU_EPUB -> Text(
                 """
                     Loads entire book data at once. May cause long load times or performance issues
-                    Adapted for use in Komelia with storage/statistics features removed
+                    Adapted for use in Sipurra with storage/statistics features removed
                 """.trimIndent()
             )
 
-            KOMGA_EPUB -> Text("Komga webui epub reader adapted for use in Komelia")
+            KOMGA_EPUB -> Text("Komga webui epub reader adapted for use in Sipurra")
 
             EPUB3_READER -> Text(
                 "Native EPUB 3 reader with synchronized audio overlay (SMIL) support. Android only."
             )
-
         }
     }
 }

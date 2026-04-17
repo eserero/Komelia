@@ -56,6 +56,6 @@ data class ImageReaderSettings(
         const val PANEL_DETECTION_DEFAULT_ORIGINAL_URL =
             "https://github.com/Snd-R/komelia-onnxruntime/releases/download/model/rf-detr-med.onnx.zip"
         const val PANEL_DETECTION_DEFAULT_GITHUB_URL =
-            "https://github.com/eserero/Komelia/releases/download/model/rf-detr-med.onnx.zip"
+            "https://github.com/eserero/Sipurra/releases/download/model/rf-detr-med.onnx.zip"
     }
 }

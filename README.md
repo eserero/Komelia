@@ -1,7 +1,7 @@
-# Komelia - Komga media client
+# Sipurra - Komga media client
 
 ## What's New in this Fork
-This is a fork of [Komelia](https://github.com/Gaysuist/Komelia) focused on improving the Android experience. It contains all the good in Komelia and adding many new featurs:
+This is a fork of [Komelia](https://github.com/Snd-R/Komelia) focused on improving the Android experience. It contains all the good in Komelia and adding many new featurs:
 *  Completly revamped UX 
 *  New epub3 reader supporting immersive Audio + Text reading (based on storyteller)
 *  Many new features in the comic reader (in app AI upscaling, additional navigation options, improved panel mode and more)
@@ -113,6 +113,7 @@ This is a fork of [Komelia](https://github.com/Gaysuist/Komelia) focused on impr
 ### General improvements
 *   **Prefer local files**: If the files are downloaded, they will be used instead of downloading from the server - this is very helpfull for large comics or epub files with audio - which can get pretty large. This is working even in online mode although the app will still go to the server to fetch metadata.
 *   **Ability to open local files through android context**: Ability to open cbz and epub files from android. it will not let you manage these files, but it will remember the page and bookmarks based on the file location. maybe in the future I will add more local file management.
+*   **Reload local cache**: It is possible to reload files downloaded by a previous installation or to transfer downloaded files to a new device and then just reload them to a new installation of the application. you can do this in the aplication setting offline screen - there is a new button "scan for existing files" - it will link all the existing files to the app and provide a report.
 
 
 

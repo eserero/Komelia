@@ -15,6 +15,10 @@ plugins {
 group = "io.github.snd-r.komelia"
 version = libs.versions.app.version.get()
 
+base {
+    archivesName = "sipurra-app"
+}
+
 kotlin {
     jvmToolchain(17) // max version https://developer.android.com/build/releases/gradle-plugin#compatibility
     androidTarget {
@@ -27,10 +31,10 @@ kotlin {
 
     @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
-        outputModuleName = "komelia-app"
+        outputModuleName = "sipurra-app"
         browser {
             commonWebpackConfig {
-                outputFileName = "komelia-app.js"
+                outputFileName = "sipurra-app.js"
                 devServer = (devServer ?: KotlinWebpackConfig.DevServer())
             }
         }
@@ -110,7 +114,7 @@ android {
         buildConfig = true
     }
     defaultConfig {
-        applicationId = "io.github.snd_r.komelia"
+        applicationId = "io.github.eserero.sipurra"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 21
@@ -171,10 +175,10 @@ compose.desktop {
 
         nativeDistributions {
             targetFormats(TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "Komelia"
+            packageName = "Sipurra"
             packageVersion = libs.versions.app.version.get()
             description = "Komga media client"
-            vendor = "Snd-R"
+            vendor = "eserero"
             appResourcesRootDir.set(
                 project.projectDir.resolve("desktopUnpackedResources")
             )

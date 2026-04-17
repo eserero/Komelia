@@ -70,7 +70,7 @@ fun NcnnSettingsContent(
 
         val urlOptions = remember {
             listOf(
-                LabeledEntry("https://github.com/eserero/Komelia/releases/download/model/NcnnUpscalerModels.zip", "Default (GitHub)"),
+                LabeledEntry("https://github.com/eserero/Sipurra/releases/download/model/NcnnUpscalerModels.zip", "Default (GitHub)"),
                 LabeledEntry("Custom", "Custom"),
             )
         }

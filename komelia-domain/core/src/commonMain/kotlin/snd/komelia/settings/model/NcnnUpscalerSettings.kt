@@ -12,7 +12,7 @@ data class NcnnUpscalerSettings(
     val numThreads: Int = 4,
     val upscaleOnLoad: Boolean = false,
     val upscaleThreshold: Int = 1200,
-    val ncnnUpscalerUrl: String = "https://github.com/eserero/Komelia/releases/download/model/NcnnUpscalerModels.zip",
+    val ncnnUpscalerUrl: String = "https://github.com/eserero/Sipurra/releases/download/model/NcnnUpscalerModels.zip",
     val isDownloaded: Boolean = false,
 )
 

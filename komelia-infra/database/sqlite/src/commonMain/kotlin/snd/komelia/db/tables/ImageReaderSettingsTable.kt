@@ -43,7 +43,7 @@ object ImageReaderSettingsTable : Table("ImageReaderSettings") {
     val ortUpscalerMode = text("onnx_runtime_mode")
     val ortUpscalerTileSize = integer("onnx_runtime_tile_size")
     val ortUpscalerUserModelPath = text("onnx_runtime_model_path").nullable()
-    val panelDetectionUrl = text("panel_detection_url").default("https://github.com/eserero/Komelia/releases/download/model/rf-detr-med.onnx.zip")
+    val panelDetectionUrl = text("panel_detection_url").default("https://github.com/eserero/Sipurra/releases/download/model/rf-detr-med.onnx.zip")
 
     val panelsFullPageDisplayMode = text("panels_full_page_display_mode").default("BOTH")
     val pagedReaderTapToZoom = bool("paged_reader_tap_to_zoom").default(true)

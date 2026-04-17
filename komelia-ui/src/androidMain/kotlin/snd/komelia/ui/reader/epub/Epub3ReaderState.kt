@@ -512,7 +512,7 @@ class Epub3ReaderState(
                 coroutineScope.launch {
                     val r2Prog = R2Progression(
                         modified = Clock.System.now(),
-                        device = R2Device("komelia-android", "Komelia"),
+                        device = R2Device("sipurra-android", "Sipurra"),
                         locator = R2Locator(
                             href = locator.href.toString(),
                             type = locator.mediaType.toString(),
