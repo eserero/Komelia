@@ -330,6 +330,7 @@ class AudiobookFolderController(
                     savedAt = System.currentTimeMillis(),
                 )
             )
+            onBookmarkChange()
         }
     }
 

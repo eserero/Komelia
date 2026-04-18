@@ -41,9 +41,6 @@ import snd.komelia.ui.MainScreen
 import snd.komelia.ui.book.BookScreen
 import snd.komelia.ui.book.bookScreen
 import snd.komelia.ui.platform.PlatformType
-import snd.komelia.audiobook.AudioBookmarkRepository
-import snd.komelia.audiobook.AudioPositionRepository
-import snd.komelia.sync.ReaderSyncService
 import snd.komelia.ui.reader.epub.audio.AudiobookFolderController
 import snd.komelia.ui.reader.epub.audio.EpubAudioController
 import snd.komelia.ui.reader.epub.audio.MediaOverlayController
@@ -58,21 +55,24 @@ import kotlinx.coroutines.flow.first
 import snd.komelia.sync.CompactAnnotation
 import snd.komelia.sync.CompactAudioBookmark
 import snd.komelia.sync.CompactBookmark
+import snd.komelia.sync.CompactAudioPosition
+import snd.komelia.sync.ReaderSyncService
 import snd.komelia.sync.SyncBlob
+import snd.komelia.audiobook.AudioPosition
+import snd.komelia.audiobook.AudioBookmark
+import snd.komelia.audiobook.AudioBookmarkRepository
+import snd.komelia.audiobook.AudioPositionRepository
+import snd.komelia.annotations.BookAnnotation
+import snd.komelia.annotations.AnnotationLocation
+import snd.komelia.annotations.BookAnnotationRepository
+import snd.komelia.bookmarks.EpubBookmark
+import snd.komelia.bookmarks.EpubBookmarkRepository
 import java.io.File
 import java.net.URL
 import kotlin.time.Clock
-import snd.komelia.audiobook.AudioBookmark
-
-import snd.komelia.bookmarks.EpubBookmark
-import snd.komelia.bookmarks.EpubBookmarkRepository
 import org.json.JSONObject
 import java.util.UUID
-import snd.komelia.annotations.AnnotationLocation
-import snd.komelia.annotations.BookAnnotation
-import snd.komelia.annotations.BookAnnotationRepository
 import com.storyteller.reader.Highlight
-
 import org.readium.r2.shared.publication.services.search.search
 import org.readium.r2.shared.util.Try
 
@@ -126,6 +126,7 @@ class Epub3ReaderState(
         val localBookmarks = epubBookmarkRepository.getBookmarks(bookId.value).first()
         val localAnnotations = bookAnnotationRepository.getAnnotations(bookId.value).first()
         val localAudioBookmarks = audioBookmarkRepository.getBookmarks(bookId.value).first()
+        val localAudioPosition = audioPositionRepository.getPosition(bookId.value)
 
         val currentLocalBlob = readerSyncService.decode(currentSyncBlob.value)
         val localLastSyncTime = currentLocalBlob?.lastModified ?: 0L
@@ -151,6 +152,9 @@ class Epub3ReaderState(
             audioBookmarks = localAudioBookmarks.map {
                 CompactAudioBookmark(it.id, it.trackIndex, it.positionSeconds, it.createdAt)
             },
+            audioPosition = localAudioPosition?.let {
+                CompactAudioPosition(it.trackIndex, it.positionSeconds, it.savedAt)
+            },
             lastModified = localLastSyncTime
         )
 
@@ -159,6 +163,18 @@ class Epub3ReaderState(
         } else localSyncBlob
 
         // Update local repositories with merged data
+        val mergedAudioPos = merged.audioPosition
+        if (mergedAudioPos != null && (localAudioPosition == null || mergedAudioPos.savedAt > localAudioPosition.savedAt)) {
+            audioPositionRepository.savePosition(
+                AudioPosition(
+                    bookId = bookId.value,
+                    trackIndex = mergedAudioPos.track,
+                    positionSeconds = mergedAudioPos.pos,
+                    savedAt = mergedAudioPos.savedAt
+                )
+            )
+        }
+
         // Handle additions
         merged.bookmarks.forEach { compact ->
             if (localBookmarks.none { it.id == compact.id }) {
@@ -235,6 +251,7 @@ class Epub3ReaderState(
         val bookmarks = epubBookmarkRepository.getBookmarks(bookId.value).first()
         val annotations = bookAnnotationRepository.getAnnotations(bookId.value).first()
         val audioBookmarks = audioBookmarkRepository.getBookmarks(bookId.value).first()
+        val audioPosition = audioPositionRepository.getPosition(bookId.value)
 
         val syncBlob = SyncBlob(
             bookmarks = bookmarks.map {
@@ -256,6 +273,9 @@ class Epub3ReaderState(
             },
             audioBookmarks = audioBookmarks.map {
                 CompactAudioBookmark(it.id, it.trackIndex, it.positionSeconds, it.createdAt)
+            },
+            audioPosition = audioPosition?.let {
+                CompactAudioPosition(it.trackIndex, it.positionSeconds, it.savedAt)
             },
             lastModified = Clock.System.now().toEpochMilliseconds()
         )

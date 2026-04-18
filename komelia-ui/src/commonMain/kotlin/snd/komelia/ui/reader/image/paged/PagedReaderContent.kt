@@ -235,8 +235,7 @@ fun BoxScope.PagedReaderContent(
                                     DOUBLE_PAGES, DOUBLE_PAGES_NO_COVER -> DoublePageLayout(pages, readingDirection)
                                 }
                                 // Annotation pins overlay
-                                val pageNumber = spreadMetadata.firstOrNull()?.pageNumber ?: -1
-                                val pageAnnotations = annotationsForPage(annotations, pageNumber)
+                                val pageAnnotations = annotationsForPage(annotations, pageIdx)
                                 snd.komelia.ui.reader.image.ComicAnnotationOverlay(
                                     annotations = pageAnnotations,
                                     imageBounds = imageBounds,

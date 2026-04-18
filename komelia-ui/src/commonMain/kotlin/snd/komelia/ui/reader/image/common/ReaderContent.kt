@@ -262,7 +262,7 @@ fun ReaderContent(
                                 if (bounds != null && bounds.width > 0 && bounds.height > 0) {
                                     val x = ((contextMenuAnchorOffset.x - bounds.left) / bounds.width).coerceIn(0f, 1f)
                                     val y = ((contextMenuAnchorOffset.y - bounds.top) / bounds.height).coerceIn(0f, 1f)
-                                    val page = pagedReaderState.getCurrentPageNumber()
+                                    val page = pagedReaderState.currentSpreadIndex.value
                                     commonReaderState.pendingAnnotationPage.value = page
                                     commonReaderState.pendingAnnotationX.value = x
                                     commonReaderState.pendingAnnotationY.value = y
