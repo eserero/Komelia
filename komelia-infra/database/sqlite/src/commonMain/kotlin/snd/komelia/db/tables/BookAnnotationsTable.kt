@@ -14,6 +14,7 @@ object BookAnnotationsTable : Table("book_annotations") {
     val y = float("y").nullable()
     val note = text("note").nullable()
     val createdAt = long("created_at")
+    val updatedAt = long("updated_at")
 
     override val primaryKey = PrimaryKey(id)
 }

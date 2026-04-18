@@ -424,7 +424,7 @@ class ReaderState(
     }
 
     fun updateComicAnnotation(existing: snd.komelia.annotations.BookAnnotation, note: String?, color: Int) {
-        val updated = existing.copy(highlightColor = color, note = note)
+        val updated = existing.copy(highlightColor = color, note = note, updatedAt = Clock.System.now().toEpochMilliseconds())
         stateScope.launch {
             bookAnnotationRepository.deleteAnnotation(existing.id)
             bookAnnotationRepository.saveAnnotation(updated)
@@ -475,7 +475,8 @@ class ReaderState(
                     },
                     color = it.highlightColor,
                     note = it.note,
-                    createdAt = it.createdAt
+                    createdAt = it.createdAt,
+                    updatedAt = it.updatedAt,
                 )
             },
             audioBookmarks = localAudioBookmarks.map {
@@ -516,9 +517,10 @@ class ReaderState(
             }
         }
         merged.annotations.forEach { compact ->
-            if (localAnnotations.none { it.id == compact.id }) {
+            val existing = localAnnotations.find { it.id == compact.id }
+            if (existing == null) {
                 val location = if (compact.type == 0) {
-                    AnnotationLocation.EpubLocation(compact.loc, null)
+                    AnnotationLocation.EpubLocation(compact.loc, compact.selectedText)
                 } else {
                     val parts = compact.loc.split(",")
                     AnnotationLocation.ComicLocation(
@@ -534,7 +536,18 @@ class ReaderState(
                         location = location,
                         highlightColor = compact.color,
                         note = compact.note,
-                        createdAt = compact.createdAt
+                        createdAt = compact.createdAt,
+                        updatedAt = compact.updatedAt,
+                    )
+                )
+            } else if (compact.updatedAt > existing.updatedAt) {
+                // Remote edit is newer — update note/color, preserve local selectedText
+                bookAnnotationRepository.deleteAnnotation(existing.id)
+                bookAnnotationRepository.saveAnnotation(
+                    existing.copy(
+                        note = compact.note,
+                        highlightColor = compact.color,
+                        updatedAt = compact.updatedAt,
                     )
                 )
             }
@@ -595,7 +608,8 @@ class ReaderState(
                     },
                     color = it.highlightColor,
                     note = it.note,
-                    createdAt = it.createdAt
+                    createdAt = it.createdAt,
+                    updatedAt = it.updatedAt,
                 )
             },
             audioBookmarks = audioBookmarks.map {

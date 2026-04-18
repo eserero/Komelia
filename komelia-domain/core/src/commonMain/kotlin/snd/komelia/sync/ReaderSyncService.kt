@@ -44,7 +44,9 @@ data class CompactAnnotation(
     @SerialName("l") val loc: String, // locatorJson for EPUB, or "page,x,y" for Comic
     @SerialName("h") val color: Int? = null,
     @SerialName("n") val note: String? = null,
-    @SerialName("c") val createdAt: Long
+    @SerialName("c") val createdAt: Long,
+    @SerialName("u") val updatedAt: Long = createdAt, // defaults to createdAt for old blobs
+    @SerialName("s") val selectedText: String? = null, // EPUB only, null for comics
 )
 
 class ReaderSyncService {
@@ -83,7 +85,7 @@ class ReaderSyncService {
 
         return SyncBlob(
             bookmarks = mergeItems(local.bookmarks, remote.bookmarks, localLastSyncTime, remote.lastModified) { it.id to it.createdAt },
-            annotations = mergeItems(local.annotations, remote.annotations, localLastSyncTime, remote.lastModified) { it.id to it.createdAt },
+            annotations = mergeItems(local.annotations, remote.annotations, localLastSyncTime, remote.lastModified) { it.id to it.updatedAt },
             audioBookmarks = mergeItems(local.audioBookmarks, remote.audioBookmarks, localLastSyncTime, remote.lastModified) { it.id to it.createdAt },
             audioPosition = mergedAudioPosition,
             lastModified = maxOf(local.lastModified, remote.lastModified)

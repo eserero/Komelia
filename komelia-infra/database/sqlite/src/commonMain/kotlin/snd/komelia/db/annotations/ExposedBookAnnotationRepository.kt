@@ -48,6 +48,7 @@ class ExposedBookAnnotationRepository(database: Database) :
                             highlightColor = row[BookAnnotationsTable.highlightColor],
                             note = row[BookAnnotationsTable.note],
                             createdAt = row[BookAnnotationsTable.createdAt],
+                            updatedAt = row[BookAnnotationsTable.updatedAt],
                         )
                     }
             }
@@ -62,6 +63,7 @@ class ExposedBookAnnotationRepository(database: Database) :
                 it[highlightColor] = annotation.highlightColor
                 it[note] = annotation.note
                 it[createdAt] = annotation.createdAt
+                it[updatedAt] = annotation.updatedAt
                 when (val loc = annotation.location) {
                     is AnnotationLocation.EpubLocation -> {
                         it[readerType] = "EPUB3"

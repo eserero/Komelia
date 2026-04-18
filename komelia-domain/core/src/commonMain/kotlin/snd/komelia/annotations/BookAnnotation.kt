@@ -27,4 +27,5 @@ data class BookAnnotation(
     /** Null means pure highlight with no note text. */
     val note: String?,
     val createdAt: Long,
+    val updatedAt: Long = createdAt,
 )
