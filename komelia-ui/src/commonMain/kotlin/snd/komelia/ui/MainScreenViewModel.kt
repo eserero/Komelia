@@ -27,6 +27,7 @@ import snd.komelia.ui.common.menus.LibraryMenuActions
 import snd.komelia.ui.home.HomeScreen
 import snd.komelia.ui.library.LibraryScreen
 import snd.komelia.ui.login.LoginScreen
+import snd.komelia.ui.login.offline.OfflineLoginScreen
 import snd.komelia.ui.oneshot.OneshotScreen
 import snd.komelia.ui.readlist.ReadListScreen
 import snd.komelia.ui.series.SeriesScreen
@@ -113,6 +114,15 @@ class MainScreenViewModel(
 
             val rootNavigator = navigator.parent ?: return@launch
             rootNavigator.replaceAll(LoginScreen())
+        }
+    }
+
+    fun goOffline() {
+        screenModelScope.launch {
+            offlineSettingsRepository.putOfflineMode(true)
+
+            val rootNavigator = navigator.parent ?: return@launch
+            rootNavigator.replaceAll(OfflineLoginScreen())
         }
     }
 

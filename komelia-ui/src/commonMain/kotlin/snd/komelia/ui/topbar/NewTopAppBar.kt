@@ -15,6 +15,9 @@ import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.LightMode
 import androidx.compose.material.icons.rounded.Menu
 import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.Wifi
+import androidx.compose.material.icons.rounded.WifiOff
+import snd.komelia.ui.dialogs.ConfirmationDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -106,6 +109,23 @@ fun NewTopAppBar(
                 ),
                 modifier = Modifier.weight(1f),
             )
+
+            var showOfflineDialog by remember { mutableStateOf(false) }
+            val wifiIcon = if (isOffline) Icons.Rounded.WifiOff else Icons.Rounded.Wifi
+            val wifiTint = if (isOffline) MaterialTheme.colorScheme.error else iconColor
+            IconButton(onClick = { showOfflineDialog = true }) {
+                Icon(wifiIcon, contentDescription = null, tint = wifiTint)
+            }
+            if (showOfflineDialog) {
+                ConfirmationDialog(
+                    body = if (isOffline) "Go Online?" else "Go Offline?",
+                    onDialogConfirm = {
+                        if (isOffline) mainScreenVm.goOnline() else mainScreenVm.goOffline()
+                        showOfflineDialog = false
+                    },
+                    onDialogDismiss = { showOfflineDialog = false }
+                )
+            }
 
             val toggleIcon = when (theme) {
                 Theme.LIGHT, Theme.LIGHT_MODERN -> Icons.Rounded.DarkMode
