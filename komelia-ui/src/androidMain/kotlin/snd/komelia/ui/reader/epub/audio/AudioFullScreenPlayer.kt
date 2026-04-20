@@ -27,6 +27,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Forward30
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Remove
@@ -140,6 +141,14 @@ fun AudioFullScreenPlayer(
     var playerHeightPx by remember { mutableIntStateOf(1) }
 
     val containerShape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+    var showMetadataDialog by remember { mutableStateOf(false) }
+
+    if (showMetadataDialog) {
+        AudioMetadataDialog(
+            controller = controller,
+            onDismiss = { showMetadataDialog = false }
+        )
+    }
 
     // The modifier fills the available space from the parent (Alignment.BottomCenter in the Box).
     // The Surface itself wraps its content height — it's a bottom sheet, not a true full-screen
@@ -561,6 +570,17 @@ fun AudioFullScreenPlayer(
                                         )
                                     }
                                 }
+                            }
+                        }
+
+                        Box(
+                            modifier = fadeModifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 48.dp),
+                            contentAlignment = Alignment.CenterEnd
+                        ) {
+                            IconButton(onClick = { showMetadataDialog = true }) {
+                                Icon(Icons.Default.Info, contentDescription = "Metadata")
                             }
                         }
                     }

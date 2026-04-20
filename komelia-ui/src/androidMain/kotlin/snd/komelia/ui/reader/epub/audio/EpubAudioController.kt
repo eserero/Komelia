@@ -22,4 +22,6 @@ interface EpubAudioController {
      * Default no-op — only meaningful for folder-mode audiobooks.
      */
     fun seekRelative(deltaSeconds: Double) {}
+
+    suspend fun getAudioMetadata(): AudioMetadataInfo? = null
 }

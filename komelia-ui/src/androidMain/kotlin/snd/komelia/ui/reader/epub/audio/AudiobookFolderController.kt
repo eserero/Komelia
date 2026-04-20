@@ -23,6 +23,7 @@ import snd.komelia.audiobook.AudioPosition
 import snd.komelia.audiobook.AudioPositionRepository
 import snd.komelia.settings.model.Epub3NativeSettings
 import snd.komga.client.book.KomgaBookId
+import wseemann.media.FFmpegMediaMetadataRetriever
 import java.io.File
 import java.util.UUID
 
@@ -187,6 +188,64 @@ class AudiobookFolderController(
                 _audioBookmarks.value = bookmarks
                 updateIsCurrentPositionBookmarked()
             }
+        }
+    }
+
+    override suspend fun getAudioMetadata(): AudioMetadataInfo? = withContext(Dispatchers.IO) {
+        val firstFile = detectAudioFiles(extractedDir).firstOrNull() ?: return@withContext null
+        val retriever = FFmpegMediaMetadataRetriever()
+        try {
+            retriever.setDataSource(firstFile.absolutePath)
+            val metadata = retriever.metadata
+            val tags = mutableMapOf<String, String>()
+
+            // Extract all available tags from the metadata object
+            metadata?.all?.forEach { (key, value) ->
+                tags[key] = value
+            }
+
+            // Also try explicit keys if not captured in all
+            val explicitKeys = listOf(
+                FFmpegMediaMetadataRetriever.METADATA_KEY_ALBUM,
+                FFmpegMediaMetadataRetriever.METADATA_KEY_ALBUM_ARTIST,
+                FFmpegMediaMetadataRetriever.METADATA_KEY_ARTIST,
+                FFmpegMediaMetadataRetriever.METADATA_KEY_TITLE,
+                FFmpegMediaMetadataRetriever.METADATA_KEY_GENRE,
+                FFmpegMediaMetadataRetriever.METADATA_KEY_COMPOSER,
+                FFmpegMediaMetadataRetriever.METADATA_KEY_TRACK,
+                FFmpegMediaMetadataRetriever.METADATA_KEY_DISC,
+                FFmpegMediaMetadataRetriever.METADATA_KEY_DATE,
+                FFmpegMediaMetadataRetriever.METADATA_KEY_FILESIZE,
+                FFmpegMediaMetadataRetriever.METADATA_KEY_VARIANT_BITRATE,
+                FFmpegMediaMetadataRetriever.METADATA_KEY_FRAMERATE,
+                FFmpegMediaMetadataRetriever.METADATA_KEY_VIDEO_CODEC,
+                FFmpegMediaMetadataRetriever.METADATA_KEY_AUDIO_CODEC,
+                FFmpegMediaMetadataRetriever.METADATA_KEY_FILENAME,
+            )
+            explicitKeys.forEach { key ->
+                val value = retriever.extractMetadata(key)
+                if (value != null) tags[key] = value
+            }
+
+            val chapters = mutableListOf<AudioChapter>()
+            val chapterCountStr = retriever.extractMetadata(FFmpegMediaMetadataRetriever.METADATA_CHAPTER_COUNT)
+            val chapterCount = chapterCountStr?.toIntOrNull() ?: 0
+
+            for (i in 0 until chapterCount) {
+                val title = retriever.extractMetadataFromChapter(FFmpegMediaMetadataRetriever.METADATA_KEY_TITLE, i) ?: "Chapter ${i + 1}"
+                val startTimeStr = retriever.extractMetadataFromChapter(FFmpegMediaMetadataRetriever.METADATA_KEY_CHAPTER_START_TIME, i)
+                val endTimeStr = retriever.extractMetadataFromChapter(FFmpegMediaMetadataRetriever.METADATA_KEY_CHAPTER_END_TIME, i)
+                val startTime = startTimeStr?.toLongOrNull() ?: 0L
+                val endTime = endTimeStr?.toLongOrNull() ?: 0L
+                chapters.add(AudioChapter(title, startTime, endTime))
+            }
+
+            AudioMetadataInfo(tags, chapters)
+        } catch (e: Exception) {
+            logger.error(e) { "Failed to extract audio metadata" }
+            null
+        } finally {
+            retriever.release()
         }
     }
 
