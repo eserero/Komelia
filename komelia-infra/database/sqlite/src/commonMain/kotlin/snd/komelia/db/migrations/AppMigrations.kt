@@ -51,6 +51,7 @@ class AppMigrations : MigrationResourcesProvider() {
         "V42__epub3_respect_publisher_colors.sql",
         "V43__book_annotations.sql",
         "V44__annotation_updated_at.sql",
+        "V45__audio_chapter_cache.sql",
     )
 
     override suspend fun getMigration(name: String): ByteArray? {

@@ -633,6 +633,7 @@ class ViewModelFactory(
             epubBookmarkRepository = appRepositories.epubBookmarkRepository,
             audioPositionRepository = appRepositories.audioPositionRepository,
             audioBookmarkRepository = appRepositories.audioBookmarkRepository,
+            audioChapterRepository = appRepositories.audioChapterRepository,
             bookAnnotationRepository = appRepositories.bookAnnotationRepository,
             readerSyncService = dependencies.readerSyncService,
             komgaEvents = dependencies.komgaEvents,

@@ -94,6 +94,7 @@ class Epub3ReaderState(
     private val bookSiblingsContext: BookSiblingsContext,
     private val audioPositionRepository: AudioPositionRepository,
     private val audioBookmarkRepository: AudioBookmarkRepository,
+    private val audioChapterRepository: snd.komelia.audiobook.AudioChapterRepository,
     private val bookAnnotationRepository: BookAnnotationRepository,
     private val readerSyncService: ReaderSyncService,
     private val komgaEvents: ManagedKomgaEvents,
@@ -755,6 +756,7 @@ class Epub3ReaderState(
                                 extractedDir = extractedDir,
                                 audioPositionRepository = audioPositionRepository,
                                 audioBookmarkRepository = audioBookmarkRepository,
+                                audioChapterRepository = audioChapterRepository,
                                 onBookmarkChange = { coroutineScope.launch { updateCacheAndPush() } }
                     )
                     controller.initialize()

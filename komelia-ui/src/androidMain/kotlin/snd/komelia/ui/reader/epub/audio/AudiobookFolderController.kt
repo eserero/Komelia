@@ -18,6 +18,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import snd.komelia.audiobook.AudioBookmark
 import snd.komelia.audiobook.AudioBookmarkRepository
+import snd.komelia.audiobook.AudioChapterEntry
+import snd.komelia.audiobook.AudioChapterRepository
 import snd.komelia.audiobook.AudioFolderTrack
 import snd.komelia.audiobook.AudioPosition
 import snd.komelia.audiobook.AudioPositionRepository
@@ -39,6 +41,7 @@ class AudiobookFolderController(
     private val extractedDir: File,
     private val audioPositionRepository: AudioPositionRepository,
     private val audioBookmarkRepository: AudioBookmarkRepository,
+    private val audioChapterRepository: AudioChapterRepository,
     private val onBookmarkChange: () -> Unit = {},
 ) : EpubAudioController {
 
@@ -59,6 +62,12 @@ class AudiobookFolderController(
 
     private val _currentTrackIndex = MutableStateFlow(0)
     val currentTrackIndex: StateFlow<Int> = _currentTrackIndex
+
+    private val _chapters = MutableStateFlow<List<AudioChapterEntry>>(emptyList())
+    val chapters: StateFlow<List<AudioChapterEntry>> = _chapters
+
+    private val _currentChapterIndex = MutableStateFlow(0)
+    val currentChapterIndex: StateFlow<Int> = _currentChapterIndex
 
     private val _audioBookmarks = MutableStateFlow<List<AudioBookmark>>(emptyList())
     val audioBookmarks: StateFlow<List<AudioBookmark>> = _audioBookmarks
@@ -83,6 +92,7 @@ class AudiobookFolderController(
 
             override fun onTrackChanged(track: Track, position: Double, index: Int) {
                 _currentTrackIndex.value = index
+                _currentChapterIndex.value = findCurrentChapter(_chapters.value, index, position)
                 updateIsCurrentPositionBookmarked()
             }
 
@@ -105,6 +115,7 @@ class AudiobookFolderController(
         data class TrackData(
             val folderTracks: List<AudioFolderTrack>,
             val playerTracks: List<Track>,
+            val chapters: List<AudioChapterEntry>,
         )
 
         val trackData = withContext(Dispatchers.IO) {
@@ -118,6 +129,7 @@ class AudiobookFolderController(
             val retriever = MediaMetadataRetriever()
             val folderTracks = mutableListOf<AudioFolderTrack>()
             val playerTracks = mutableListOf<Track>()
+            val fileDurations = mutableListOf<Double>()
 
             audioFiles.forEachIndexed { index, file ->
                 val durationSeconds = try {
@@ -129,6 +141,8 @@ class AudiobookFolderController(
                     logger.warn { "[audiobook-folder] Failed to read duration for ${file.name}: ${e.message}" }
                     0.0
                 }
+
+                fileDurations.add(durationSeconds)
 
                 val title = cleanTrackTitle(file.nameWithoutExtension)
                 val relativeUri = file.relativeTo(extractedDir).path.replace('\\', '/')
@@ -159,13 +173,29 @@ class AudiobookFolderController(
             }
 
             retriever.release()
-            TrackData(folderTracks, playerTracks)
+
+            // Check chapter cache first
+            val cachedChapters = audioChapterRepository.getChapters(bookId)
+            val chapters: List<AudioChapterEntry>
+            if (cachedChapters.isNotEmpty()) {
+                chapters = cachedChapters
+            } else {
+                chapters = extractChapters(bookId, audioFiles, fileDurations)
+                audioChapterRepository.saveChapters(chapters)
+            }
+
+            TrackData(folderTracks, playerTracks, chapters)
         } ?: return
 
-        val (folderTracks, playerTracks) = trackData
+        val (folderTracks, playerTracks, chapters) = trackData
 
         _tracks.value = folderTracks
-        _totalDurationSeconds.value = folderTracks.sumOf { it.durationSeconds }
+        _chapters.value = chapters
+        _totalDurationSeconds.value = if (chapters.isNotEmpty()) {
+            chapters.sumOf { it.durationSeconds }
+        } else {
+            folderTracks.sumOf { it.durationSeconds }
+        }
         loadedTracks = playerTracks
 
         // audioPositionRepository.getPosition() already dispatches to IO internally
@@ -182,6 +212,11 @@ class AudiobookFolderController(
         player.loadTracks(playerTracks, initialIndex, initialPositionMs)
         _currentTrackIndex.value = initialIndex
         _elapsedSeconds.value = folderTracks.take(initialIndex).sumOf { it.durationSeconds } + initialPositionMs
+
+        val initialChapterIndex = if (chapters.isNotEmpty()) {
+            findCurrentChapter(chapters, initialIndex, initialPositionMs)
+        } else 0
+        _currentChapterIndex.value = initialChapterIndex
 
         coroutineScope.launch {
             audioBookmarkRepository.getBookmarks(bookId).collect { bookmarks ->
@@ -309,6 +344,12 @@ class AudiobookFolderController(
         updateIsCurrentPositionBookmarked()
     }
 
+    fun seekToChapter(chapterIndex: Int) {
+        val chapter = _chapters.value.getOrNull(chapterIndex) ?: return
+        seekToTrackPosition(chapter.fileIndex, chapter.fileOffsetSeconds)
+        _currentChapterIndex.value = chapterIndex
+    }
+
     override fun seekRelative(deltaSeconds: Double) {
         val targetElapsed = (_elapsedSeconds.value + deltaSeconds)
             .coerceIn(0.0, _totalDurationSeconds.value)
@@ -367,13 +408,91 @@ class AudiobookFolderController(
         elapsedTimeJob = coroutineScope.launch {
             while (true) {
                 val index = player.getCurrentTrackIndex()
+                val position = player.getPosition()
                 _currentTrackIndex.value = index
                 val prevDuration = _tracks.value.take(index).sumOf { it.durationSeconds }
-                _elapsedSeconds.value = prevDuration + player.getPosition()
+                _elapsedSeconds.value = prevDuration + position
+                _currentChapterIndex.value = findCurrentChapter(_chapters.value, index, position)
                 updateIsCurrentPositionBookmarked()
                 delay(500)
             }
         }
+    }
+
+    private fun extractChapters(
+        bookId: KomgaBookId,
+        audioFiles: List<File>,
+        fileDurations: List<Double>,
+    ): List<AudioChapterEntry> {
+        val result = mutableListOf<AudioChapterEntry>()
+        var chapterIndex = 0
+        audioFiles.forEachIndexed { fileIndex, file ->
+            val fileDuration = fileDurations[fileIndex]
+            val retriever = FFmpegMediaMetadataRetriever()
+            try {
+                retriever.setDataSource(file.absolutePath)
+                val chapterCountStr = retriever.extractMetadata(FFmpegMediaMetadataRetriever.METADATA_CHAPTER_COUNT)
+                val chapterCount = chapterCountStr?.toIntOrNull() ?: 0
+                if (chapterCount > 0) {
+                    for (i in 0 until chapterCount) {
+                        val title = retriever.extractMetadataFromChapter(FFmpegMediaMetadataRetriever.METADATA_KEY_TITLE, i)
+                            ?: "Chapter ${chapterIndex + 1}"
+                        val startMs = retriever.extractMetadataFromChapter(FFmpegMediaMetadataRetriever.METADATA_KEY_CHAPTER_START_TIME, i)
+                            ?.toLongOrNull() ?: 0L
+                        val endMs = retriever.extractMetadataFromChapter(FFmpegMediaMetadataRetriever.METADATA_KEY_CHAPTER_END_TIME, i)
+                            ?.toLongOrNull() ?: (fileDuration * 1000).toLong()
+                        val duration = (endMs - startMs) / 1000.0
+                        result.add(
+                            AudioChapterEntry(
+                                bookId = bookId,
+                                chapterIndex = chapterIndex++,
+                                fileIndex = fileIndex,
+                                title = title,
+                                fileOffsetSeconds = startMs / 1000.0,
+                                durationSeconds = duration,
+                            )
+                        )
+                    }
+                } else {
+                    val fileTitle = retriever.extractMetadata(FFmpegMediaMetadataRetriever.METADATA_KEY_TITLE)
+                        ?: cleanTrackTitle(file.nameWithoutExtension)
+                    result.add(
+                        AudioChapterEntry(
+                            bookId = bookId,
+                            chapterIndex = chapterIndex++,
+                            fileIndex = fileIndex,
+                            title = fileTitle,
+                            fileOffsetSeconds = 0.0,
+                            durationSeconds = fileDuration,
+                        )
+                    )
+                }
+            } catch (e: Exception) {
+                logger.warn { "[audiobook-folder] Failed to extract chapters for ${file.name}: ${e.message}" }
+                result.add(
+                    AudioChapterEntry(
+                        bookId = bookId,
+                        chapterIndex = chapterIndex++,
+                        fileIndex = fileIndex,
+                        title = cleanTrackTitle(file.nameWithoutExtension),
+                        fileOffsetSeconds = 0.0,
+                        durationSeconds = fileDuration,
+                    )
+                )
+            } finally {
+                retriever.release()
+            }
+        }
+        return result
+    }
+
+    private fun findCurrentChapter(
+        chapters: List<AudioChapterEntry>,
+        fileIndex: Int,
+        positionSeconds: Double,
+    ): Int {
+        val candidate = chapters.lastOrNull { it.fileIndex == fileIndex && it.fileOffsetSeconds <= positionSeconds }
+        return candidate?.chapterIndex ?: chapters.indexOfFirst { it.fileIndex == fileIndex }.coerceAtLeast(0)
     }
 
     private fun savePosition() {

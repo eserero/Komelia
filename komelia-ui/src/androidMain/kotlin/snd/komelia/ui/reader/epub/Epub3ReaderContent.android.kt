@@ -71,6 +71,7 @@ import snd.komelia.ui.platform.BackPressHandler
 import snd.komelia.ui.platform.PlatformType.MOBILE
 import snd.komelia.ui.reader.ReaderTopBar
 import snd.komelia.audiobook.AudioBookmark
+import snd.komelia.audiobook.AudioChapterEntry
 import snd.komelia.audiobook.AudioFolderTrack
 import snd.komelia.ui.reader.epub.audio.AudiobookFolderController
 import snd.komelia.ui.reader.epub.audio.AudioFullScreenPlayer
@@ -155,6 +156,8 @@ actual fun Epub3ReaderContent(state: EpubReaderState) {
                 val audioBookmarks by (folderController?.audioBookmarks ?: MutableStateFlow(emptyList<AudioBookmark>())).collectAsState()
                 val currentAudioTrackIndex by (folderController?.currentTrackIndex ?: MutableStateFlow(0)).collectAsState()
                 val isAudioBookmarked by (folderController?.isCurrentPositionBookmarked ?: MutableStateFlow(false)).collectAsState()
+                val audioChapters by (folderController?.chapters ?: MutableStateFlow(emptyList<AudioChapterEntry>())).collectAsState()
+                val currentChapterIndex by (folderController?.currentChapterIndex ?: MutableStateFlow(0)).collectAsState()
                 var showAudioTrackDialog by remember { mutableStateOf(false) }
 
                 val dateTimeText by produceState("") {
@@ -168,9 +171,11 @@ actual fun Epub3ReaderContent(state: EpubReaderState) {
                 }
                 val overlayColor = Color(settings.theme.foreground).copy(alpha = 0.45f)
 
-                val chapterTitle = remember(currentLocator, toc, currentAudioTrackIndex, audioTracks) {
+                val chapterTitle = remember(currentLocator, toc, currentAudioTrackIndex, audioTracks, audioChapters, currentChapterIndex) {
                     if (audioTracks.isNotEmpty()) {
-                        audioTracks.getOrNull(currentAudioTrackIndex)?.title ?: ""
+                        audioChapters.getOrNull(currentChapterIndex)?.title
+                            ?: audioTracks.getOrNull(currentAudioTrackIndex)?.title
+                            ?: ""
                     } else {
                         currentLocator?.let { loc ->
                             loc.title
@@ -587,10 +592,10 @@ actual fun Epub3ReaderContent(state: EpubReaderState) {
                 // Audio track list dialog (folder audiobook mode)
                 if (showAudioTrackDialog && folderController != null) {
                     AudioTrackListDialog(
-                        tracks = audioTracks,
+                        chapters = audioChapters,
                         bookmarks = audioBookmarks,
-                        currentTrackIndex = currentAudioTrackIndex,
-                        onTrackClick = { index -> folderController.seekToTrack(index) },
+                        currentChapterIndex = currentChapterIndex,
+                        onChapterClick = { index -> folderController.seekToChapter(index) },
                         onBookmarkClick = { bookmark ->
                             folderController.seekToTrackPosition(bookmark.trackIndex, bookmark.positionSeconds)
                         },

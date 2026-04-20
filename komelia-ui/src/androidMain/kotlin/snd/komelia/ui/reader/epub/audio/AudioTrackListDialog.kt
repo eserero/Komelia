@@ -48,7 +48,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import snd.komelia.audiobook.AudioBookmark
-import snd.komelia.audiobook.AudioFolderTrack
+import snd.komelia.audiobook.AudioChapterEntry
 import snd.komelia.ui.LocalAccentColor
 import kotlin.math.roundToInt
 
@@ -67,10 +67,10 @@ private fun formatHMS(seconds: Double): String {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AudioTrackListDialog(
-    tracks: List<AudioFolderTrack>,
+    chapters: List<AudioChapterEntry>,
     bookmarks: List<AudioBookmark>,
-    currentTrackIndex: Int,
-    onTrackClick: (Int) -> Unit,
+    currentChapterIndex: Int,
+    onChapterClick: (Int) -> Unit,
     onBookmarkClick: (AudioBookmark) -> Unit,
     onDeleteBookmark: (AudioBookmark) -> Unit,
     onDismiss: () -> Unit,
@@ -125,7 +125,7 @@ fun AudioTrackListDialog(
                 Tab(
                     selected = pagerState.currentPage == 0,
                     onClick = { coroutineScope.launch { pagerState.animateScrollToPage(0) } },
-                    text = { Text("Tracks") },
+                    text = { Text("Chapters") },
                 )
                 Tab(
                     selected = pagerState.currentPage == 1,
@@ -140,16 +140,15 @@ fun AudioTrackListDialog(
                 verticalAlignment = Alignment.Top,
             ) { page ->
                 when (page) {
-                    0 -> TracksTab(
-                        tracks = tracks,
-                        currentTrackIndex = currentTrackIndex,
-                        onTrackClick = { index ->
-                            onTrackClick(index)
+                    0 -> ChaptersTab(
+                        chapters = chapters,
+                        currentChapterIndex = currentChapterIndex,
+                        onChapterClick = { index ->
+                            onChapterClick(index)
                             onDismiss()
                         },
                     )
                     1 -> AudioBookmarksTab(
-                        tracks = tracks,
                         bookmarks = bookmarks,
                         onBookmarkClick = { bookmark ->
                             onBookmarkClick(bookmark)
@@ -164,20 +163,20 @@ fun AudioTrackListDialog(
 }
 
 @Composable
-private fun TracksTab(
-    tracks: List<AudioFolderTrack>,
-    currentTrackIndex: Int,
-    onTrackClick: (Int) -> Unit,
+private fun ChaptersTab(
+    chapters: List<AudioChapterEntry>,
+    currentChapterIndex: Int,
+    onChapterClick: (Int) -> Unit,
 ) {
     val lazyListState = rememberLazyListState()
 
-    LaunchedEffect(currentTrackIndex) {
-        if (currentTrackIndex >= 0 && currentTrackIndex < tracks.size) {
-            lazyListState.scrollToItem(currentTrackIndex)
+    LaunchedEffect(currentChapterIndex) {
+        if (currentChapterIndex >= 0 && currentChapterIndex < chapters.size) {
+            lazyListState.scrollToItem(currentChapterIndex)
         }
     }
 
-    if (tracks.isEmpty()) {
+    if (chapters.isEmpty()) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -185,7 +184,7 @@ private fun TracksTab(
             contentAlignment = Alignment.Center,
         ) {
             Text(
-                text = "No tracks available",
+                text = "No chapters available",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -194,13 +193,13 @@ private fun TracksTab(
         val accentColor = LocalAccentColor.current ?: MaterialTheme.colorScheme.secondary
         val dividerColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
         LazyColumn(state = lazyListState) {
-            itemsIndexed(tracks) { index, track ->
+            itemsIndexed(chapters) { index, chapter ->
                 if (index > 0) HorizontalDivider(
                     modifier = Modifier.padding(horizontal = 16.dp),
                     color = dividerColor,
                 )
-                val isCurrentTrack = index == currentTrackIndex
-                val buttonColors = if (isCurrentTrack) {
+                val isCurrentChapter = chapter.chapterIndex == currentChapterIndex
+                val buttonColors = if (isCurrentChapter) {
                     ButtonDefaults.textButtonColors(
                         containerColor = accentColor.copy(alpha = 0.15f),
                         contentColor = MaterialTheme.colorScheme.onSurface,
@@ -209,7 +208,7 @@ private fun TracksTab(
                     ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSurface)
                 }
                 TextButton(
-                    onClick = { onTrackClick(index) },
+                    onClick = { onChapterClick(chapter.chapterIndex) },
                     colors = buttonColors,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -220,12 +219,12 @@ private fun TracksTab(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
-                            text = track.title,
+                            text = chapter.title,
                             style = MaterialTheme.typography.bodyMedium,
                             modifier = Modifier.weight(1f),
                         )
                         Text(
-                            text = formatHMS(track.durationSeconds),
+                            text = formatHMS(chapter.durationSeconds),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -238,7 +237,6 @@ private fun TracksTab(
 
 @Composable
 private fun AudioBookmarksTab(
-    tracks: List<AudioFolderTrack>,
     bookmarks: List<AudioBookmark>,
     onBookmarkClick: (AudioBookmark) -> Unit,
     onDeleteBookmark: (AudioBookmark) -> Unit,

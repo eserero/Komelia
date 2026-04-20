@@ -29,6 +29,7 @@ actual fun createEpub3ReaderState(
     epubBookmarkRepository: snd.komelia.bookmarks.EpubBookmarkRepository,
     audioPositionRepository: snd.komelia.audiobook.AudioPositionRepository,
     audioBookmarkRepository: snd.komelia.audiobook.AudioBookmarkRepository,
+    audioChapterRepository: snd.komelia.audiobook.AudioChapterRepository,
     bookAnnotationRepository: snd.komelia.annotations.BookAnnotationRepository,
     fontsRepository: UserFontsRepository,
     notifications: AppNotifications,
