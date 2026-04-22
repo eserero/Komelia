@@ -63,6 +63,7 @@ import snd.komelia.ui.platform.PlatformType.DESKTOP
 import snd.komelia.ui.platform.PlatformType.MOBILE
 import snd.komelia.ui.platform.PlatformType.WEB_KOMF
 import snd.komelia.ui.platform.WindowSizeClass
+import snd.komelia.ui.session.ServerSessionManager
 import snd.komelia.updates.AppRelease
 import snd.komelia.updates.StartupUpdateChecker
 
@@ -71,6 +72,7 @@ private val vmFactory = MutableStateFlow<ViewModelFactory?>(null)
 @Composable
 fun MainView(
     dependencies: DependencyContainer?,
+    sessionManager: ServerSessionManager,
     windowWidth: WindowSizeClass,
     windowHeight: WindowSizeClass,
     platformType: PlatformType,
@@ -189,9 +191,9 @@ fun MainView(
             }
 
             val viewModelFactory = vmFactory.collectAsState().value
-            LaunchedEffect(Unit) {
-                if (vmFactory.value == null) {
-                    vmFactory.value = ViewModelFactory(dependencies, platformType)
+            LaunchedEffect(dependencies) {
+                if (dependencies != null) {
+                    vmFactory.value = ViewModelFactory(dependencies, platformType, sessionManager)
                 }
             }
 

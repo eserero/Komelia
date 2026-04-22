@@ -27,6 +27,8 @@ import snd.komelia.offline.user.model.OfflineUser
 import snd.komelia.offline.user.repository.OfflineUserRepository
 import snd.komelia.settings.CommonSettingsRepository
 import snd.komelia.settings.SecretsRepository
+import snd.komelia.settings.model.ServerProfile
+import snd.komelia.ui.session.ServerSessionManager
 import snd.komelia.ui.LoadState
 import snd.komelia.ui.LoadState.Uninitialized
 import snd.komelia.ui.error.formatExceptionMessage
@@ -43,6 +45,7 @@ class LoginViewModel(
     private val komgaAuthState: KomgaAuthenticationState,
     private val notifications: AppNotifications,
     private val platform: PlatformType,
+    private val sessionManager: ServerSessionManager,
 
     private val offlineUserRepository: OfflineUserRepository,
     private val offlineServerRepository: OfflineMediaServerRepository,
@@ -59,10 +62,22 @@ class LoginViewModel(
     private val offlineUser = MutableStateFlow<OfflineUser?>(null)
     val canGoOfflineAsCurrentUser = offlineUser.map { it != null }
 
+    val serverProfiles = sessionManager.serverProfiles
+    var selectedServerProfile by mutableStateOf<ServerProfile?>(null)
+    var showNewServerFields by mutableStateOf(false)
+
     fun initialize() {
         if (state.value !is Uninitialized) return
 
         screenModelScope.launch {
+            val profiles = serverProfiles.first()
+            val currentProfile = sessionManager.currentServerProfile.value
+            selectedServerProfile = currentProfile
+            if (currentProfile == null && profiles.isNotEmpty()) {
+                selectedServerProfile = profiles.maxByOrNull { it.lastActive ?: kotlinx.datetime.Instant.DISTANT_PAST }
+            }
+            showNewServerFields = profiles.isEmpty()
+
             url = settingsRepository.getServerUrl().first()
             user = settingsRepository.getCurrentUser().first()
             val offlineUsers = offlineUserRepository.findAll()
@@ -99,12 +114,29 @@ class LoginViewModel(
         userLoginError = "Cancelled login attempt"
     }
 
+    fun onServerProfileSelect(profile: ServerProfile?) {
+        selectedServerProfile = profile
+        if (profile != null) {
+            showNewServerFields = false
+            sessionManager.switchServer(profile)
+        } else {
+            showNewServerFields = true
+            sessionManager.switchServer(null)
+        }
+    }
+
     fun loginWithCredentials() {
         screenModelScope.launch {
             userLoginError = null
-            settingsRepository.putServerUrl(url)
-            settingsRepository.putCurrentUser(user)
-            tryUserLogin(user, password)
+            if (showNewServerFields) {
+                settingsRepository.putServerUrl(url)
+                settingsRepository.putCurrentUser(user)
+                tryUserLogin(user, password) {
+                    sessionManager.addServer(name = url, url = url, username = user)
+                }
+            } else {
+                tryUserLogin(user, password)
+            }
         }
     }
 
@@ -136,10 +168,6 @@ class LoginViewModel(
                 notifications.add(AppNotification.Error(e.message))
             }
             mutableState.value = LoadState.Error(e)
-        } catch (e: Error) { // wasm fetch error
-            val errorMessage = "Login error: ${e::class.simpleName} ${e.message}"
-            mutableState.value = LoadState.Error(e)
-            notifications.add(AppNotification.Error(errorMessage))
         } catch (e: Throwable) {
             val errorMessage = "Login error: ${e::class.simpleName} ${e.message}"
             autoLoginError = errorMessage
@@ -148,9 +176,14 @@ class LoginViewModel(
         }
     }
 
-    private suspend fun tryUserLogin(username: String, password: String) {
+    private suspend fun tryUserLogin(
+        username: String,
+        password: String,
+        onSuccess: suspend () -> Unit = {}
+    ) {
         try {
             tryLogin(username, password)
+            onSuccess()
         } catch (e: CancellationException) {
             throw e
         } catch (e: NoTransformationFoundException) {

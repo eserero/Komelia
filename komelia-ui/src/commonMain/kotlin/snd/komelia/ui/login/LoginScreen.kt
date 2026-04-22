@@ -71,20 +71,8 @@ class LoginScreen : Screen {
             Loading, Uninitialized -> LoginLoadingContent(viewModel::cancel)
 
             is Error -> LoginContent(
-                url = viewModel.url,
-                onUrlChange = viewModel::url::set,
-                user = viewModel.user,
-                onUserChange = { viewModel.user = it },
-                password = viewModel.password,
-                onPasswordChange = { viewModel.password = it },
-                userLoginError = viewModel.userLoginError,
-                autoLoginError = viewModel.autoLoginError,
-                onAutoLoginRetry = viewModel::retryAutoLogin,
-                onLogin = viewModel::loginWithCredentials,
-                offlineIsAvailable = viewModel.offlineIsAvailable.collectAsState().value,
+                viewModel = viewModel,
                 onOfflineSelect = { rootNavigator.replaceAll(OfflineLoginScreen()) },
-                canGoOfflineAsCurrentUser = viewModel.canGoOfflineAsCurrentUser.collectAsState(false).value,
-                goOfflineAsCurrentUser = viewModel::offlineLogin
             )
 
             is Success -> rootNavigator.replaceAll(MainScreen())

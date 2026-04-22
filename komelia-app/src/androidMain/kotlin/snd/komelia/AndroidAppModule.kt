@@ -104,9 +104,10 @@ private val logger = KotlinLogging.logger { }
 class AndroidAppModule(
     private val context: Context,
     private val mainActivity: StateFlow<Activity?>,
-) : AppModule() {
+    serverId: Long? = null
+) : AppModule(serverId) {
     private var ncnnUpscaler: AndroidNcnnUpscaler? = null
-    private val databases = KomeliaDatabase(context.filesDir.absolutePath.toString())
+    private val databases = KomeliaDatabase(context.filesDir.absolutePath.toString(), serverId)
 
     private val okHttpLogger = KotlinLogging.logger("http.logging")
     private val okHttpClientWithoutCache: OkHttpClient = OkHttpClient.Builder()
@@ -118,7 +119,7 @@ class AndroidAppModule(
         .build()
     private val okHttpClient = okHttpClientWithoutCache.newBuilder().cache(
         Cache(
-            directory = context.cacheDir.resolve("okhttp"),
+            directory = context.cacheDir.resolve("okhttp").let { if (serverId != null) it.resolve("server_$serverId") else it },
             maxSize = 64 * 1024L * 1024L // 64 MiB
         )
     ).build()
@@ -344,7 +345,8 @@ class AndroidAppModule(
     }
 
     override fun getCoilCacheDirectory(): Path {
-        return Path(context.cacheDir.resolve("coil3_disk_cache").toString())
+        val path = context.cacheDir.resolve("coil3_disk_cache")
+        return Path(if (serverId != null) path.resolve("server_$serverId").toString() else path.toString())
     }
 
     override fun createCoilMemoryCache(): MemoryCache {
@@ -355,7 +357,8 @@ class AndroidAppModule(
     }
 
     override fun getReaderCacheDirectory(): Path {
-        return Path(context.cacheDir.resolve("komelia_reader_cache").toString())
+        val path = context.cacheDir.resolve("komelia_reader_cache")
+        return Path(if (serverId != null) path.resolve("server_$serverId").toString() else path.toString())
     }
 
     override fun createLocalFileApiProvider(): LocalFileApiProvider {
@@ -366,21 +369,28 @@ class AndroidAppModule(
             scope = initScope,
         )
     }
-
-    override fun createOfflineModule(
-        repositories: OfflineRepositories,
-        onlineUser: StateFlow<KomgaUser?>,
-        onlineServerUrl: StateFlow<String>,
-        isOffline: StateFlow<Boolean>,
-        komgaClientFactory: KomgaClientFactory
-    ): OfflineModule {
-        return AndroidOfflineModule(
-            repositories = repositories,
-            onlineUser = onlineUser,
-            onlineServerUrl = onlineServerUrl,
-            isOffline = isOffline,
-            komgaClientFactory = komgaClientFactory,
-            context = this.context,
-        )
-    }
+override fun createOfflineModule(
+    repositories: OfflineRepositories,
+    onlineUser: StateFlow<KomgaUser?>,
+    onlineServerUrl: StateFlow<String>,
+    isOffline: StateFlow<Boolean>,
+    komgaClientFactory: KomgaClientFactory
+): OfflineModule {
+    return AndroidOfflineModule(
+        repositories = repositories,
+        onlineUser = onlineUser,
+        onlineServerUrl = onlineServerUrl,
+        isOffline = isOffline,
+        komgaClientFactory = komgaClientFactory,
+        context = this.context,
+    )
 }
+
+override fun close() {
+    databases.close()
+    okHttpClient.dispatcher.executorService.shutdown()
+    okHttpClient.connectionPool.evictAll()
+    okHttpClient.cache?.close()
+}
+}
+

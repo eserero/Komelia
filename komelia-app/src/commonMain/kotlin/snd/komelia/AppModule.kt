@@ -73,7 +73,9 @@ import snd.komelia.sync.ReaderSyncService
 
 private val logger = KotlinLogging.logger { }
 
-abstract class AppModule {
+abstract class AppModule(
+    val serverId: Long? = null
+) {
     protected val initScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     protected val appNotifications = AppNotifications()
     protected val readerSyncService = ReaderSyncService()
@@ -387,11 +389,14 @@ abstract class AppModule {
     protected abstract fun createCoilMemoryCache(): MemoryCache?
     protected abstract fun getReaderCacheDirectory(): Path?
 
-    protected abstract fun createOfflineModule(
+    abstract fun createOfflineModule(
         repositories: OfflineRepositories,
         onlineUser: StateFlow<KomgaUser?>,
         onlineServerUrl: StateFlow<String>,
         isOffline: StateFlow<Boolean>,
         komgaClientFactory: KomgaClientFactory,
     ): OfflineModule
-}
+
+    open fun close() {}
+    }
+

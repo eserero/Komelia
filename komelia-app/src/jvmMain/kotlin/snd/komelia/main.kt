@@ -68,6 +68,7 @@ import snd.komelia.ui.platform.PlatformType
 import snd.komelia.ui.platform.WindowSizeClass
 import snd.komelia.ui.platform.canIntegrateWithSystemBar
 import snd.komelia.ui.windowBorder
+import snd.komelia.session.DefaultServerSessionManager
 import java.awt.Dimension
 import java.awt.event.WindowEvent
 import java.nio.file.Path
@@ -100,10 +101,18 @@ fun main() {
     val dependencies = MutableStateFlow<DependencyContainer?>(null)
     val initError = MutableStateFlow<Throwable?>(null)
 
+    val sessionManager = DefaultServerSessionManager(
+        globalDatabaseDir = AppDirectories.databaseDirectory.toString(),
+        appDatabaseDir = AppDirectories.databaseDirectory.toString(),
+        cacheDir = AppDirectories.cacheDirectory.toString(),
+        appModuleFactory = { serverId -> DesktopAppModule(windowState, serverId) }
+    )
+
     initScope.launch {
         try {
-            val module = DesktopAppModule(windowState)
-            dependencies.value = module.initDependencies()
+            LegacyDatabaseMigration(AppDirectories.databaseDirectory.toString()).runMigrationIfNeeded()
+            sessionManager.loadLastActiveServer()
+            sessionManager.dependencies.collect { dependencies.value = it }
         } catch (e: Throwable) {
             ensureActive()
             initError.value = e
@@ -134,6 +143,7 @@ fun main() {
                 MainAppContent(
                     windowState = windowState,
                     dependencies = dependencies.collectAsState().value,
+                    sessionManager = sessionManager,
                     onCloseRequest = { shouldRestart = false }
                 )
             }
@@ -156,11 +166,14 @@ fun main() {
     exitProcess(0)
 }
 
+import snd.komelia.ui.session.ServerSessionManager
+
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun ApplicationScope.MainAppContent(
     windowState: AwtWindowState,
     dependencies: DependencyContainer?,
+    sessionManager: ServerSessionManager,
     onCloseRequest: () -> Unit,
 ) {
     var showLogWindow by remember { mutableStateOf(false) }
@@ -222,6 +235,7 @@ private fun ApplicationScope.MainAppContent(
             Box(borderModifier.value) {
                 MainView(
                     dependencies = dependencies,
+                    sessionManager = sessionManager,
                     windowWidth = widthClass,
                     windowHeight = heightClass,
                     platformType = PlatformType.DESKTOP,
