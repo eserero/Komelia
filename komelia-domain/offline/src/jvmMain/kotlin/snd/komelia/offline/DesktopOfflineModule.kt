@@ -38,6 +38,10 @@ class DesktopOfflineModule(
         return EpubZipExtractor(zipExtractor)
     }
 
+    override fun createPdfExtractor(): PdfExtractor? {
+        return null
+    }
+
     override fun createPlatformDownloadManager(
         downloadService: BookDownloadService,
         logJournalRepository: LogJournalRepository,
