@@ -53,6 +53,18 @@ class TranscriptStore {
         return if (interim != null) spoken + interim else spoken
     }
 
+    fun nextId(): Long = nextId.getAndIncrement()
+
+    fun addSegments(segments: List<TranscriptSegment>) {
+        if (segments.isEmpty()) return
+        _segments.update { old ->
+            val mutable = (old + segments).toMutableList()
+            // keep last 60 minutes of session
+            val cutoff = (mutable.maxOfOrNull { it.endMs } ?: 0L) - 60 * 60_000L
+            mutable.filter { it.endMs >= cutoff }
+        }
+    }
+
     fun clear() {
         _segments.value = emptyList()
     }

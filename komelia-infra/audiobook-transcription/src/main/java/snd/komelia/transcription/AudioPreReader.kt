@@ -32,7 +32,7 @@ class AudioPreReader(
     @Volatile private var readHeadMs: Long = 0L
     @Volatile private var cancelled = false
 
-    suspend fun run(onChunk: (PcmChunk) -> Unit) {
+    suspend fun run(onChunk: suspend (PcmChunk) -> Unit) {
         cancelled = false
         readHeadMs = getPlaybackMs() + PRE_READ_AHEAD_MS
 

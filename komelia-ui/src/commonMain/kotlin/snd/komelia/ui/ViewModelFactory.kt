@@ -55,6 +55,7 @@ import snd.komelia.ui.settings.announcements.AnnouncementsViewModel
 import snd.komelia.ui.settings.appearance.AppSettingsViewModel
 import snd.komelia.ui.settings.authactivity.AuthenticationActivityViewModel
 import snd.komelia.ui.settings.epub.EpubReaderSettingsViewModel
+import snd.komelia.ui.settings.transcription.TranscriptionSettingsViewModel
 import snd.komelia.ui.settings.imagereader.ImageReaderSettingsViewModel
 import snd.komelia.ui.settings.komf.KomfSharedState
 import snd.komelia.ui.settings.komf.general.KomfSettingsViewModel
@@ -643,6 +644,8 @@ class ViewModelFactory(
             platformType = platformType,
             platformContext = dependencies.coilContext,
             bookSiblingsContext = bookSiblingsContext,
+            transcriptionSettingsRepository = appRepositories.transcriptionSettingsRepository,
+            whisperModelDownloader = dependencies.whisperModelDownloader,
             onExit = onExit,
         )
     }
@@ -651,6 +654,13 @@ class ViewModelFactory(
         return EpubReaderSettingsViewModel(
             settingsRepository = appRepositories.epubReaderSettingsRepository,
             onEpubCacheClear = dependencies.onEpubCacheClear,
+        )
+    }
+
+    fun getTranscriptionSettingsViewModel(): TranscriptionSettingsViewModel {
+        return TranscriptionSettingsViewModel(
+            settingsRepo = appRepositories.transcriptionSettingsRepository,
+            whisperDownloader = dependencies.whisperModelDownloader,
         )
     }
 

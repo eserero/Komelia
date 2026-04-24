@@ -15,10 +15,9 @@ class LiveTranscriptEngine(
     private val tracks: List<AudioTranscriptTrack>,
     private val getPlaybackMs: () -> Long,
     private val scope: CoroutineScope,
+    private val backend: TranscriptionBackend,
+    private val store: TranscriptStore,
 ) {
-    private val store = TranscriptStore()
-    private val pipeWriter = MlKitAudioPipeWriter(scope)
-    private val transcriber = MlKitLiveTranscriber(store, pipeWriter, scope)
     private val preReader = AudioPreReader(context, tracks, getPlaybackMs)
 
     private val _engineState = MutableStateFlow<TranscriptEngineState>(TranscriptEngineState.Idle)
@@ -32,12 +31,17 @@ class LiveTranscriptEngine(
     private var tickerJob: Job? = null
 
     fun start() {
-        scope.launch { transcriber.start() }
+        scope.launch { backend.start() }
 
         preReaderJob = scope.launch {
             preReader.run { chunk ->
                 chunksDecoded.incrementAndGet()
-                pipeWriter.writePcm(chunk.bytes, chunk.sampleRate, chunk.channelCount, chunk.bookTimeMs)
+                val resampledBytes = Pcm16MonoResampler.convertTo16kMono(
+                    chunk.bytes,
+                    Pcm16MonoResampler.InputFormat(chunk.sampleRate, chunk.channelCount)
+                )
+                val durationMs = (resampledBytes.size / 2 * 1000L) / 16000L
+                backend.onPcmChunk(resampledBytes, chunk.bookTimeMs, durationMs)
             }
         }
 
@@ -45,19 +49,12 @@ class LiveTranscriptEngine(
             while (isActive) {
                 val playMs = getPlaybackMs()
                 _visibleSegments.value = store.visibleSegmentsForPlayback(playMs)
-                val baseState = transcriber.state.value
+                val baseState = backend.state.value
                 _engineState.value = if (baseState is TranscriptEngineState.Active) {
-                    val sentMs = pipeWriter.audioSentUntilMs
                     val totalSegs = store.segments.value.size
                     val vis = _visibleSegments.value.size
-                    val responses = transcriber.responsesReceived.get()
-                    val errors = transcriber.errorsReceived.get()
-                    val lastType = transcriber.lastResponseType.get()
-                    val lastErr = transcriber.lastErrorMsg.get()
                     TranscriptEngineState.Active(
-                        "chunks=${chunksDecoded.get()} piped=${sentMs / 1000}s " +
-                        "play=${playMs / 1000}s resp=$responses err=$errors " +
-                        "last=$lastType segs=$totalSegs vis=$vis\nerr:$lastErr"
+                        "chunks=${chunksDecoded.get()} play=${playMs / 1000}s segs=$totalSegs vis=$vis"
                     )
                 } else {
                     baseState
@@ -71,13 +68,13 @@ class LiveTranscriptEngine(
         preReader.cancel()
         preReaderJob?.cancel()
         tickerJob?.cancel()
-        transcriber.stop()
-        pipeWriter.close()
+        backend.stop()
         _visibleSegments.value = emptyList()
         _engineState.value = TranscriptEngineState.Idle
     }
 
     fun onPlaybackSeeked(newPositionMs: Long) {
         preReader.reset(newPositionMs)
+        backend.onSeek(newPositionMs)
     }
 }

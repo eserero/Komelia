@@ -64,6 +64,7 @@ import snd.komelia.updates.AppUpdater
 import snd.komelia.updates.OnnxModelDownloader
 import snd.komelia.updates.OnnxRuntimeInstaller
 import snd.komelia.updates.UpdateClient
+import snd.komelia.updates.WhisperModelDownloader
 import snd.komf.client.KomfClientFactory
 import snd.komga.client.KomgaClientFactory
 import snd.komga.client.sse.KomgaEvent
@@ -171,6 +172,7 @@ abstract class AppModule {
         )
         val onnxRuntimeInstaller = createOnnxRuntimeInstaller(updateClient)
         val onnxModelDownloader = createOnnxModelDownloader(updateClient)
+        val whisperModelDownloader = createWhisperModelDownloader(updateClient)
         val onnxRuntime = createOnnxRuntime()
 
         val upscaler = if (onnxRuntime != null && onnxModelDownloader != null) {
@@ -243,6 +245,7 @@ abstract class AppModule {
             colorCorrectionStep = colorCorrectionStep,
             onnxRuntimeInstaller = onnxRuntimeInstaller,
             onnxModelDownloader = onnxModelDownloader,
+            whisperModelDownloader = whisperModelDownloader,
             onnxRuntime = onnxRuntime,
             upscaler = upscaler,
             panelDetector = panelDetector,
@@ -377,6 +380,7 @@ abstract class AppModule {
     protected abstract fun createCoilContext(): PlatformContext
     protected abstract fun createOnnxRuntimeInstaller(updateClient: UpdateClient): OnnxRuntimeInstaller?
     protected abstract fun createOnnxModelDownloader(updateClient: UpdateClient): OnnxModelDownloader?
+    protected abstract fun createWhisperModelDownloader(updateClient: UpdateClient): WhisperModelDownloader?
     protected abstract fun createOnnxRuntime(): OnnxRuntime?
     protected abstract suspend fun createUpscaler(
         onnxRuntime: OnnxRuntime,

@@ -14,6 +14,9 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import snd.komelia.audiobook.AudioBookmark
@@ -23,11 +26,17 @@ import snd.komelia.audiobook.AudioChapterRepository
 import snd.komelia.audiobook.AudioFolderTrack
 import snd.komelia.audiobook.AudioPosition
 import snd.komelia.audiobook.AudioPositionRepository
+import snd.komelia.settings.TranscriptionSettingsRepository
 import snd.komelia.settings.model.Epub3NativeSettings
+import snd.komelia.settings.model.TranscriptionEngineType
 import snd.komelia.transcription.AudioTranscriptTrack
 import snd.komelia.transcription.LiveTranscriptEngine
+import snd.komelia.transcription.MlKitTranscriptionBackend
 import snd.komelia.transcription.TranscriptEngineState
 import snd.komelia.transcription.TranscriptSegment
+import snd.komelia.transcription.TranscriptStore
+import snd.komelia.transcription.WhisperTranscriptionBackend
+import snd.komelia.updates.WhisperModelDownloader
 import snd.komga.client.book.KomgaBookId
 import wseemann.media.FFmpegMediaMetadataRetriever
 import java.io.File
@@ -47,6 +56,8 @@ class AudiobookFolderController(
     private val audioBookmarkRepository: AudioBookmarkRepository,
     private val audioChapterRepository: AudioChapterRepository,
     private val onBookmarkChange: () -> Unit = {},
+    private val transcriptionSettingsRepository: TranscriptionSettingsRepository,
+    private val whisperModelDownloader: WhisperModelDownloader?,
 ) : EpubAudioController {
 
     private val _isPlaying = MutableStateFlow(false)
@@ -337,22 +348,54 @@ class AudiobookFolderController(
     }
 
     override fun startTranscription() {
-        val engine = LiveTranscriptEngine(
-            context = context,
-            tracks = buildTranscriptTracks(),
-            getPlaybackMs = { (_elapsedSeconds.value * 1000).toLong() },
-            scope = coroutineScope,
-        )
-        transcriptEngine = engine
-
         coroutineScope.launch {
-            engine.state.collect { _transcriptState.value = it }
-        }
-        coroutineScope.launch {
-            engine.visibleSegments.collect { _liveTranscriptSegments.value = it }
-        }
+            val settings = transcriptionSettingsRepository.getSettings().first()
 
-        engine.start()
+            val store = TranscriptStore()
+
+            val backend: snd.komelia.transcription.TranscriptionBackend = when (settings.engine) {
+                TranscriptionEngineType.ML_KIT ->
+                    MlKitTranscriptionBackend(store, coroutineScope)
+
+                TranscriptionEngineType.WHISPER -> {
+                    val downloader = whisperModelDownloader
+                    if (downloader == null) {
+                        _transcriptState.value = TranscriptEngineState.Error(
+                            "Whisper transcription is not supported on this platform."
+                        )
+                        return@launch
+                    }
+                    val modelPath = downloader.modelFilePath()
+                    if (!java.io.File(modelPath).exists()) {
+                        _transcriptState.value = TranscriptEngineState.Error(
+                            "Whisper model not downloaded. Go to Settings → Transcription to download it."
+                        )
+                        return@launch
+                    }
+                    WhisperTranscriptionBackend(
+                        store = store,
+                        modelPath = modelPath,
+                        language = settings.whisperLanguage,
+                        scope = coroutineScope,
+                    )
+                }
+            }
+
+            val engine = LiveTranscriptEngine(
+                context = context,
+                tracks = buildTranscriptTracks(),
+                getPlaybackMs = { (_elapsedSeconds.value * 1000).toLong() },
+                scope = coroutineScope,
+                backend = backend,
+                store = store,
+            )
+            transcriptEngine = engine
+
+            engine.state.onEach { _transcriptState.value = it }.launchIn(coroutineScope)
+            engine.visibleSegments.onEach { _liveTranscriptSegments.value = it }.launchIn(coroutineScope)
+
+            engine.start()
+        }
     }
 
     override fun stopTranscription() {

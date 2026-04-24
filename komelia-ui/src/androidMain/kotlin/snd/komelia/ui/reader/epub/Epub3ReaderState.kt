@@ -99,6 +99,8 @@ class Epub3ReaderState(
     private val readerSyncService: ReaderSyncService,
     private val komgaEvents: ManagedKomgaEvents,
     private val settingsRepository: snd.komelia.settings.CommonSettingsRepository,
+    private val transcriptionSettingsRepository: snd.komelia.settings.TranscriptionSettingsRepository,
+    private val whisperModelDownloader: snd.komelia.updates.WhisperModelDownloader?,
     override val onExit: (KomeliaBook) -> Unit,
 ) : EpubReaderState {
 
@@ -769,7 +771,9 @@ class Epub3ReaderState(
                                 audioPositionRepository = audioPositionRepository,
                                 audioBookmarkRepository = audioBookmarkRepository,
                                 audioChapterRepository = audioChapterRepository,
-                                onBookmarkChange = { coroutineScope.launch { updateCacheAndPush() } }
+                                onBookmarkChange = { coroutineScope.launch { updateCacheAndPush() } },
+                                transcriptionSettingsRepository = transcriptionSettingsRepository,
+                                whisperModelDownloader = whisperModelDownloader,
                     )
                     controller.initialize()
                             logger.info { "[epub3-init] audiobook folder controller initialize() completed" }

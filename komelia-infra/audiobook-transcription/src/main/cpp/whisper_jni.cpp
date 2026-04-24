@@ -1,0 +1,93 @@
+#include <jni.h>
+#include "whisper.h"
+#include <android/log.h>
+#include <string>
+#include <vector>
+
+#define LOG_TAG "WhisperJni"
+#define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
+#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
+
+extern "C" {
+
+JNIEXPORT jlong JNICALL
+Java_snd_komelia_transcription_WhisperJni_loadModel(JNIEnv *env, jobject, jstring modelPathJ) {
+    const char *path = env->GetStringUTFChars(modelPathJ, nullptr);
+    LOGI("loadModel: %s", path);
+    whisper_context_params cparams = whisper_context_default_params();
+    whisper_context *ctx = whisper_init_from_file_with_params(path, cparams);
+    env->ReleaseStringUTFChars(modelPathJ, path);
+    if (ctx == nullptr) {
+        LOGE("loadModel failed");
+        return 0L;
+    }
+    return (jlong) ctx;
+}
+
+JNIEXPORT jobjectArray JNICALL
+Java_snd_komelia_transcription_WhisperJni_transcribeChunk(
+        JNIEnv *env, jobject,
+        jlong ctxL, jfloatArray pcmJ, jlong offsetMs, jstring langJ) {
+
+    auto *ctx = (whisper_context *) ctxL;
+
+    jsize len = env->GetArrayLength(pcmJ);
+    jfloat *pcm = env->GetFloatArrayElements(pcmJ, nullptr);
+
+    whisper_full_params params = whisper_full_default_params(WHISPER_SAMPLING_GREEDY);
+    params.print_realtime = false;
+    params.print_progress = false;
+    params.token_timestamps = true;
+    params.max_len = 0;
+    params.single_segment = false;
+    params.no_context = true;
+
+    const char *lang = nullptr;
+    if (langJ != nullptr) {
+        lang = env->GetStringUTFChars(langJ, nullptr);
+        params.language = lang;
+    }
+
+    int rc = whisper_full(ctx, params, pcm, (int) len);
+    env->ReleaseFloatArrayElements(pcmJ, pcm, JNI_ABORT);
+    if (langJ != nullptr && lang != nullptr) {
+        env->ReleaseStringUTFChars(langJ, lang);
+    }
+
+    if (rc != 0) {
+        LOGE("whisper_full failed: %d", rc);
+        jclass resultClass = env->FindClass("snd/komelia/transcription/WhisperResult");
+        return env->NewObjectArray(0, resultClass, nullptr);
+    }
+
+    int n = whisper_full_n_segments(ctx);
+    LOGI("transcribeChunk: %d segments", n);
+
+    jclass resultClass = env->FindClass("snd/komelia/transcription/WhisperResult");
+    jmethodID ctor = env->GetMethodID(resultClass, "<init>", "(JJLjava/lang/String;)V");
+    jobjectArray result = env->NewObjectArray(n, resultClass, nullptr);
+
+    for (int i = 0; i < n; i++) {
+        // whisper timestamps are in centiseconds — multiply by 10 to get ms
+        int64_t t0 = offsetMs + whisper_full_get_segment_t0(ctx, i) * 10;
+        int64_t t1 = offsetMs + whisper_full_get_segment_t1(ctx, i) * 10;
+        const char *text = whisper_full_get_segment_text(ctx, i);
+        jstring textJ = env->NewStringUTF(text);
+        jobject seg = env->NewObject(resultClass, ctor, (jlong) t0, (jlong) t1, textJ);
+        env->SetObjectArrayElement(result, i, seg);
+        env->DeleteLocalRef(textJ);
+        env->DeleteLocalRef(seg);
+    }
+
+    return result;
+}
+
+JNIEXPORT void JNICALL
+Java_snd_komelia_transcription_WhisperJni_freeContext(JNIEnv *, jobject, jlong ctxL) {
+    if (ctxL != 0L) {
+        whisper_free((whisper_context *) ctxL);
+        LOGI("freeContext done");
+    }
+}
+
+} // extern "C"
