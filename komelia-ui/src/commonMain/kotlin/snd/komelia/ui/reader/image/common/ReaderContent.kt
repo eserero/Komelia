@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material3.DropdownMenuItem
@@ -132,6 +133,8 @@ fun ReaderContent(
     val volumeKeysNavigation = commonReaderState.volumeKeysNavigation.collectAsState().value
     val tapNavigationMode = commonReaderState.tapNavigationMode.collectAsState().value
     var hasFocus by remember { mutableStateOf(false) }
+    val ocrSettings by commonReaderState.ocrSettings.collectAsState()
+    val readerType by commonReaderState.readerType.collectAsState()
     CompositionLocalProvider(LocalHazeState provides readerHazeState) {
         Box(
             Modifier
@@ -245,6 +248,21 @@ fun ReaderContent(
                         onDismissRequest = { showImageContextMenu = false },
                         transformOrigin = TransformOrigin(0f, 0f)
                     ) {
+                        if (!ocrSettings.enabled) {
+                            DropdownMenuItem(
+                                text = { Text("Select Text") },
+                                leadingIcon = { Icon(Icons.Default.TextFields, contentDescription = null) },
+                                onClick = {
+                                    showImageContextMenu = false
+                                    val currentImage = when (readerType) {
+                                        PAGED -> pagedReaderState.currentSpread.value.pages.firstOrNull()?.imageResult?.image
+                                        CONTINUOUS -> null // TODO
+                                        PANELS -> panelsReaderState?.currentPage?.value?.imageResult?.image
+                                    }
+                                    currentImage?.let { commonReaderState.scanCurrentPageForText(it) }
+                                }
+                            )
+                        }
                         DropdownMenuItem(
                             text = { Text("Save image") },
                             leadingIcon = { Icon(Icons.Rounded.Download, contentDescription = null) },

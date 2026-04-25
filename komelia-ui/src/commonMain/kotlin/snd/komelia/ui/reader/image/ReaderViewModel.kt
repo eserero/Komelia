@@ -15,7 +15,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.takeWhile
 import snd.komelia.AppNotifications
@@ -163,21 +166,24 @@ class ReaderViewModel(
     )
 
     init {
-        combine(
-            pageChangeFlow,
-            readerState.ocrSettings,
-            readerState.readerType
-        ) { _, ocrSettings, readerType -> ocrSettings to readerType }
-            .debounce(200)
-            .onEach { (ocrSettings, readerType) ->
+        readerState.ocrSettings
+            .flatMapLatest { ocrSettings ->
                 if (ocrSettings.enabled) {
-                    val currentImage = when (readerType) {
-                        PAGED -> pagedReaderState.currentSpread.value.pages.firstOrNull()?.imageResult?.image
-                        CONTINUOUS -> null // TODO
-                        PANELS -> panelsReaderState?.currentPage?.value?.imageResult?.image
-                    }
-                    currentImage?.let { readerState.scanCurrentPageForText(it) }
+                    readerState.readerType.flatMapLatest { readerType ->
+                        when (readerType) {
+                            PAGED -> pagedReaderState.currentSpread.map { it.pages.firstOrNull()?.imageResult?.image }
+                            CONTINUOUS -> flowOf(null) // TODO
+                            PANELS -> panelsReaderState?.currentPage?.map { it?.imageResult?.image } ?: flowOf(null)
+                        }
+                    }.debounce(200)
+                } else {
+                    readerState.ocrResults.value = emptyList()
+                    readerState.ocrPageId.value = null
+                    flowOf(null)
                 }
+            }
+            .onEach { image ->
+                image?.let { readerState.scanCurrentPageForText(it) }
             }.launchIn(screenModelScope)
     }
 
