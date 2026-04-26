@@ -165,6 +165,7 @@ class ReaderState(
     val pendingAnnotationPage = MutableStateFlow(0)
     val pendingAnnotationX = MutableStateFlow(0f)
     val pendingAnnotationY = MutableStateFlow(0f)
+    val pendingAnnotationNote = MutableStateFlow<String?>(null)
     val lastHighlightColor = MutableStateFlow(0xFFFFEB3B.toInt())
 
     suspend fun initialize(bookId: KomgaBookId) {

@@ -30,13 +30,15 @@ import snd.komelia.image.ReaderImageResult
 fun ReaderImageContent(
     imageResult: ReaderImageResult?,
     ocrResults: List<OcrElementBox> = emptyList(),
-    onSelectionChanged: (List<OcrElementBox>) -> Unit = {}
+    onSelectionChanged: (List<OcrElementBox>) -> Unit = {},
+    onAddNote: (text: String, x: Float, y: Float) -> Unit = { _, _, _ -> },
 ) {
     when (imageResult) {
         is ReaderImageResult.Success -> ImageContent(
             image = imageResult.image,
             ocrResults = ocrResults,
-            onSelectionChanged = onSelectionChanged
+            onSelectionChanged = onSelectionChanged,
+            onAddNote = onAddNote
         )
         is ReaderImageResult.Error -> Text(
             "${imageResult.throwable::class.simpleName}: ${imageResult.throwable.message}",
@@ -60,7 +62,8 @@ fun ReaderImageContent(
 private fun ImageContent(
     image: ReaderImage,
     ocrResults: List<OcrElementBox>,
-    onSelectionChanged: (List<OcrElementBox>) -> Unit
+    onSelectionChanged: (List<OcrElementBox>) -> Unit,
+    onAddNote: (text: String, x: Float, y: Float) -> Unit,
 ) {
     // reimplement collectAsState and call remember with image key,
     // this avoids unnecessary recomposition and flickering caused by attempt to render old value on image change
@@ -118,7 +121,8 @@ private fun ImageContent(
                         modifier = Modifier.matchParentSize(),
                         ocrResults = ocrResults,
                         intrinsicImageSize = originalSize,
-                        onSelectionChanged = onSelectionChanged
+                        onSelectionChanged = onSelectionChanged,
+                        onAddNote = onAddNote,
                     )
                 }
             }

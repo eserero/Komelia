@@ -66,6 +66,7 @@ fun BoxScope.PanelsReaderContent(
     volumeKeysNavigation: Boolean,
     tapNavigationMode: ReaderTapNavigationMode,
     onLongPress: (Offset) -> Unit = {},
+    onAddNote: (text: String, page: Int, x: Float, y: Float) -> Unit = { _, _, _, _ -> },
 ) {
     if (showHelpDialog) {
         PagedReaderHelpDialog(onDismissRequest = { onShowHelpDialogChange(false) })
@@ -194,6 +195,11 @@ fun BoxScope.PanelsReaderContent(
                                     ocrResults = ocr,
                                     onSelectionChanged = { results: List<snd.komelia.image.OcrElementBox> ->
                                         panelsReaderState.readerState.ocrResults.value = results
+                                    },
+                                    onAddNote = { text, x, y ->
+                                        if (panelsPage != null) {
+                                            onAddNote(text, panelsPage.metadata.pageNumber - 1, x, y)
+                                        }
                                     }
                                 )
                             }

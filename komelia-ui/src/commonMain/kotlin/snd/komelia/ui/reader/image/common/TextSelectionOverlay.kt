@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -41,6 +42,7 @@ fun TextSelectionOverlay(
     ocrResults: List<OcrElementBox>,
     intrinsicImageSize: IntSize,
     onSelectionChanged: (List<OcrElementBox>) -> Unit,
+    onAddNote: (text: String, x: Float, y: Float) -> Unit = { _, _, _ -> },
 ) {
     var showMenu by remember { mutableStateOf(false) }
     var menuPosition by remember { mutableStateOf(Offset.Zero) }
@@ -144,6 +146,17 @@ fun TextSelectionOverlay(
                     leadingIcon = { Icon(Icons.Default.Translate, contentDescription = null) },
                     onClick = {
                         translateText(text)
+                        showMenu = false
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text("Add Note") },
+                    leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
+                    onClick = {
+                        val firstBox = selectedBoxes.minByOrNull { it.imageRect.top } ?: selectedBoxes.first()
+                        val x = firstBox.imageRect.left / intrinsicImageSize.width
+                        val y = firstBox.imageRect.top / intrinsicImageSize.height
+                        onAddNote(text, x, y)
                         showMenu = false
                     }
                 )
