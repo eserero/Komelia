@@ -2,8 +2,23 @@
 #include "whisper.h"
 #include <android/log.h>
 #include <string>
+#include <unordered_map>
 #include <vector>
 #include <thread>
+
+// Script-seeding prompts for non-Latin languages.
+// Without these, whisper may output transliterated Latin text instead of native script.
+static const std::unordered_map<std::string, std::string> SCRIPT_PROMPTS = {
+    {"he", "שלום"},
+    {"ar", "مرحبا"},
+    {"ja", "こんにちは"},
+    {"zh", "你好"},
+    {"ko", "안녕하세요"},
+    {"th", "สวัสดี"},
+    {"ru", "Привет"},
+    {"uk", "Привіт"},
+    {"el", "Γεια σας"},
+};
 
 #define LOG_TAG "WhisperJni"
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
@@ -52,6 +67,10 @@ Java_snd_komelia_transcription_WhisperJni_transcribeChunk(
     if (langJ != nullptr) {
         lang = env->GetStringUTFChars(langJ, nullptr);
         params.language = lang;
+        auto it = SCRIPT_PROMPTS.find(lang);
+        if (it != SCRIPT_PROMPTS.end()) {
+            params.initial_prompt = it->second.c_str();
+        }
     }
 
     int rc = whisper_full(ctx, params, pcm, (int) len);
