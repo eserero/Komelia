@@ -6,6 +6,7 @@ import kotlinx.serialization.Serializable
 data class OcrSettings(
     val enabled: Boolean = false,
     val selectedLanguage: OcrLanguage = OcrLanguage.LATIN,
+    val engine: OcrEngine = OcrEngine.ML_KIT,
     val mergeBoxes: Boolean = true,
 )
 
@@ -16,4 +17,10 @@ enum class OcrLanguage {
     DEVANAGARI,
     JAPANESE,
     KOREAN
+}
+
+@Serializable
+enum class OcrEngine {
+    ML_KIT,
+    RAPID_OCR
 }

@@ -241,6 +241,7 @@ abstract class AppModule {
                 localFileApiProvider = localFileApiProvider,
             ),
             readerImageFactory = readerImageFactory,
+            ocrService = snd.komelia.image.OcrService(),
             windowState = createWindowState(),
             colorCorrectionStep = colorCorrectionStep,
             onnxRuntimeInstaller = onnxRuntimeInstaller,

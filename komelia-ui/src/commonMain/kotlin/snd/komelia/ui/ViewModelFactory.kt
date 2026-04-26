@@ -274,6 +274,7 @@ class ViewModelFactory(
             panelDetector = dependencies.panelDetector,
             upscaler = dependencies.upscaler,
             onnxModelDownloader = dependencies.onnxModelDownloader,
+            ocrService = dependencies.ocrService,
             colorCorrectionIsActive = dependencies.colorCorrectionStep.isActive,
             bookSiblingsContext = bookSiblingsContext,
             markReadProgress = markReadProgress,

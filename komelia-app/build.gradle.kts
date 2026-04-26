@@ -127,8 +127,15 @@ android {
             AndroidVariant.PLAY -> "false"
         }
         buildConfigField("boolean", "ENABLE_SELF_UPDATES", enableSelfUpdates)
+        ndk {
+            abiFilters += listOf("arm64-v8a")
+        }
     }
     packaging {
+        jniLibs {
+            pickFirsts += "lib/*/libc++_shared.so"
+            pickFirsts += "lib/*/libonnxruntime.so"
+        }
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1,README.txt}"
             pickFirsts += "/META-INF/versions/9/OSGI-INF/MANIFEST.MF"
@@ -154,6 +161,12 @@ android {
         isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+    }
+}
+
+configurations.all {
+    resolutionStrategy {
+        force("com.microsoft.onnxruntime:onnxruntime-android:1.23.0")
     }
 }
 

@@ -143,6 +143,7 @@ class AndroidAppModule(
         }
 
         NcnnSharedLibraries.load()
+        snd.komelia.image.OcrService.context = context
 
         fontsDirectory = Path(context.filesDir.resolve("fonts").absolutePath)
     }

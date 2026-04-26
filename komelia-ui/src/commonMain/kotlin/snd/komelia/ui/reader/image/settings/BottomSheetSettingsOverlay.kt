@@ -88,6 +88,7 @@ import snd.komelia.settings.model.ContinuousReadingDirection
 import snd.komelia.settings.model.LayoutScaleType
 import snd.komelia.settings.model.ReaderTapNavigationMode
 import snd.komelia.settings.model.PageDisplayLayout
+import snd.komelia.settings.model.OcrEngine
 import snd.komelia.settings.model.OcrLanguage
 import snd.komelia.settings.model.OcrSettings
 import snd.komelia.settings.model.PagedReadingDirection
@@ -1137,6 +1138,7 @@ private fun OcrModeSettings(
     ocrSettings: OcrSettings,
     onOcrSettingsChange: (OcrSettings) -> Unit,
 ) {
+    val platform = LocalPlatform.current
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         SwitchWithLabel(
             checked = ocrSettings.enabled,
@@ -1148,18 +1150,38 @@ private fun OcrModeSettings(
             contentPadding = PaddingValues(horizontal = 10.dp)
         )
 
-        Column {
-            Text("Text Detection Language")
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                OcrLanguage.entries.forEach { language ->
-                    InputChip(
-                        selected = ocrSettings.selectedLanguage == language,
-                        onClick = { onOcrSettingsChange(ocrSettings.copy(selectedLanguage = language)) },
-                        colors = accentInputChipColors(),
-                        label = { Text(language.name) }
-                    )
+        if (platform == MOBILE) {
+            Column {
+                Text("OCR Engine")
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    OcrEngine.entries.forEach { engine ->
+                        InputChip(
+                            selected = ocrSettings.engine == engine,
+                            onClick = { onOcrSettingsChange(ocrSettings.copy(engine = engine)) },
+                            colors = accentInputChipColors(),
+                            label = { Text(engine.name.replace("_", " ")) }
+                        )
+                    }
+                }
+            }
+        }
+
+        AnimatedVisibility(ocrSettings.engine == OcrEngine.ML_KIT) {
+            Column {
+                Text("Text Detection Language")
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    OcrLanguage.entries.forEach { language ->
+                        InputChip(
+                            selected = ocrSettings.selectedLanguage == language,
+                            onClick = { onOcrSettingsChange(ocrSettings.copy(selectedLanguage = language)) },
+                            colors = accentInputChipColors(),
+                            label = { Text(language.name) }
+                        )
+                    }
                 }
             }
         }

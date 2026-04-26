@@ -99,6 +99,7 @@ class ReaderState(
     private val readerSyncService: ReaderSyncService,
     private val komgaEvents: ManagedKomgaEvents,
     val pageChangeFlow: SharedFlow<Unit>,
+    private val ocrService: OcrService,
 ) {
     private val currentSyncBlob = MutableStateFlow<String?>(null)
     private val previewLoadScope = CoroutineScope(Dispatchers.Default.limitedParallelism(1) + SupervisorJob())
@@ -133,7 +134,6 @@ class ReaderState(
     val ocrPageId = MutableStateFlow<PageId?>(null)
     val isOcrLoading = MutableStateFlow(false)
     val readingDirection = MutableStateFlow(ReadingDirection.LTR)
-    private val ocrService = OcrService()
 
     val tapNavigationMode = MutableStateFlow(ReaderTapNavigationMode.LEFT_RIGHT)
     val volumeKeysNavigation = MutableStateFlow(false)
@@ -161,6 +161,7 @@ class ReaderState(
             readerSettingsRepository.getOcrSettings().collect { ocrSettings.value = it }
         }
     }
+
     val editingComicAnnotation = MutableStateFlow<snd.komelia.annotations.BookAnnotation?>(null)
     val pendingAnnotationPage = MutableStateFlow(0)
     val pendingAnnotationX = MutableStateFlow(0f)
@@ -407,29 +408,30 @@ class ReaderState(
         linearLightDownsampling.value = linear
         stateScope.launch { readerSettingsRepository.putLinearLightDownsampling(linear) }
     }
-fun onOcrSettingsChange(newSettings: OcrSettings) {
-    ocrSettings.value = newSettings
-    stateScope.launch { readerSettingsRepository.putOcrSettings(newSettings) }
-}
 
-fun scanCurrentPageForText(image: ReaderImage) {    stateScope.launch {
-        if (isOcrLoading.value) return@launch
-        ocrPageId.value = image.pageId
-        isOcrLoading.value = true
-        try {
-            val rawBoxes = ocrService.recognizeText(image, ocrSettings.value.selectedLanguage)
-            ocrResults.value = if (ocrSettings.value.mergeBoxes) {
-                mergeOcrBoxes(rawBoxes, readingDirection.value)
-            } else {
-                rawBoxes
+    fun onOcrSettingsChange(newSettings: OcrSettings) {
+        ocrSettings.value = newSettings
+        stateScope.launch { readerSettingsRepository.putOcrSettings(newSettings) }
+    }
+
+    fun scanCurrentPageForText(image: ReaderImage) {
+        stateScope.launch {
+            if (isOcrLoading.value) return@launch
+            ocrPageId.value = image.pageId
+            isOcrLoading.value = true
+            try {
+                val rawBoxes = ocrService.recognizeText(image, ocrSettings.value)
+                ocrResults.value = if (ocrSettings.value.mergeBoxes) {
+                    mergeOcrBoxes(rawBoxes, readingDirection.value)
+                } else rawBoxes
+            } catch (e: Exception) {
+                appNotifications.add(AppNotification.Error("OCR failed: ${e.message}"))
+            } finally {
+                isOcrLoading.value = false
             }
-        } catch (e: Exception) {
-            appNotifications.add(AppNotification.Error("OCR failed: ${e.message}"))
-        } finally {
-            isOcrLoading.value = false
         }
     }
-}
+
 
     fun onColorCorrectionDisable() {
         stateScope.launch {

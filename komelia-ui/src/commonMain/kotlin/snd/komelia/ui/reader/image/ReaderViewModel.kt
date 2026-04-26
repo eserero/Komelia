@@ -81,6 +81,7 @@ class ReaderViewModel(
     private val panelDetector: KomeliaPanelDetector?,
     private val upscaler: KomeliaUpscaler?,
     private val onnxModelDownloader: OnnxModelDownloader?,
+    private val ocrService: snd.komelia.image.OcrService,
     val colorCorrectionIsActive: Flow<Boolean>,
     onBookChange: () -> Unit = {},
 ) : ScreenModel {
@@ -128,6 +129,7 @@ class ReaderViewModel(
         readerSyncService = readerSyncService,
         komgaEvents = komgaEvents,
         pageChangeFlow = pageChangeFlow,
+        ocrService = ocrService,
     )
 
     val pagedReaderState = PagedReaderState(

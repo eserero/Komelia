@@ -1,9 +1,9 @@
 package snd.komelia.image
 
-import snd.komelia.settings.model.OcrLanguage
+import snd.komelia.settings.model.OcrSettings
 
 actual class OcrService {
-    actual suspend fun recognizeText(image: ReaderImage, language: OcrLanguage): List<OcrElementBox> {
+    actual suspend fun recognizeText(image: ReaderImage, settings: OcrSettings): List<OcrElementBox> {
         return emptyList()
     }
 }
