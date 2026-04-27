@@ -54,6 +54,7 @@ data class ImageReaderSettings(
     val panelReaderAdaptiveBackground: Boolean = true,
     val tapNavigationMode: ReaderTapNavigationMode = ReaderTapNavigationMode.LEFT_RIGHT,
     val panelDetectionUrl: String = PANEL_DETECTION_DEFAULT_GITHUB_URL,
+    val rapidOcrModelsUrl: String = RAPID_OCR_MODELS_DEFAULT_URL,
     val imageCacheSizeLimitMb: Long = 1024L,
 ) {
     companion object {
@@ -61,5 +62,7 @@ data class ImageReaderSettings(
             "https://github.com/Snd-R/komelia-onnxruntime/releases/download/model/rf-detr-med.onnx.zip"
         const val PANEL_DETECTION_DEFAULT_GITHUB_URL =
             "https://github.com/eserero/Sipurra/releases/download/model/rf-detr-med.onnx.zip"
+        const val RAPID_OCR_MODELS_DEFAULT_URL =
+            "https://github.com/eserero/Sipurra/releases/download/model/RapidOcrModels.zip"
     }
 }

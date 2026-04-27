@@ -31,6 +31,7 @@ class ImageReaderSettingsScreen : Screen {
                 onCacheClear = vm::onClearImageCache,
                 onnxRuntimeSettingsState = vm.onnxRuntimeSettingsState,
                 ncnnSettingsState = vm.ncnnSettingsState,
+                rapidOcrSettingsState = vm.rapidOcrSettingsState,
             )
         }
     }

@@ -22,6 +22,7 @@ import snd.komelia.ui.strings.AppStrings
 import snd.komelia.updates.AppUpdater
 import snd.komelia.updates.OnnxModelDownloader
 import snd.komelia.updates.OnnxRuntimeInstaller
+import snd.komelia.updates.RapidOcrModelDownloader
 import snd.komelia.updates.WhisperModelDownloader
 import snd.komf.client.KomfClientFactory
 
@@ -54,6 +55,7 @@ data class DependencyContainer(
     val onnxRuntimeInstaller: OnnxRuntimeInstaller?,
     val onnxModelDownloader: OnnxModelDownloader?,
     val whisperModelDownloader: WhisperModelDownloader?,
+    val rapidOcrModelDownloader: RapidOcrModelDownloader?,
     val onnxRuntime: OnnxRuntime?,
     val upscaler: KomeliaUpscaler?,
     val panelDetector: KomeliaPanelDetector?,

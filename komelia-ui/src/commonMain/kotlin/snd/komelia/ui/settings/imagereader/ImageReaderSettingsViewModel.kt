@@ -20,8 +20,10 @@ import snd.komelia.settings.CommonSettingsRepository
 import snd.komelia.settings.ImageReaderSettingsRepository
 import snd.komelia.ui.settings.imagereader.ncnn.NcnnSettingsState
 import snd.komelia.ui.settings.imagereader.onnxruntime.OnnxRuntimeSettingsState
+import snd.komelia.ui.settings.imagereader.rapidocr.RapidOcrSettingsState
 import snd.komelia.updates.OnnxModelDownloader
 import snd.komelia.updates.OnnxRuntimeInstaller
+import snd.komelia.updates.RapidOcrModelDownloader
 
 class ImageReaderSettingsViewModel(
     private val settingsRepository: ImageReaderSettingsRepository,
@@ -32,6 +34,7 @@ class ImageReaderSettingsViewModel(
     private val upscaler: KomeliaUpscaler?,
     private val panelDetector: KomeliaPanelDetector?,
     private val onnxModelDownloader: OnnxModelDownloader?,
+    private val rapidOcrModelDownloader: RapidOcrModelDownloader?,
     private val coilMemoryCache: MemoryCache?,
     private val coilDiskCache: DiskCache?,
     private val readerDiskCache: DiskCache?,
@@ -51,6 +54,12 @@ class ImageReaderSettingsViewModel(
 
     val ncnnSettingsState = NcnnSettingsState(
         onnxModelDownloader = onnxModelDownloader,
+        settingsRepository = settingsRepository,
+        coroutineScope = screenModelScope
+    )
+
+    val rapidOcrSettingsState = RapidOcrSettingsState(
+        rapidOcrModelDownloader = rapidOcrModelDownloader,
         settingsRepository = settingsRepository,
         coroutineScope = screenModelScope
     )
@@ -77,6 +86,7 @@ class ImageReaderSettingsViewModel(
         imageCacheSizeLimitMb.value = settingsRepository.getImageCacheSizeLimitMb().first()
         onnxRuntimeSettingsState.initialize()
         ncnnSettingsState.initialize()
+        rapidOcrSettingsState.initialize()
     }
 
     fun onUpsamplingModeChange(mode: UpsamplingMode) {

@@ -63,6 +63,7 @@ import snd.komelia.ui.strings.EnStrings
 import snd.komelia.updates.AppUpdater
 import snd.komelia.updates.OnnxModelDownloader
 import snd.komelia.updates.OnnxRuntimeInstaller
+import snd.komelia.updates.RapidOcrModelDownloader
 import snd.komelia.updates.UpdateClient
 import snd.komelia.updates.WhisperModelDownloader
 import snd.komf.client.KomfClientFactory
@@ -173,6 +174,7 @@ abstract class AppModule {
         val onnxRuntimeInstaller = createOnnxRuntimeInstaller(updateClient)
         val onnxModelDownloader = createOnnxModelDownloader(updateClient)
         val whisperModelDownloader = createWhisperModelDownloader(updateClient)
+        val rapidOcrModelDownloader = createRapidOcrModelDownloader(updateClient)
         val onnxRuntime = createOnnxRuntime()
 
         val upscaler = if (onnxRuntime != null && onnxModelDownloader != null) {
@@ -247,6 +249,7 @@ abstract class AppModule {
             onnxRuntimeInstaller = onnxRuntimeInstaller,
             onnxModelDownloader = onnxModelDownloader,
             whisperModelDownloader = whisperModelDownloader,
+            rapidOcrModelDownloader = rapidOcrModelDownloader,
             onnxRuntime = onnxRuntime,
             upscaler = upscaler,
             panelDetector = panelDetector,
@@ -382,6 +385,7 @@ abstract class AppModule {
     protected abstract fun createOnnxRuntimeInstaller(updateClient: UpdateClient): OnnxRuntimeInstaller?
     protected abstract fun createOnnxModelDownloader(updateClient: UpdateClient): OnnxModelDownloader?
     protected abstract fun createWhisperModelDownloader(updateClient: UpdateClient): WhisperModelDownloader?
+    protected abstract fun createRapidOcrModelDownloader(updateClient: UpdateClient): RapidOcrModelDownloader?
     protected abstract fun createOnnxRuntime(): OnnxRuntime?
     protected abstract suspend fun createUpscaler(
         onnxRuntime: OnnxRuntime,

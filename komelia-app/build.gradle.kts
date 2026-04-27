@@ -138,6 +138,7 @@ android {
         }
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1,README.txt}"
+            excludes += "**/*.onnx"
             pickFirsts += "/META-INF/versions/9/OSGI-INF/MANIFEST.MF"
         }
     }

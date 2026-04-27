@@ -92,6 +92,7 @@ import snd.komelia.updates.DesktopAppUpdater
 import snd.komelia.updates.DesktopOnnxModelDownloader
 import snd.komelia.updates.DesktopOnnxRuntimeInstaller
 import snd.komelia.updates.OnnxModelDownloader
+import snd.komelia.updates.RapidOcrModelDownloader
 import snd.komelia.updates.UpdateClient
 import snd.komelia.updates.WhisperModelDownloader
 import snd.komga.client.KomgaClientFactory
@@ -303,6 +304,8 @@ class DesktopAppModule(
         DesktopOnnxModelDownloader(updateClient, appNotifications)
 
     override fun createWhisperModelDownloader(updateClient: UpdateClient): WhisperModelDownloader? = null
+
+    override fun createRapidOcrModelDownloader(updateClient: UpdateClient): RapidOcrModelDownloader? = null
 
     override fun createOnnxRuntime(): OnnxRuntime? {
         if (!OnnxRuntimeSharedLibraries.isAvailable) {

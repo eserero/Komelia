@@ -714,6 +714,7 @@ class ViewModelFactory(
             panelDetector = dependencies.panelDetector,
             onnxRuntimeInstaller = dependencies.onnxRuntimeInstaller,
             onnxModelDownloader = dependencies.onnxModelDownloader,
+            rapidOcrModelDownloader = dependencies.rapidOcrModelDownloader,
 
             coilMemoryCache = dependencies.coilImageLoader.memoryCache,
             coilDiskCache = dependencies.coilImageLoader.diskCache,

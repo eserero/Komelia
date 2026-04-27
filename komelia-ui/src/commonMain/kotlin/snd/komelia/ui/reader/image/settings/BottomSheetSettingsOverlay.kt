@@ -86,13 +86,15 @@ import snd.komelia.image.UpsamplingMode
 import snd.komelia.komga.api.model.KomeliaBook
 import snd.komelia.settings.model.ContinuousReadingDirection
 import snd.komelia.settings.model.LayoutScaleType
+import snd.komelia.settings.model.PagedReadingDirection
 import snd.komelia.settings.model.ReaderTapNavigationMode
 import snd.komelia.settings.model.PageDisplayLayout
 import snd.komelia.settings.model.OcrEngine
 import snd.komelia.settings.model.OcrLanguage
 import snd.komelia.settings.model.OcrSettings
-import snd.komelia.settings.model.PagedReadingDirection
 import snd.komelia.settings.model.PanelsFullPageDisplayMode
+import snd.komelia.settings.model.RapidOcrModel
+
 import snd.komelia.settings.model.ReaderFlashColor
 import snd.komelia.settings.model.ReaderType
 import snd.komelia.settings.model.ReaderType.CONTINUOUS
@@ -1180,6 +1182,24 @@ private fun OcrModeSettings(
                             onClick = { onOcrSettingsChange(ocrSettings.copy(selectedLanguage = language)) },
                             colors = accentInputChipColors(),
                             label = { Text(language.name) }
+                        )
+                    }
+                }
+            }
+        }
+
+        AnimatedVisibility(ocrSettings.engine == OcrEngine.RAPID_OCR) {
+            Column {
+                Text("RapidOCR Model")
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    RapidOcrModel.entries.forEach { model ->
+                        InputChip(
+                            selected = ocrSettings.rapidOcrModel == model,
+                            onClick = { onOcrSettingsChange(ocrSettings.copy(rapidOcrModel = model)) },
+                            colors = accentInputChipColors(),
+                            label = { Text(model.name.replace("_", " ")) }
                         )
                     }
                 }

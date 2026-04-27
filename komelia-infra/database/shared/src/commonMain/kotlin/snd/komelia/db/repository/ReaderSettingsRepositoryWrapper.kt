@@ -271,6 +271,14 @@ class ReaderSettingsRepositoryWrapper(
         wrapper.transform { it.copy(panelDetectionUrl = url) }
     }
 
+    override fun getRapidOcrModelsUrl(): Flow<String> {
+        return wrapper.mapState { it.rapidOcrModelsUrl }
+    }
+
+    override suspend fun putRapidOcrModelsUrl(url: String) {
+        wrapper.transform { it.copy(rapidOcrModelsUrl = url) }
+    }
+
     override fun getImageCacheSizeLimitMb(): Flow<Long> {
         return wrapper.mapState { it.imageCacheSizeLimitMb }
     }

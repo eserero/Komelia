@@ -128,20 +128,22 @@ To achieve the full process of **identifying**, **highlighting**, and **converti
 
 ## 5. Download Links (ONNX Format)
 
-These models are pre-converted for ONNXRuntime. Download them and place them in your `app/src/main/assets/` folder.
+These models are pre-converted for ONNXRuntime. For convenience, all supported models are packaged into a single ZIP file hosted on GitHub.
 
-### Universal Models
-*   **Detection (v4):** [ch_PP-OCRv4_det_infer.onnx](https://huggingface.co/SWHL/RapidOCR/resolve/main/ch_PP-OCRv4_det_infer.onnx)
-*   **Classification (v2):** [ch_ppocr_mobile_v2.0_cls_infer.onnx](https://huggingface.co/SWHL/RapidOCR/resolve/main/ch_ppocr_mobile_v2.0_cls_infer.onnx)
+*   **Release URL:** [RapidOcrModels.zip](https://github.com/eserero/Sipurra/releases/download/model/RapidOcrModels.zip) (~66 MB)
 
-### Recognition Models (Language Specific)
-*   **English/Chinese (v4):** [ch_PP-OCRv4_rec_infer.onnx](https://huggingface.co/SWHL/RapidOCR/resolve/main/ch_PP-OCRv4_rec_infer.onnx)
-*   **English (v4):** [en_PP-OCRv4_rec_infer.onnx](https://huggingface.co/breezedeus/cnocr-ppocr-en_PP-OCRv4/resolve/main/en_PP-OCRv4_rec_infer.onnx)
-*   **Latin Multilingual (v3):** [latin_PP-OCRv3_rec_infer.onnx](https://huggingface.co/SWHL/RapidOCR/resolve/main/latin_PP-OCRv3_rec_infer.onnx)
-*   **Japanese (v4):** [japan_PP-OCRv4_rec_infer.onnx](https://huggingface.co/SWHL/RapidOCR/resolve/main/japan_PP-OCRv4_rec_infer.onnx)
-*   **Korean (v4):** [korean_PP-OCRv4_rec_infer.onnx](https://huggingface.co/SWHL/RapidOCR/resolve/main/korean_PP-OCRv4_rec_infer.onnx)
-*   **Arabic (v4):** [arabic_PP-OCRv4_rec_infer.onnx](https://huggingface.co/SWHL/RapidOCR/resolve/main/arabic_PP-OCRv4_rec_infer.onnx)
-*   **Hebrew (v3):** [he_PP-OCRv3_rec_infer.onnx](https://huggingface.co/SWHL/RapidOCR/resolve/main/he_PP-OCRv3_rec_infer.onnx)
+### Included Models (Renamed for App)
+| Task | Original Model | Filename in ZIP |
+| :--- | :--- | :--- |
+| **Detection** | `ch_PP-OCRv4_det` | `ch_PP-OCRv4_det_infer.onnx` |
+| **Classification**| `ch_ppocr_v2.0_cls` | `ch_ppocr_mobile_v2.0_cls_infer.onnx` |
+| **Rec (EN/ZH)** | `ch_PP-OCRv4_rec` | `ch_PP-OCRv4_rec_infer.onnx` |
+| **Rec (EN Only)** | `en_PP-OCRv4_rec` | `en_PP-OCRv4_rec_infer.onnx` |
+| **Rec (Latin)** | `latin_PP-OCRv3_rec` | `latin_PP-OCRv3_rec_infer.onnx` |
+| **Rec (Japanese)**| `japan_PP-OCRv4_rec` | `japan_PP-OCRv4_rec_infer.onnx` |
+| **Rec (Korean)** | `korean_PP-OCRv4_rec` | `korean_PP-OCRv4_rec_infer.onnx` |
+| **Rec (Arabic)** | `arabic_PP-OCRv4_rec` | `arabic_PP-OCRv4_rec_infer.onnx` |
+| **Rec (Hebrew)** | `he_PP-OCRv3_rec` | `<currently missing from ZIP>` |
 
 ---
 

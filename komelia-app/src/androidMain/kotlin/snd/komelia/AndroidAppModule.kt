@@ -92,9 +92,11 @@ import snd.komelia.settings.AppSettingsSerializer
 import snd.komelia.settings.ImageReaderSettingsRepository
 import snd.komelia.updates.AndroidAppUpdater
 import snd.komelia.updates.AndroidOnnxModelDownloader
+import snd.komelia.updates.AndroidRapidOcrModelDownloader
 import snd.komelia.updates.AndroidWhisperModelDownloader
 import snd.komelia.updates.AppUpdater
 import snd.komelia.updates.OnnxModelDownloader
+import snd.komelia.updates.RapidOcrModelDownloader
 import snd.komelia.updates.UpdateClient
 import snd.komelia.updates.WhisperModelDownloader
 import snd.komga.client.KomgaClientFactory
@@ -331,6 +333,13 @@ class AndroidAppModule(
         AndroidWhisperModelDownloader(
             updateClient = updateClient,
             filesDir = context.filesDir,
+        )
+
+    override fun createRapidOcrModelDownloader(updateClient: UpdateClient): RapidOcrModelDownloader =
+        AndroidRapidOcrModelDownloader(
+            updateClient = updateClient,
+            appNotifications = appNotifications,
+            dataDir = context.filesDir.toPath()
         )
 
     override fun createOnnxRuntime(): OnnxRuntime? {

@@ -15,6 +15,9 @@ import snd.komelia.ui.settings.imagereader.ncnn.*
 import snd.komelia.ui.settings.imagereader.onnxruntime.OnnxRuntimeSettingsContent
 import snd.komelia.ui.settings.imagereader.onnxruntime.OnnxRuntimeSettingsState
 import snd.komelia.ui.settings.imagereader.onnxruntime.isOnnxRuntimeSupported
+import snd.komelia.ui.settings.imagereader.rapidocr.RapidOcrSettingsContent
+import snd.komelia.ui.settings.imagereader.rapidocr.RapidOcrSettingsState
+import snd.komelia.ui.settings.imagereader.rapidocr.isRapidOcrSupported
 
 @Composable
 fun ImageReaderSettingsContent(
@@ -33,6 +36,7 @@ fun ImageReaderSettingsContent(
     onCacheClear: () -> Unit,
     onnxRuntimeSettingsState: OnnxRuntimeSettingsState,
     ncnnSettingsState: NcnnSettingsState,
+    rapidOcrSettingsState: RapidOcrSettingsState,
 ) {
     var showLogs by remember { mutableStateOf(false) }
     var showCrashLogs by remember { mutableStateOf(false) }
@@ -122,6 +126,16 @@ fun ImageReaderSettingsContent(
                 settings = ncnnSettingsState.ncnnUpscalerSettings.collectAsState().value,
                 onSettingsChange = ncnnSettingsState::onSettingsChange,
                 onDownloadRequest = ncnnSettingsState::onNcnnDownloadRequest
+            )
+        }
+
+        if (isRapidOcrSupported()) {
+            HorizontalDivider(Modifier.padding(vertical = 10.dp))
+            RapidOcrSettingsContent(
+                isDownloaded = rapidOcrSettingsState.isDownloaded.collectAsState().value,
+                rapidOcrModelsUrl = rapidOcrSettingsState.rapidOcrModelsUrl.collectAsState().value,
+                onRapidOcrModelsUrlChange = rapidOcrSettingsState::onRapidOcrModelsUrlChange,
+                downloadFlow = rapidOcrSettingsState::downloadFlow
             )
         }
 

@@ -17,11 +17,13 @@ import snd.komelia.settings.model.ContinuousReadingDirection
 import snd.komelia.settings.model.LayoutScaleType
 import snd.komelia.settings.model.NcnnEngine
 import snd.komelia.settings.model.NcnnUpscalerSettings
+import snd.komelia.settings.model.OcrEngine
 import snd.komelia.settings.model.OcrLanguage
 import snd.komelia.settings.model.OcrSettings
 import snd.komelia.settings.model.PageDisplayLayout
 import snd.komelia.settings.model.PagedReadingDirection
 import snd.komelia.settings.model.PanelsFullPageDisplayMode
+import snd.komelia.settings.model.RapidOcrModel
 import snd.komelia.settings.model.ReaderFlashColor
 import snd.komelia.settings.model.ReaderTapNavigationMode
 import snd.komelia.settings.model.ReaderType
@@ -52,6 +54,8 @@ class ExposedImageReaderSettingsRepository(database: Database) : ExposedReposito
                         ocrSettings = OcrSettings(
                             enabled = it[ImageReaderSettingsTable.ocrEnabled],
                             selectedLanguage = OcrLanguage.valueOf(it[ImageReaderSettingsTable.ocrLanguage]),
+                            engine = OcrEngine.valueOf(it[ImageReaderSettingsTable.ocrEngine]),
+                            rapidOcrModel = RapidOcrModel.valueOf(it[ImageReaderSettingsTable.ocrRapidOcrModel]),
                             mergeBoxes = it[ImageReaderSettingsTable.ocrMergeBoxes],
                         ),
                         pagedScaleType = LayoutScaleType.valueOf(it[ImageReaderSettingsTable.pagedScaleType]),
@@ -84,6 +88,7 @@ class ExposedImageReaderSettingsRepository(database: Database) : ExposedReposito
                         tapNavigationMode = it[ImageReaderSettingsTable.tapNavigationMode]
                             .let { mode -> ReaderTapNavigationMode.valueOf(mode) },
                         panelDetectionUrl = it[ImageReaderSettingsTable.panelDetectionUrl],
+                        rapidOcrModelsUrl = it[ImageReaderSettingsTable.rapidOcrModelsUrl],
                         imageCacheSizeLimitMb = it[ImageReaderSettingsTable.imageCacheSizeLimitMb],
                     )
                 }
@@ -109,6 +114,8 @@ class ExposedImageReaderSettingsRepository(database: Database) : ExposedReposito
 
                 it[ocrEnabled] = settings.ocrSettings.enabled
                 it[ocrLanguage] = settings.ocrSettings.selectedLanguage.name
+                it[ocrEngine] = settings.ocrSettings.engine.name
+                it[ocrRapidOcrModel] = settings.ocrSettings.rapidOcrModel.name
                 it[ocrMergeBoxes] = settings.ocrSettings.mergeBoxes
 
                 it[pagedScaleType] = settings.pagedScaleType.name
@@ -138,6 +145,7 @@ class ExposedImageReaderSettingsRepository(database: Database) : ExposedReposito
                 it[panelReaderAdaptiveBackground] = settings.panelReaderAdaptiveBackground
                 it[tapNavigationMode] = settings.tapNavigationMode.name
                 it[panelDetectionUrl] = settings.panelDetectionUrl
+                it[rapidOcrModelsUrl] = settings.rapidOcrModelsUrl
                 it[imageCacheSizeLimitMb] = settings.imageCacheSizeLimitMb
             }
         }
