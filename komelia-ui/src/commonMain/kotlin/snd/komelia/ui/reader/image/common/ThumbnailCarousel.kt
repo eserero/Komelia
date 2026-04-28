@@ -14,8 +14,7 @@ import androidx.compose.material3.Text
 import androidx.compose.ui.Alignment
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import snd.komelia.ui.reader.image.PageMetadata
@@ -35,8 +34,8 @@ fun ThumbnailCarousel(
         state = lazyListState,
         flingBehavior = flingBehavior,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
-        contentPadding = PaddingValues(horizontal = 0.dp),
-        modifier = modifier.height(150.dp)
+        contentPadding = PaddingValues(horizontal = 0.dp, vertical = 8.dp),
+        modifier = modifier.height(180.dp)
     ) {
         itemsIndexed(
             items = pages,
@@ -44,7 +43,7 @@ fun ThumbnailCarousel(
         ) { index, page ->
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
                     text = (index + 1).toString(),
@@ -54,6 +53,7 @@ fun ThumbnailCarousel(
                 BookPageThumbnail(
                     page = page,
                     useRoundedCorners = false,
+                    isCurrentPage = index == currentPageIndex,
                     modifier = Modifier
                         .fillMaxHeight()
                         .aspectRatio(0.7f)
@@ -63,9 +63,13 @@ fun ThumbnailCarousel(
         }
     }
 
-    LaunchedEffect(currentPageIndex) {
-        if (lazyListState.firstVisibleItemIndex != currentPageIndex) {
-            lazyListState.scrollToItem(currentPageIndex)
+    var initialScrollDone by remember { mutableStateOf(false) }
+    val viewportWidth = lazyListState.layoutInfo.viewportSize.width
+    LaunchedEffect(viewportWidth) {
+        if (!initialScrollDone && viewportWidth > 0) {
+            val offset = -(viewportWidth / 2) + 150
+            lazyListState.scrollToItem(currentPageIndex, offset)
+            initialScrollDone = true
         }
     }
 }

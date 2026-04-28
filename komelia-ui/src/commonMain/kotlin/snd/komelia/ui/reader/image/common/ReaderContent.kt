@@ -86,6 +86,11 @@ fun ReaderContent(
 ) {
     var showHelpDialog by remember { mutableStateOf(false) }
     var showSettingsMenu by remember { mutableStateOf(false) }
+    LaunchedEffect(showSettingsMenu) {
+        if (!showSettingsMenu) {
+            commonReaderState.showCarousel.value = false
+        }
+    }
     var showImageContextMenu by remember { mutableStateOf(false) }
     var showComicContentDialog by remember { mutableStateOf(false) }
     var contextMenuAnchorOffset by remember { mutableStateOf(Offset.Zero) }

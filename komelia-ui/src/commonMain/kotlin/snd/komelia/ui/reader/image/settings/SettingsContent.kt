@@ -212,7 +212,6 @@ fun BoxScope.SettingsOverlay(
                         PANELS -> panelsReaderState?.onPageChange(it)
                         CONTINUOUS -> coroutineScope.launch { continuousReaderState.scrollToBookPage(it + 1) }
                     }
-                    commonReaderState.onToggleCarousel()
                 },
                 modifier = Modifier.fillMaxWidth()
                     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f))

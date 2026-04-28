@@ -1001,7 +1001,6 @@ fun ImageReaderControlsCardNewUI(
                     currentPageIndex = currentPageIndex,
                     onPageChange = {
                         onPageNumberChange(it)
-                        onToggleCarousel()
                     },
                     modifier = Modifier.fillMaxWidth()
                 )
