@@ -119,6 +119,7 @@ class ReaderState(
     val imageStretchToFit = MutableStateFlow(true)
     val cropBorders = MutableStateFlow(false)
     val loadThumbnailPreviews = MutableStateFlow(true)
+    val showCarousel = MutableStateFlow(false)
     val readProgressPage = MutableStateFlow(1)
 
     val upsamplingMode = MutableStateFlow(UpsamplingMode.NEAREST)
@@ -373,6 +374,10 @@ class ReaderState(
     fun onLoadThumbnailPreviewsChange(load: Boolean) {
         loadThumbnailPreviews.value = load
         stateScope.launch { readerSettingsRepository.putLoadThumbnailPreviews(load) }
+    }
+
+    fun onToggleCarousel() {
+        showCarousel.value = !showCarousel.value
     }
 
     fun onFlashEnabledChange(enabled: Boolean) {
