@@ -30,6 +30,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.height
@@ -49,6 +50,7 @@ import androidx.compose.material.icons.rounded.GridView
 import androidx.compose.material.icons.automirrored.rounded.MenuBook
 import androidx.compose.material.icons.rounded.TextFields
 import androidx.compose.material.icons.rounded.Tune
+import androidx.compose.material.icons.rounded.ViewCarousel
 import androidx.compose.material.icons.rounded.ViewStream
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -1004,15 +1006,29 @@ fun ImageReaderControlsCardNewUI(
                     },
                     modifier = Modifier.fillMaxWidth()
                 )
-            } else {
+                } else {
                 Column {
-                    Text(
-                        text = "Page ${currentPageIndex + 1} of ${pages.size}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth().clickable { onToggleCarousel() },
-                    )
+                    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        Row(
+                            modifier = Modifier.clickable { onToggleCarousel() },
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.ViewCarousel,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                modifier = Modifier.size(20.dp).padding(end = 4.dp).offset(y = (-2).dp)
+                            )
+                            Text(
+                                text = "Page ${currentPageIndex + 1} of ${pages.size}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.offset(y = (-2).dp)
+                            )
+                        }
+                    }
 
                     ProgressSlider(
                         pages = pages,

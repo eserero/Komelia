@@ -72,5 +72,35 @@ fun ThumbnailCarousel(
             initialScrollDone = true
         }
     }
+
+    LaunchedEffect(currentPageIndex) {
+        if (initialScrollDone) {
+            val layoutInfo = lazyListState.layoutInfo
+            val visibleItems = layoutInfo.visibleItemsInfo
+            val viewportWidth = layoutInfo.viewportSize.width
+            val itemInfo = visibleItems.find { it.index == currentPageIndex }
+
+            if (itemInfo == null) {
+                val firstVisible = visibleItems.firstOrNull()?.index ?: 0
+                if (currentPageIndex < firstVisible) {
+                    lazyListState.animateScrollToItem(currentPageIndex)
+                } else {
+                    val lastItemSize = visibleItems.lastOrNull()?.size ?: 0
+                    lazyListState.animateScrollToItem(currentPageIndex, -(viewportWidth - lastItemSize))
+                }
+            } else {
+                val isFullyVisible = itemInfo.offset >= 0 &&
+                        itemInfo.offset + itemInfo.size <= viewportWidth
+
+                if (!isFullyVisible) {
+                    if (itemInfo.offset < 0) {
+                        lazyListState.animateScrollToItem(currentPageIndex)
+                    } else {
+                        lazyListState.animateScrollToItem(currentPageIndex, -(viewportWidth - itemInfo.size))
+                    }
+                }
+            }
+        }
+    }
 }
 
