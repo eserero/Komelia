@@ -983,7 +983,10 @@ fun ImageReaderControlsCardNewUI(
     val ncnnSettings by ncnnSettingsState.ncnnUpscalerSettings.collectAsState()
     val showUpscale = isNcnnSupported()
 
-    ReaderControlsCard(modifier = modifier) {
+    ReaderControlsCard(
+        modifier = modifier,
+        isFullWidth = showCarousel
+    ) {
         AnimatedContent(
             targetState = showCarousel,
             transitionSpec = {

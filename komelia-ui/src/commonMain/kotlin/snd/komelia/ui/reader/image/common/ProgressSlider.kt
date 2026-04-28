@@ -300,11 +300,13 @@ fun BookPageThumbnail(
     page: PageMetadata,
 //    image: ImageResult?,
     modifier: Modifier,
+    useRoundedCorners: Boolean = true
 ) {
+    val shape = if (useRoundedCorners) RoundedCornerShape(12.dp) else RoundedCornerShape(0.dp)
     Column(
         modifier = modifier
-            .border(BorderStroke(2.dp, MaterialTheme.colorScheme.surface), RoundedCornerShape(12.dp))
-            .clip(RoundedCornerShape(12.dp))
+            .border(BorderStroke(2.dp, MaterialTheme.colorScheme.surface), shape)
+            .clip(shape)
             .background(MaterialTheme.colorScheme.surfaceVariant),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally

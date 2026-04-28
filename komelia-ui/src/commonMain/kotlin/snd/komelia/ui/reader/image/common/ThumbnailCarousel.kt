@@ -8,6 +8,10 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.ui.Alignment
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
@@ -31,20 +35,31 @@ fun ThumbnailCarousel(
         state = lazyListState,
         flingBehavior = flingBehavior,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
-        contentPadding = PaddingValues(horizontal = 16.dp),
-        modifier = modifier.height(200.dp)
+        contentPadding = PaddingValues(horizontal = 0.dp),
+        modifier = modifier.height(150.dp)
     ) {
         itemsIndexed(
             items = pages,
             key = { _, page -> page.toPageId().toString() }
         ) { index, page ->
-            BookPageThumbnail(
-                page = page,
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .aspectRatio(0.7f)
-                    .clickable { onPageChange(index) }
-            )
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = (index + 1).toString(),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                BookPageThumbnail(
+                    page = page,
+                    useRoundedCorners = false,
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .aspectRatio(0.7f)
+                        .clickable { onPageChange(index) }
+                )
+            }
         }
     }
 
