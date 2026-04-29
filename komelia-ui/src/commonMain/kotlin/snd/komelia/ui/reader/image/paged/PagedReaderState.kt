@@ -253,6 +253,7 @@ class PagedReaderState(
     }
 
     fun nextPage() {
+        readerState.navigationHistory.dismissBackButton()
         val currentSpreadIndex = currentSpreadIndex.value
         val currentTransitionPage = transitionPage.value
         when {
@@ -279,8 +280,10 @@ class PagedReaderState(
         }
     }
 
-    fun previousPage() {
+    fun prevPage() {
+        readerState.navigationHistory.dismissBackButton()
         val currentSpreadIndex = currentSpreadIndex.value
+
         val currentTransitionPage = transitionPage.value
         when {
             currentSpreadIndex != 0 -> {

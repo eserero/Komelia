@@ -75,6 +75,7 @@ import snd.komelia.ui.platform.CommonParcelable
 import snd.komelia.ui.platform.CommonParcelize
 import snd.komelia.ui.platform.CommonParcelizeRawValue
 import snd.komelia.ui.series.SeriesScreen
+import snd.komelia.ui.reader.common.NavigationHistory
 import snd.komga.client.book.KomgaBookId
 import snd.komga.client.book.KomgaBookReadProgressUpdateRequest
 import snd.komga.client.common.KomgaReadingDirection
@@ -104,6 +105,7 @@ class ReaderState(
     val pageChangeFlow: SharedFlow<Unit>,
     private val ocrService: OcrService,
 ) {
+    val navigationHistory = NavigationHistory()
     private val currentSyncBlob = MutableStateFlow<String?>(null)
     private val previewLoadScope = CoroutineScope(Dispatchers.Default.limitedParallelism(1) + SupervisorJob())
     private val progressUpdateChannel = Channel<Int>(Channel.CONFLATED)

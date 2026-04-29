@@ -120,6 +120,8 @@ import snd.komelia.ui.common.components.SwitchWithLabel
 import snd.komelia.ui.common.components.accentInputChipColors
 import snd.komelia.ui.platform.WindowSizeClass.COMPACT
 import snd.komelia.ui.platform.cursorForHand
+import snd.komelia.ui.reader.common.ImagePageLocation
+import snd.komelia.ui.reader.common.NavigationSource
 import snd.komelia.ui.reader.ReaderControlsCard
 import snd.komelia.ui.reader.image.PageMetadata
 import snd.komelia.ui.reader.image.ReaderState
@@ -281,11 +283,26 @@ fun BottomSheetSettingsOverlay(
                 ImageReaderControlsCardNewUI(
                     pages = pages,
                     currentPageIndex = currentPageIndex,
-                    onPageNumberChange = {
+                    onSliderPageChange = {
+                        commonReaderState.navigationHistory.addEntry(
+                            NavigationSource.SLIDER,
+                            ImagePageLocation(currentPageIndex)
+                        )
                         when (readerType) {
-                            PAGED -> pagedReaderState.onPageChange(it)
-                            CONTINUOUS -> coroutineScope.launch { continuousReaderState.scrollToBookPage(it + 1) }
-                            PANELS -> panelsReaderState?.onPageChange(it)
+                            ReaderType.PAGED -> pagedReaderState.jumpToPage(it)
+                            ReaderType.CONTINUOUS -> coroutineScope.launch { continuousReaderState.scrollToBookPage(it + 1) }
+                            ReaderType.PANELS -> panelsReaderState?.jumpToPage(it)
+                        }
+                    },
+                    onCarouselPageChange = {
+                        commonReaderState.navigationHistory.addEntry(
+                            NavigationSource.CAROUSEL,
+                            ImagePageLocation(currentPageIndex)
+                        )
+                        when (readerType) {
+                            ReaderType.PAGED -> pagedReaderState.jumpToPage(it)
+                            ReaderType.CONTINUOUS -> coroutineScope.launch { continuousReaderState.scrollToBookPage(it + 1) }
+                            ReaderType.PANELS -> panelsReaderState?.jumpToPage(it)
                         }
                     },
                     loadThumbnailPreviews = loadThumbnailPreviews,
@@ -965,7 +982,8 @@ internal fun ReaderModeIconButton(
 fun ImageReaderControlsCardNewUI(
     pages: List<PageMetadata>,
     currentPageIndex: Int,
-    onPageNumberChange: (Int) -> Unit,
+    onSliderPageChange: (Int) -> Unit,
+    onCarouselPageChange: (Int) -> Unit,
     loadThumbnailPreviews: Boolean,
     readerType: ReaderType,
     onReaderTypeChange: (ReaderType) -> Unit,
@@ -1002,7 +1020,7 @@ fun ImageReaderControlsCardNewUI(
                     pages = pages,
                     currentPageIndex = currentPageIndex,
                     onPageChange = {
-                        onPageNumberChange(it)
+                        onCarouselPageChange(it)
                     },
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -1033,8 +1051,9 @@ fun ImageReaderControlsCardNewUI(
                     ProgressSlider(
                         pages = pages,
                         currentPageIndex = currentPageIndex,
-                        onPageNumberChange = onPageNumberChange,
+                        onPageNumberChange = onSliderPageChange,
                         loadThumbnailPreviews = loadThumbnailPreviews,
+
                         show = true,
                         layoutDirection = androidx.compose.ui.unit.LayoutDirection.Ltr, // TODO: handle RTL
                         isBare = true,

@@ -57,6 +57,7 @@ import snd.komelia.ui.reader.image.paged.PagedReaderState.TransitionPage.BookSta
 import snd.komelia.ui.reader.image.common.AdaptiveBackground
 import kotlin.math.abs
 
+import androidx.compose.foundation.interaction.DragInteraction
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.toSize
@@ -156,7 +157,7 @@ fun BoxScope.PagedReaderContent(
     ReaderControlsOverlay(
         readingDirection = layoutDirection,
         onNexPageClick = { coroutineScope.launch { pagedReaderState.nextPage() } },
-        onPrevPageClick = { coroutineScope.launch { pagedReaderState.previousPage() } },
+        onPrevPageClick = { coroutineScope.launch { pagedReaderState.prevPage() } },
         contentAreaSize = currentContainerSize,
         scaleState = screenScaleState,
         tapToZoom = tapToZoom,
@@ -176,7 +177,7 @@ fun BoxScope.PagedReaderContent(
                 onPageChange = pagedReaderState::onPageChange,
                 onMoveToLastPage = pagedReaderState::moveToLastPage,
                 onMoveToNextPage = { coroutineScope.launch { pagedReaderState.nextPage() } },
-                onMoveToPrevPage = { coroutineScope.launch { pagedReaderState.previousPage() } },
+                onMoveToPrevPage = { coroutineScope.launch { pagedReaderState.prevPage() } },
                 volumeKeysNavigation = volumeKeysNavigation
             )
         }
