@@ -17,8 +17,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.input.delete
-import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
@@ -43,20 +41,24 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.PopupProperties
-import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import snd.komelia.komga.api.model.KomeliaBook
 import snd.komelia.ui.common.cards.BookSimpleImageCard
 import snd.komelia.ui.common.cards.SeriesSimpleImageCard
@@ -84,50 +86,40 @@ fun SearchBarWithResults(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
-    val textFieldState = rememberTextFieldState(initialText = query)
-    val searchBarState = rememberSearchBarState()
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val focusRequester = remember { FocusRequester() }
 
-    // Sync TextFieldState → ViewModel
-    LaunchedEffect(textFieldState) {
-        snapshotFlow { textFieldState.text.toString() }
-            .distinctUntilChanged()
-            .collect { onQueryChange(it) }
-    }
-
-    // Auto-expand when the composable first enters the composition
+    // Auto-focus and show keyboard
     LaunchedEffect(startExpanded) {
-        if (startExpanded) searchBarState.animateToExpanded()
+        if (startExpanded) {
+            delay(500)
+            focusRequester.requestFocus()
+            keyboardController?.show()
+        }
     }
 
-    Column(modifier = modifier.padding(start = 8.dp, end = 8.dp, top = 8.dp)) {
+    Column(modifier = modifier.padding(horizontal = 8.dp, vertical = 8.dp)) {
         SearchBar(
-            state = searchBarState,
+            modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
             inputField = {
                 SearchBarDefaults.InputField(
-                    textFieldState = textFieldState,
-                    searchBarState = searchBarState,
-                    onSearch = {},
+                    query = query,
+                    onQueryChange = onQueryChange,
+                    onSearch = { keyboardController?.hide() },
+                    expanded = false,
+                    onExpandedChange = {},
                     placeholder = { Text("Search") },
                     leadingIcon = {
-                        if (searchBarState.currentValue == SearchBarValue.Expanded) {
-                            IconButton(onClick = onBack) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                    contentDescription = "Back"
-                                )
-                            }
-                        } else {
+                        IconButton(onClick = onBack) {
                             Icon(
-                                imageVector = Icons.Filled.Search,
-                                contentDescription = "Search"
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back"
                             )
                         }
                     },
                     trailingIcon = {
-                        if (textFieldState.text.isNotEmpty()) {
-                            IconButton(onClick = {
-                                textFieldState.edit { delete(0, length) }
-                            }) {
+                        if (query.isNotEmpty()) {
+                            IconButton(onClick = { onQueryChange("") }) {
                                 Icon(
                                     imageVector = Icons.Filled.Close,
                                     contentDescription = "Clear"
@@ -136,20 +128,25 @@ fun SearchBarWithResults(
                         }
                     }
                 )
-            }
+            },
+            expanded = false,
+            onExpandedChange = {},
+            content = {}
         )
 
         if (isLoading) {
-            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            LinearProgressIndicator(modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
         }
 
-        content()
+        Box(Modifier.fillMaxWidth().weight(1f)) {
+            content()
+        }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SearchBar(
+fun ResultsSearchBar(
     modifier: Modifier = Modifier,
     searchResults: SearchResults,
     query: String,
